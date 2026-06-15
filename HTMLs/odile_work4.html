@@ -39,14 +39,12 @@
      unfolds with the same grid/opacity animation as the menu categories */
   #info{
     position:fixed;top:75px;right:var(--pad);
-    display:grid;grid-template-rows:0fr;
-    overflow:hidden;
+    max-height:0;overflow:hidden;
     text-align:right;max-width:240px;
-    transition:grid-template-rows .4s ease;
+    transition:max-height .4s ease;
   }
-  #info.show{grid-template-rows:1fr;}
   #infoInner{
-    display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-height:0;
+    display:flex;flex-direction:column;align-items:flex-end;gap:3px;
     opacity:0;transition:opacity .25s ease;
   }
   #info.show #infoInner{opacity:1;transition-delay:.1s;}
@@ -358,6 +356,17 @@ const cvBtn=document.getElementById('cvBtn');
 const cvPanel=document.getElementById('cv');
 const centerPanel=document.getElementById('center');
 const infoPanel=document.getElementById('info');
+const infoInnerEl=document.getElementById('infoInner');
+/* unfold/fold #info exactly like a menu category — animate max-height
+   to the panel's measured content height, same .4s/.25s timing as
+   .menu-items/.menu-items-inner */
+function setInfoOpen(open){
+  infoPanel.classList.toggle('show',open);
+  infoPanel.style.maxHeight=open?infoInnerEl.scrollHeight+'px':'0px';
+}
+window.addEventListener('resize',()=>{
+  if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
+},{passive:true});
 function isDesktop(){return window.matchMedia('(min-width:1321px)').matches;}
 function isMobile(){return window.matchMedia('(max-width:640px)').matches;}
 function toggleCV(force){
@@ -389,7 +398,8 @@ infoBtn.addEventListener('click',e=>{
 
   /* desktop — the button just reveals/hides the #info panel, label stays "info" */
   if(isDesktop()){
-    const open=infoPanel.classList.toggle('show');
+    const open=!infoPanel.classList.contains('show');
+    setInfoOpen(open);
     infoBtn.classList.toggle('active',open);
     if(!open&&cvOpen)toggleCV(false);
     return;
