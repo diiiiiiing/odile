@@ -12,6 +12,10 @@
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
   }
+  body.dark{
+    --bg:#0a0a0a; --fg:#f5f5f5;
+    --dim1:rgba(255,255,255,.55); --dim2:rgba(255,255,255,.3);
+  }
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
   html,body{
     width:100%;height:100%;
@@ -20,16 +24,18 @@
     font-size:var(--fs);line-height:1.7;
     letter-spacing:.02em;text-transform:uppercase;
     overflow:hidden;cursor:none;
+    transition:background-color .4s ease,color .4s ease;
   }
   body{animation:fadeIn .6s ease both;}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
   /* reactive iridescent background, same as the hub */
-  .bg-iri{position:fixed;inset:0;z-index:0;background-color:var(--bg);}
+  .bg-iri{position:fixed;inset:0;z-index:0;background-color:var(--bg);transition:background-color .4s ease;}
 
-  #cur{position:fixed;width:5px;height:5px;background:#000;
-    box-shadow:0 0 5px 0px rgba(0,0,0,.35);
-    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+  #cur{position:fixed;width:5px;height:5px;background:var(--fg);
+    box-shadow:0 0 5px 0px var(--dim2);
+    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);
+    transition:background-color .4s ease;}
 
   #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
     opacity:0;pointer-events:none;transition:opacity .7s ease;}
@@ -233,6 +239,7 @@
     <a href="#" id="emailCopy">thomasding227@gmail.com</a>
     <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
     <a href="#" id="cvBtn">CV</a>
+    <a href="#" id="themeToggle">dark mode</a>
   </div>
 </div>
 
@@ -248,6 +255,7 @@
     <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
     <a href="#" id="emailCopyMobile">thomasding227@gmail.com</a>
     <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
+    <a href="#" id="themeToggleMobile">dark mode</a>
   </div>
 
   <div class="cv-section">
@@ -276,10 +284,10 @@ document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.styl
   const base=[{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
   const blobs=base.map(b=>({...b}));
   const blobDef=[
-    {ax:0.38,ay:0.30,ease:0.05,color:'220,180,60',op:0.70,ex:90,ey:70},
-    {ax:-0.42,ay:0.34,ease:0.04,color:'200,160,210',op:0.50,ex:70,ey:60},
-    {ax:0.36,ay:-0.38,ease:0.045,color:'160,210,200',op:0.40,ex:60,ey:50},
-    {ax:0.18,ay:0.16,ease:0.03,color:'210,200,190',op:0.30,ex:80,ey:80},
+    {ax:0.28,ay:0.22,ease:0.022,color:'220,180,60',op:0.22,ex:120,ey:100},
+    {ax:-0.30,ay:0.26,ease:0.018,color:'200,160,210',op:0.18,ex:110,ey:95},
+    {ax:0.26,ay:-0.28,ease:0.02,color:'160,210,200',op:0.16,ex:105,ey:90},
+    {ax:0.13,ay:0.12,ease:0.013,color:'210,200,190',op:0.13,ex:120,ey:110},
   ];
   document.addEventListener('mousemove',e=>{
     mx=e.clientX/window.innerWidth;
@@ -291,7 +299,7 @@ document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.styl
       const d=blobDef[i];
       b.x+=(base[i].x+(mx-0.5)*d.ax*100-b.x)*d.ease;
       b.y+=(base[i].y+(my-0.5)*d.ay*100-b.y)*d.ease;
-      grad+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;
+      grad+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 70%),`;
     });
     iri.style.backgroundImage=grad.slice(0,-1);
     requestAnimationFrame(tick);
@@ -315,6 +323,24 @@ const emailCopy=document.getElementById('emailCopy');
 emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);});
 const emailCopyMobile=document.getElementById('emailCopyMobile');
 emailCopyMobile.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopyMobile);});
+
+/* light / dark mode toggle */
+const themeToggle=document.getElementById('themeToggle');
+const themeToggleMobile=document.getElementById('themeToggleMobile');
+function applyTheme(dark){
+  document.body.classList.toggle('dark',dark);
+  const label=dark?'light mode':'dark mode';
+  themeToggle.textContent=label;
+  themeToggleMobile.textContent=label;
+  localStorage.setItem('odile-theme',dark?'dark':'light');
+}
+applyTheme(localStorage.getItem('odile-theme')==='dark');
+function toggleTheme(e){
+  e.preventDefault();
+  applyTheme(!document.body.classList.contains('dark'));
+}
+themeToggle.addEventListener('click',toggleTheme);
+themeToggleMobile.addEventListener('click',toggleTheme);
 
 /* CV toggle */
 let cvOpen=false;
@@ -599,8 +625,14 @@ function createMediaEl(m){
     const vid=document.createElement('video');
     vid.className='media-item';
     vid.muted=true;vid.loop=true;vid.autoplay=true;vid.playsInline=true;
-    vid.controls=true;vid.controlsList='nodownload noremoteplayback';
+    vid.disablePictureInPicture=true;
+    vid.controlsList='nodownload noremoteplayback';
     vid.addEventListener('loadeddata',()=>vid.classList.add('show'));
+    /* short clips (<18s) play silently on loop with no player UI at all —
+       no controls, no pause, no fullscreen button; longer videos keep controls */
+    vid.addEventListener('loadedmetadata',()=>{
+      if(vid.duration>=18)vid.controls=true;
+    });
     vid.src=m.url;
     return vid;
   }
