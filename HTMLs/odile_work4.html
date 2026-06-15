@@ -6,15 +6,11 @@
 <title>ODILE — WORK</title>
 <style>
   :root{
-    --bg:#b8b8bc; --fg:#0a0a0a;
-    --dim1:rgba(0,0,0,.55); --dim2:rgba(0,0,0,.3);
+    --bg:#0a0a0a; --fg:#f5f5f5;
+    --dim1:rgba(255,255,255,.55); --dim2:rgba(255,255,255,.3);
     --pad:32px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
-  }
-  body.dark{
-    --bg:#0a0a0a; --fg:#f5f5f5;
-    --dim1:rgba(255,255,255,.55); --dim2:rgba(255,255,255,.3);
   }
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
   html,body{
@@ -24,18 +20,16 @@
     font-size:var(--fs);line-height:1.7;
     letter-spacing:.02em;text-transform:uppercase;
     overflow:hidden;cursor:none;
-    transition:background-color .4s ease,color .4s ease;
   }
   body{animation:fadeIn .6s ease both;}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
   /* reactive iridescent background, same as the hub */
-  .bg-iri{position:fixed;inset:0;z-index:0;background-color:var(--bg);transition:background-color .4s ease;}
+  .bg-iri{position:fixed;inset:0;z-index:0;background-color:var(--bg);}
 
   #cur{position:fixed;width:5px;height:5px;background:var(--fg);
     box-shadow:0 0 5px 0px var(--dim2);
-    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);
-    transition:background-color .4s ease;}
+    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
 
   #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
     opacity:0;pointer-events:none;transition:opacity .7s ease;}
@@ -239,7 +233,6 @@
     <a href="#" id="emailCopy">thomasding227@gmail.com</a>
     <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
     <a href="#" id="cvBtn">CV</a>
-    <a href="#" id="themeToggle">dark mode</a>
   </div>
 </div>
 
@@ -255,7 +248,6 @@
     <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
     <a href="#" id="emailCopyMobile">thomasding227@gmail.com</a>
     <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
-    <a href="#" id="themeToggleMobile">dark mode</a>
   </div>
 
   <div class="cv-section">
@@ -323,24 +315,6 @@ const emailCopy=document.getElementById('emailCopy');
 emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);});
 const emailCopyMobile=document.getElementById('emailCopyMobile');
 emailCopyMobile.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopyMobile);});
-
-/* light / dark mode toggle */
-const themeToggle=document.getElementById('themeToggle');
-const themeToggleMobile=document.getElementById('themeToggleMobile');
-function applyTheme(dark){
-  document.body.classList.toggle('dark',dark);
-  const label=dark?'light mode':'dark mode';
-  themeToggle.textContent=label;
-  themeToggleMobile.textContent=label;
-  localStorage.setItem('odile-theme',dark?'dark':'light');
-}
-applyTheme(localStorage.getItem('odile-theme')==='dark');
-function toggleTheme(e){
-  e.preventDefault();
-  applyTheme(!document.body.classList.contains('dark'));
-}
-themeToggle.addEventListener('click',toggleTheme);
-themeToggleMobile.addEventListener('click',toggleTheme);
 
 /* CV toggle */
 let cvOpen=false;
