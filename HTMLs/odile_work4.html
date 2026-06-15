@@ -470,7 +470,7 @@ function buildMenu(){
       const a=document.createElement('a');
       a.href='#';
       const proj=projects[i];
-      a.textContent=proj.client?`${proj.client} - ${proj.title}`:proj.title;
+      a.textContent=proj.client||proj.title;
       a.dataset.idx=i;
       if(selectedIdx===i)a.classList.add('active');
       a.addEventListener('click',e=>{
