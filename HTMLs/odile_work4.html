@@ -59,6 +59,23 @@
   .ext-link{color:var(--fg);text-decoration:none;cursor:none;}
   .ext-link:hover{font-weight:700;}
 
+  /* rotating ring of project thumbnails — sits centered behind the menu/info/
+     center columns, shown only on the "home" state (no project open, no CV) */
+  #ringStage{
+    position:fixed;overflow:visible;pointer-events:none;
+    opacity:0;transition:opacity .4s ease;
+  }
+  #ringStage.show{opacity:1;pointer-events:auto;}
+  #ring{position:absolute;inset:0;overflow:visible;}
+  .ring-tile{position:absolute;cursor:none;overflow:visible;}
+  .ring-tile-sq{
+    width:100%;height:100%;background-color:var(--dim2);
+    background-size:cover;background-position:center;
+    display:block;will-change:transform,filter;
+    transition:filter .3s ease;
+  }
+  .ring-tile:hover .ring-tile-sq{filter:brightness(1.2);}
+
   /* MOBILE NAV BUTTONS — hidden on desktop, shown <=640px */
   .nav-btn{
     display:none;
@@ -181,6 +198,8 @@
   @media (max-width:640px){
     :root{--pad:20px;--fs:11px;}
 
+    #ringStage{display:none!important;}
+
     .nav-btn{display:block;}
 
     #menu{
@@ -223,6 +242,8 @@
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 <div id="cur"></div>
+
+<div id="ringStage"><div id="ring"></div></div>
 
 <button id="menuBtn" class="nav-btn">index</button>
 <button id="infoBtn" class="nav-btn">info</button>
@@ -298,11 +319,23 @@ document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.styl
   })();
 })();
 
-/* scroll the CV or the media column, no matter where the cursor is */
+/* scroll the CV or the media column, no matter where the cursor is —
+   on the "home" state (no project open), the wheel instead spins the ring */
 window.addEventListener('wheel',e=>{
-  if(cvOpen)cvPanel.scrollTop+=e.deltaY;
-  else centerPanel.scrollTop+=e.deltaY;
+  if(cvOpen){cvPanel.scrollTop+=e.deltaY;return;}
+  if(selectedIdx===null&&!isMobile()){ringTarget+=e.deltaY*0.18;return;}
+  centerPanel.scrollTop+=e.deltaY;
 },{passive:true});
+
+let lty=null;
+document.addEventListener('touchstart',e=>{lty=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchmove',e=>{
+  if(lty===null)return;
+  if(cvOpen||selectedIdx!==null||isMobile()){lty=e.touches[0].clientY;return;}
+  ringTarget+=(lty-e.touches[0].clientY)*0.35;
+  lty=e.touches[0].clientY;
+},{passive:true});
+document.addEventListener('touchend',()=>{lty=null;},{passive:true});
 
 /* email copy */
 function copyEmail(el){
@@ -323,6 +356,7 @@ const cvPanel=document.getElementById('cv');
 const centerPanel=document.getElementById('center');
 const infoPanel=document.getElementById('info');
 function isDesktop(){return window.matchMedia('(min-width:1321px)').matches;}
+function isMobile(){return window.matchMedia('(max-width:640px)').matches;}
 function toggleCV(force){
   cvOpen=force!==undefined?force:!cvOpen;
   cvBtn.classList.toggle('active',cvOpen);
@@ -332,6 +366,7 @@ function toggleCV(force){
     infoBtn.classList.toggle('active',cvOpen);
     infoBtn.textContent=cvOpen?'close':'info';
   }
+  updateRingVisibility();
 }
 cvBtn.addEventListener('click',e=>{e.preventDefault();toggleCV();});
 
@@ -388,6 +423,7 @@ const PID='zgrgr7sj',DS='production';
 const GROQ=`*[_type=="project"]|order(year desc){
   _id,title,client,"year":string(year),"favorite":favorite==true,description,link,
   "tags":tags[]->{title},
+  "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
   "media":media[]{
     _type,
     _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
@@ -424,11 +460,21 @@ async function loadFromSanity(){
           if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url};
           return null;
         }).filter(Boolean):[],
+        thumb:p.thumb?.url||'',
+        thumbAR:p.thumb?.ar||1,
       }));
+      /* fall back to the first image media item if no ring thumbnail is set */
+      projects.forEach(p=>{
+        if(!p.thumb){
+          const firstImg=p.media.find(m=>m.type==='image');
+          if(firstImg){p.thumb=firstImg.url;p.thumbAR=firstImg.ar||1;}
+        }
+      });
     }
   }catch(e){console.warn('[Sanity]',e.message);}
   if(!projects.length)projects=FALLBACK_PROJECTS;
   buildMenu();
+  buildRing();
 }
 
 /* group projects by their first tag, preserving year-desc order */
@@ -503,6 +549,8 @@ function toggleCategory(cat){
     const selCat=(projects[selectedIdx].tags[0]||'other').toLowerCase();
     if(selCat===cat)closeProject();
   }
+
+  updateRingVisibility();
 }
 
 /* clear the center column and deselect the active project, with a short fade-out */
@@ -519,6 +567,7 @@ function closeProject(){
     center.classList.remove('center-hidden');
     closeTimer=null;
   },250);
+  updateRingVisibility();
 }
 
 /* show a project's images in the center scrollable column */
@@ -529,6 +578,7 @@ function selectProject(i){
   document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
   const newActive=document.querySelector(`.menu-items a[data-idx="${i}"]`);
   if(newActive)newActive.classList.add('active');
+  updateRingVisibility();
 
   if(cvOpen)toggleCV(false);
 
@@ -615,6 +665,81 @@ function createMediaEl(m){
   ph.className='media-item ph';
   return ph;
 }
+
+/* ── rotating ring of project thumbnails — desktop "home" state only ── */
+const ringStage=document.getElementById('ringStage');
+const ringEl=document.getElementById('ring');
+const RING_TILE_W=0.42; // fraction of ring radius
+let ringTiles=[];
+let ringAngle=0,ringTarget=0,ringAtmo=0,ringHover=false;
+
+function ringTileRatio(ar){
+  if(!ar||ar<=0)ar=16/9;
+  if(ar>=1)return{wr:RING_TILE_W,hr:RING_TILE_W/ar};
+  const h=Math.min(RING_TILE_W/ar,RING_TILE_W*0.9);
+  return{wr:h*ar,hr:h};
+}
+
+function buildRing(){
+  ringEl.innerHTML='';
+  ringTiles=[];
+  if(isMobile()||!projects.length)return;
+  projects.forEach((p,i)=>{
+    const tile=document.createElement('div');
+    tile.className='ring-tile';
+    const sq=document.createElement('div');
+    sq.className='ring-tile-sq';
+    if(p.thumb)sq.style.backgroundImage=`url(${p.thumb})`;
+    tile.appendChild(sq);
+    tile.addEventListener('mouseenter',()=>{ringHover=true;});
+    tile.addEventListener('mouseleave',()=>{ringHover=false;});
+    tile.addEventListener('click',()=>selectProject(i));
+    ringEl.appendChild(tile);
+    ringTiles.push({tile,sq,ratio:ringTileRatio(p.thumbAR)});
+  });
+  updateRingVisibility();
+}
+
+/* the ring is only shown when the "commercial" category is open, no project open, no CV, desktop only */
+function updateRingVisibility(){
+  const visible=!isMobile()&&openCat==='commercial'&&selectedIdx===null&&!cvOpen&&ringTiles.length>0;
+  ringStage.classList.toggle('show',visible);
+}
+
+let ringWasMobile=isMobile();
+window.addEventListener('resize',()=>{
+  const nowMobile=isMobile();
+  if(nowMobile!==ringWasMobile){ringWasMobile=nowMobile;buildRing();}
+},{passive:true});
+
+(function ringLoop(){
+  if(ringTiles.length){
+    const VW=window.innerWidth,VH=window.innerHeight;
+    const R=Math.min(VW,VH)*0.30;
+    const S=R*2+200;
+    ringStage.style.left=(VW/2-S/2)+'px';
+    ringStage.style.top=(VH/2-S/2)+'px';
+    ringStage.style.width=S+'px';
+    ringStage.style.height=S+'px';
+
+    ringAngle+=(ringTarget-ringAngle)*0.09;
+    if(!ringHover)ringAtmo+=0.01;
+    const total=ringAngle+ringAtmo;
+    ringEl.style.transform=`rotate(${total}deg)`;
+
+    const half=S/2,N=ringTiles.length;
+    ringTiles.forEach(({tile,sq,ratio},i)=>{
+      const a=(i/N)*2*Math.PI-Math.PI/2;
+      const tw=ratio.wr*R,th=ratio.hr*R;
+      tile.style.width=tw+'px';
+      tile.style.height=th+'px';
+      tile.style.left=(half+R*Math.cos(a)-tw/2)+'px';
+      tile.style.top=(half+R*Math.sin(a)-th/2)+'px';
+      sq.style.transform=`rotate(${-total}deg)`;
+    });
+  }
+  requestAnimationFrame(ringLoop);
+})();
 
 loadFromSanity();
 </script>
