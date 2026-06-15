@@ -19,16 +19,32 @@ export default {
       type: 'number',
     },
     {
+      name: 'favorite',
+      title: 'Favori',
+      description: 'Mettre ce projet en avant : il apparaîtra en premier dans sa catégorie',
+      type: 'boolean',
+      initialValue: false,
+    },
+    {
       name: 'description',
       title: 'Description',
       type: 'array',
       of: [{ type: 'block' }],
     },
     {
+      name: 'thumbnail',
+      title: 'Thumbnail (ring)',
+      description: 'Image affichée sur le ring de la page work',
+      type: 'image',
+      options: { hotspot: true },
+    },
+    {
       name: 'media',
       title: 'Médias',
       type: 'array',
       of: [
+        { type: 'image', options: { hotspot: true } },
+        { type: 'file' },
         {
           type: 'object',
           name: 'mediaImage',

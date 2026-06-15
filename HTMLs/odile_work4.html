@@ -386,7 +386,7 @@ let selectedIdx=null;
 /* ── SANITY ── */
 const PID='zgrgr7sj',DS='production';
 const GROQ=`*[_type=="project"]|order(year desc){
-  _id,title,client,"year":string(year),description,link,
+  _id,title,client,"year":string(year),"favorite":favorite==true,description,link,
   "tags":tags[]->{title},
   "media":media[]{
     _type,
@@ -411,6 +411,7 @@ async function loadFromSanity(){
         title:p.title||'(untitled)',
         client:p.client||'',
         year:p.year||'',
+        favorite:!!p.favorite,
         link:p.link||'',
         description:Array.isArray(p.description)
           ?p.description.filter(b=>b._type==='block'&&Array.isArray(b.children))
@@ -441,6 +442,12 @@ function buildMenu(){
     const cat=(p.tags[0]||'other').toLowerCase();
     if(!groups.has(cat))groups.set(cat,[]);
     groups.get(cat).push(i);
+  });
+
+  /* favorited projects come first within each category, preserving
+     the existing chronological (year-desc) order otherwise */
+  groups.forEach(idxs=>{
+    idxs.sort((a,b)=>(projects[b].favorite?1:0)-(projects[a].favorite?1:0));
   });
 
   groups.forEach((idxs,cat)=>{
