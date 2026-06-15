@@ -61,9 +61,10 @@
      center columns, shown only on the "home" state (no project open, no CV) */
   #ringStage{
     position:fixed;overflow:visible;pointer-events:none;
-    opacity:0;transition:opacity .4s ease;
+    opacity:0;transform:scale(.94);
+    transition:opacity .7s ease,transform .7s cubic-bezier(0.22,1,0.36,1);
   }
-  #ringStage.show{opacity:1;pointer-events:auto;}
+  #ringStage.show{opacity:1;transform:scale(1);pointer-events:auto;}
   /* #center is empty (no project open) whenever the ring is shown, but it still
      sits on top of it and would otherwise eat the clicks meant for the ring */
   #ringStage.show~#center{pointer-events:none;}
