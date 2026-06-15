@@ -35,12 +35,13 @@
     opacity:0;pointer-events:none;transition:opacity .7s ease;}
   #overlay.on{opacity:1;pointer-events:auto;}
 
-  /* TOP-RIGHT INFO */
+  /* TOP-RIGHT INFO — hidden behind the "info" button on desktop */
   #info{
-    position:fixed;top:30px;right:var(--pad);
-    display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+    position:fixed;top:60px;right:var(--pad);
+    display:none;flex-direction:column;align-items:flex-end;gap:3px;
     text-align:right;max-width:240px;
   }
+  #info.show{display:flex;}
   #info .i-line{color:var(--fg);}
   #info a{
     color:var(--fg);text-decoration:none;cursor:none;
@@ -62,6 +63,11 @@
   #menuBtn{left:var(--pad);}
   #infoBtn{right:var(--pad);}
   .nav-btn:hover,.nav-btn.active{font-weight:700;}
+
+  /* on desktop, the "info" button is always available (it reveals #info) */
+  @media (min-width:1321px){
+    #infoBtn{display:block;}
+  }
 
   /* bio/email shown inside the CV panel on mobile only */
   .mobile-info-header{display:none;flex-direction:column;gap:3px;}
@@ -158,7 +164,7 @@
      the menu ("commercial" list) and the top-right info ("currently
      designer at unveil®") — narrow everything down before that happens */
   @media (max-width:1320px){
-    #info{display:none;}
+    #info{display:none!important;}
     #menu{width:200px;}
     #center,#cv{width:min(60vw,420px);}
   }
@@ -305,13 +311,17 @@ let cvOpen=false;
 const cvBtn=document.getElementById('cvBtn');
 const cvPanel=document.getElementById('cv');
 const centerPanel=document.getElementById('center');
+const infoPanel=document.getElementById('info');
+function isDesktop(){return window.matchMedia('(min-width:1321px)').matches;}
 function toggleCV(force){
   cvOpen=force!==undefined?force:!cvOpen;
   cvBtn.classList.toggle('active',cvOpen);
   cvPanel.classList.toggle('show',cvOpen);
   centerPanel.classList.toggle('center-hidden',cvOpen);
-  infoBtn.classList.toggle('active',cvOpen);
-  infoBtn.textContent=cvOpen?'close':'info';
+  if(!isDesktop()){
+    infoBtn.classList.toggle('active',cvOpen);
+    infoBtn.textContent=cvOpen?'close':'info';
+  }
 }
 cvBtn.addEventListener('click',e=>{e.preventDefault();toggleCV();});
 
@@ -328,6 +338,17 @@ menuBtn.addEventListener('click',e=>{
 });
 infoBtn.addEventListener('click',e=>{
   e.preventDefault();
+
+  /* desktop — the button just reveals/hides the #info panel */
+  if(isDesktop()){
+    const open=infoPanel.classList.toggle('show');
+    infoBtn.classList.toggle('active',open);
+    infoBtn.textContent=open?'close':'info';
+    if(!open&&cvOpen)toggleCV(false);
+    return;
+  }
+
+  /* mobile/tablet — the button opens the CV drawer (which holds the info too) */
   if(document.body.classList.contains('mobile-menu-open')){
     document.body.classList.remove('mobile-menu-open');
     menuBtn.classList.remove('active');
