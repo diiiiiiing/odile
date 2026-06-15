@@ -129,7 +129,7 @@
     color:var(--fg);text-decoration:none;cursor:none;
     width:fit-content;
   }
-  .menu-group a:hover,.menu-group a.active{font-weight:700;}
+  .menu-group a:hover,.menu-group a.active,.menu-group a.hl{font-weight:700;}
 
   /* CENTER — info, then media stacked top to bottom */
   #center{
@@ -740,8 +740,16 @@ function buildRing(){
     sq.className='ring-tile-sq';
     if(p.thumb)sq.style.backgroundImage=`url(${p.thumb})`;
     tile.appendChild(sq);
-    tile.addEventListener('mouseenter',()=>{ringHover=true;ringTiles[i].hovered=true;});
-    tile.addEventListener('mouseleave',()=>{ringHover=false;ringTiles[i].hovered=false;});
+    tile.addEventListener('mouseenter',()=>{
+      ringHover=true;ringTiles[i].hovered=true;
+      const a=document.querySelector(`.menu-items a[data-idx="${i}"]`);
+      if(a)a.classList.add('hl');
+    });
+    tile.addEventListener('mouseleave',()=>{
+      ringHover=false;ringTiles[i].hovered=false;
+      const a=document.querySelector(`.menu-items a[data-idx="${i}"]`);
+      if(a)a.classList.remove('hl');
+    });
     tile.addEventListener('click',()=>selectProject(i));
     ringEl.appendChild(tile);
     ringTiles.push({tile,sq,ratio:ringTileRatio(p.thumbAR),hovered:false});
