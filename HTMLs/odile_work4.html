@@ -35,13 +35,21 @@
     opacity:0;pointer-events:none;transition:opacity .7s ease;}
   #overlay.on{opacity:1;pointer-events:auto;}
 
-  /* TOP-RIGHT INFO — hidden behind the "info" button on desktop */
+  /* TOP-RIGHT INFO — hidden behind the "info" button on desktop,
+     unfolds with the same grid/opacity animation as the menu categories */
   #info{
     position:fixed;top:60px;right:var(--pad);
-    display:none;flex-direction:column;align-items:flex-end;gap:3px;
+    display:grid;grid-template-rows:0fr;
+    overflow:hidden;
     text-align:right;max-width:240px;
+    transition:grid-template-rows .4s ease;
   }
-  #info.show{display:flex;}
+  #info.show{grid-template-rows:1fr;}
+  #infoInner{
+    display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-height:0;
+    opacity:0;transition:opacity .25s ease;
+  }
+  #info.show #infoInner{opacity:1;transition-delay:.1s;}
   #info .i-line{color:var(--fg);}
   #info a{
     color:var(--fg);text-decoration:none;cursor:none;
@@ -220,10 +228,12 @@
 <button id="infoBtn" class="nav-btn">info</button>
 
 <div id="info">
-  <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
-  <a href="#" id="emailCopy">thomasding227@gmail.com</a>
-  <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
-  <a href="#" id="cvBtn">CV</a>
+  <div id="infoInner">
+    <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
+    <a href="#" id="emailCopy">thomasding227@gmail.com</a>
+    <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
+    <a href="#" id="cvBtn">CV</a>
+  </div>
 </div>
 
 <div id="menu"></div>
