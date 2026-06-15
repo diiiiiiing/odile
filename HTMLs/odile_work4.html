@@ -66,6 +66,9 @@
     opacity:0;transition:opacity .4s ease;
   }
   #ringStage.show{opacity:1;pointer-events:auto;}
+  /* #center is empty (no project open) whenever the ring is shown, but it still
+     sits on top of it and would otherwise eat the clicks meant for the ring */
+  #ringStage.show~#center{pointer-events:none;}
   #ring{position:absolute;inset:0;overflow:visible;}
   .ring-tile{position:absolute;cursor:none;overflow:visible;}
   .ring-tile-sq{
@@ -74,7 +77,7 @@
     display:block;will-change:transform,filter;
     transition:filter .3s ease;
   }
-  .ring-tile:hover .ring-tile-sq{filter:brightness(1.2);}
+  .ring-tile:hover .ring-tile-sq,.ring-tile.highlight .ring-tile-sq{filter:brightness(1.2);}
 
   /* MOBILE NAV BUTTONS — hidden on desktop, shown <=640px */
   .nav-btn{
@@ -524,6 +527,13 @@ function buildMenu(){
         if(selectedIdx===i)closeProject();
         else selectProject(i);
       });
+      /* hovering a project name rolls the ring so its thumbnail comes to the top */
+      a.addEventListener('mouseenter',()=>{
+        if(openCat==='commercial')ringFocusOn(i);
+      });
+      a.addEventListener('mouseleave',()=>{
+        if(openCat==='commercial')ringUnfocus(i);
+      });
       inner.appendChild(a);
     });
     items.appendChild(inner);
@@ -678,6 +688,23 @@ function ringTileRatio(ar){
   if(ar>=1)return{wr:RING_TILE_W,hr:RING_TILE_W/ar};
   const h=Math.min(RING_TILE_W/ar,RING_TILE_W*0.9);
   return{wr:h*ar,hr:h};
+}
+
+/* roll the ring so tile i lands at the top, taking the shortest path from
+   wherever it currently is, and pause the ambient drift while it's focused */
+function ringFocusOn(i){
+  if(!ringTiles[i])return;
+  const N=ringTiles.length;
+  const base=-(i/N)*360;
+  const k=Math.round((ringTarget-base)/360);
+  ringTarget=base+k*360;
+  ringHover=true;
+  ringTiles[i].tile.classList.add('highlight');
+}
+function ringUnfocus(i){
+  if(!ringTiles[i])return;
+  ringHover=false;
+  ringTiles[i].tile.classList.remove('highlight');
 }
 
 function buildRing(){
