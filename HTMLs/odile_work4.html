@@ -466,7 +466,11 @@ function buildMenu(){
       a.textContent=projects[i].title;
       a.dataset.idx=i;
       if(selectedIdx===i)a.classList.add('active');
-      a.addEventListener('click',e=>{e.preventDefault();selectProject(i);});
+      a.addEventListener('click',e=>{
+        e.preventDefault();
+        if(selectedIdx===i)closeProject();
+        else selectProject(i);
+      });
       inner.appendChild(a);
     });
     items.appendChild(inner);
@@ -478,13 +482,28 @@ function buildMenu(){
 
 /* open/close a category without rebuilding the menu, so the foldout transitions can play */
 function toggleCategory(cat){
-  openCat=(openCat===cat)?null:cat;
+  const closing=(openCat===cat);
+  openCat=closing?null:cat;
   document.querySelectorAll('.menu-cat').forEach(el=>{
     el.classList.toggle('open',el.dataset.cat===openCat);
   });
   document.querySelectorAll('.menu-items').forEach(el=>{
     el.classList.toggle('open',el.dataset.cat===openCat);
   });
+
+  /* closing the category that holds the currently open project closes it too */
+  if(closing&&selectedIdx!==null){
+    const selCat=(projects[selectedIdx].tags[0]||'other').toLowerCase();
+    if(selCat===cat)closeProject();
+  }
+}
+
+/* clear the center column and deselect the active project */
+function closeProject(){
+  selectedIdx=null;
+  document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
+  if(cvOpen)toggleCV(false);
+  document.getElementById('center').innerHTML='';
 }
 
 /* show a project's images in the center scrollable column */
