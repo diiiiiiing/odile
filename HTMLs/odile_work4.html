@@ -690,20 +690,14 @@ function ringTileRatio(ar){
   return{wr:h*ar,hr:h};
 }
 
-/* roll the ring so tile i lands at the top, taking the shortest path from
-   wherever it currently is, and pause the ambient drift while it's focused */
+/* hovering a project name highlights its thumbnail in the ring, the same
+   way hovering the thumbnail itself does — no rotation */
 function ringFocusOn(i){
   if(!ringTiles[i])return;
-  const N=ringTiles.length;
-  const base=-(i/N)*360;
-  const k=Math.round((ringTarget-base)/360);
-  ringTarget=base+k*360;
-  ringHover=true;
   ringTiles[i].tile.classList.add('highlight');
 }
 function ringUnfocus(i){
   if(!ringTiles[i])return;
-  ringHover=false;
   ringTiles[i].tile.classList.remove('highlight');
 }
 
