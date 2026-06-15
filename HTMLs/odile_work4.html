@@ -704,7 +704,9 @@ function createMediaEl(m){
 const ringStage=document.getElementById('ringStage');
 const ringEl=document.getElementById('ring');
 const RING_TILE_W=0.42; // fraction of ring radius
+const RING_PUSH=22; // px a hovered thumbnail moves away from the ring
 let ringTiles=[];
+let ringHoverT=[];
 let ringAngle=0,ringTarget=0,ringAtmo=0,ringHover=false;
 
 function ringTileRatio(ar){
@@ -719,10 +721,12 @@ function ringTileRatio(ar){
 function ringFocusOn(i){
   if(!ringTiles[i])return;
   ringTiles[i].tile.classList.add('highlight');
+  ringTiles[i].hovered=true;
 }
 function ringUnfocus(i){
   if(!ringTiles[i])return;
   ringTiles[i].tile.classList.remove('highlight');
+  ringTiles[i].hovered=false;
 }
 
 function buildRing(){
@@ -736,12 +740,13 @@ function buildRing(){
     sq.className='ring-tile-sq';
     if(p.thumb)sq.style.backgroundImage=`url(${p.thumb})`;
     tile.appendChild(sq);
-    tile.addEventListener('mouseenter',()=>{ringHover=true;});
-    tile.addEventListener('mouseleave',()=>{ringHover=false;});
+    tile.addEventListener('mouseenter',()=>{ringHover=true;ringTiles[i].hovered=true;});
+    tile.addEventListener('mouseleave',()=>{ringHover=false;ringTiles[i].hovered=false;});
     tile.addEventListener('click',()=>selectProject(i));
     ringEl.appendChild(tile);
-    ringTiles.push({tile,sq,ratio:ringTileRatio(p.thumbAR)});
+    ringTiles.push({tile,sq,ratio:ringTileRatio(p.thumbAR),hovered:false});
   });
+  ringHoverT=new Float32Array(ringTiles.length);
   updateRingVisibility();
 }
 
@@ -773,14 +778,22 @@ window.addEventListener('resize',()=>{
     ringEl.style.transform=`rotate(${total}deg)`;
 
     const half=S/2,N=ringTiles.length;
-    ringTiles.forEach(({tile,sq,ratio},i)=>{
+    ringTiles.forEach(({tile,sq,ratio,hovered},i)=>{
       const a=(i/N)*2*Math.PI-Math.PI/2;
       const tw=ratio.wr*R,th=ratio.hr*R;
       tile.style.width=tw+'px';
       tile.style.height=th+'px';
       tile.style.left=(half+R*Math.cos(a)-tw/2)+'px';
       tile.style.top=(half+R*Math.sin(a)-th/2)+'px';
-      sq.style.transform=`rotate(${-total}deg)`;
+
+      /* hovered thumbnails ease outward, away from the ring's center */
+      const want=hovered?1:0;
+      ringHoverT[i]+=(want-ringHoverT[i])*0.12;
+      const t=ringHoverT[i];
+      const absAngle=a+total*Math.PI/180;
+      const dx=Math.cos(absAngle)*RING_PUSH*t;
+      const dy=Math.sin(absAngle)*RING_PUSH*t;
+      sq.style.transform=`rotate(${-total}deg) translate(${dx}px,${dy}px)`;
     });
   }
   requestAnimationFrame(ringLoop);
