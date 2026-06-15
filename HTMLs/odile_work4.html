@@ -349,11 +349,10 @@ menuBtn.addEventListener('click',e=>{
 infoBtn.addEventListener('click',e=>{
   e.preventDefault();
 
-  /* desktop — the button just reveals/hides the #info panel */
+  /* desktop — the button just reveals/hides the #info panel, label stays "info" */
   if(isDesktop()){
     const open=infoPanel.classList.toggle('show');
     infoBtn.classList.toggle('active',open);
-    infoBtn.textContent=open?'close':'info';
     if(!open&&cvOpen)toggleCV(false);
     return;
   }
