@@ -498,16 +498,26 @@ function toggleCategory(cat){
   }
 }
 
-/* clear the center column and deselect the active project */
+/* clear the center column and deselect the active project, with a short fade-out */
+let closeTimer=null;
 function closeProject(){
   selectedIdx=null;
   document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
   if(cvOpen)toggleCV(false);
-  document.getElementById('center').innerHTML='';
+  const center=document.getElementById('center');
+  center.classList.add('center-hidden');
+  if(closeTimer)clearTimeout(closeTimer);
+  closeTimer=setTimeout(()=>{
+    center.innerHTML='';
+    center.classList.remove('center-hidden');
+    closeTimer=null;
+  },250);
 }
 
 /* show a project's images in the center scrollable column */
 function selectProject(i){
+  if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
+  centerPanel.classList.remove('center-hidden');
   selectedIdx=i;
   document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
   const newActive=document.querySelector(`.menu-items a[data-idx="${i}"]`);
