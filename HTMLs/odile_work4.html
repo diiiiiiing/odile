@@ -193,6 +193,13 @@
     #info{display:none!important;}
     #menu{width:200px;}
     #center,#cv{width:min(60vw,420px);}
+
+    /* the desktop #info panel is hidden below this width, so bring back
+       the "info" nav button (opens the CV drawer instead) right here —
+       same breakpoint where "commercial"/#menu goes tight — and show the
+       contact links inside the CV drawer since #info itself is gone */
+    #infoBtn{display:block;}
+    .mobile-info-header{display:flex;}
   }
 
   /* ── MOBILE — index/info become full-screen drawers behind nav buttons ── */
