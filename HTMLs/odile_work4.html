@@ -469,7 +469,8 @@ function buildMenu(){
     idxs.forEach(i=>{
       const a=document.createElement('a');
       a.href='#';
-      a.textContent=projects[i].title;
+      const proj=projects[i];
+      a.textContent=proj.client?`${proj.client} - ${proj.title}`:proj.title;
       a.dataset.idx=i;
       if(selectedIdx===i)a.classList.add('active');
       a.addEventListener('click',e=>{
