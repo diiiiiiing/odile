@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ODILE — WORK</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root{
     --bg:#0a0a0a; --fg:#f5f5f5;
@@ -442,6 +443,8 @@ function toPh([w,h]){return{type:'ph',ar:w/h};}
 let projects=[];
 let openCat=null;
 let selectedIdx=null;
+let galleryOpen=false;
+let galleryItems=null;
 
 /* ── SANITY ── */
 const PID='zgrgr7sj',DS='production';
@@ -562,6 +565,20 @@ function buildMenu(){
     group.appendChild(items);
 
     menu.appendChild(group);
+
+    /* "gallery" — a standalone entry right under "commercial" that opens
+       the feed images from the CMS in #center, no sub-list of its own */
+    if(cat==='commercial'){
+      const gGroup=document.createElement('div');
+      gGroup.className='menu-group';
+      const gHead=document.createElement('div');
+      gHead.className='menu-cat'+(galleryOpen?' open':'');
+      gHead.dataset.cat='gallery';
+      gHead.textContent='gallery';
+      gHead.addEventListener('click',()=>toggleGallery());
+      gGroup.appendChild(gHead);
+      menu.appendChild(gGroup);
+    }
   });
 }
 
@@ -607,6 +624,7 @@ function closeProject(){
 
 /* show a project's images in the center scrollable column */
 function selectProject(i){
+  if(galleryOpen)closeGallery();
   if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
   centerPanel.classList.remove('center-hidden');
   selectedIdx=i;
@@ -701,6 +719,93 @@ function createMediaEl(m){
   return ph;
 }
 
+/* ── GALLERY — a standalone menu entry showing approved image
+   submissions from the public feed (same Supabase project/table as
+   odile_feed.html), reusing the #center media stack ── */
+const SUPABASE_URL='https://iwmfhvhhbpcsjcsakigg.supabase.co';
+const SUPABASE_KEY='sb_publishable_wp_9hP65hwOLHAoPDAhQRA_MYR5ER3-';
+let sbClient=null;
+function getSb(){
+  if(!sbClient&&window.supabase)sbClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+  return sbClient;
+}
+
+async function loadGalleryItems(){
+  if(galleryItems)return galleryItems;
+  try{
+    const client=getSb();
+    const{data,error}=await client
+      .from('submissions')
+      .select('file_url,file_type')
+      .eq('approved',true)
+      .eq('file_type','image')
+      .order('created_at',{ascending:false});
+    if(error)throw error;
+    galleryItems=(data||[]).map(r=>({type:'image',url:r.file_url}));
+  }catch(e){console.warn('[Gallery]',e.message);galleryItems=[];}
+  return galleryItems;
+}
+
+/* reset gallery state — the caller is responsible for #center */
+function closeGallery(){
+  if(!galleryOpen)return;
+  galleryOpen=false;
+  document.querySelectorAll('.menu-cat[data-cat="gallery"]').forEach(el=>el.classList.remove('open'));
+}
+
+/* open/close the gallery — shows approved feed images stacked in #center,
+   exactly like a project's media, with the same fade in/out as closeProject */
+async function toggleGallery(){
+  if(galleryOpen){
+    closeGallery();
+    const center=document.getElementById('center');
+    center.classList.add('center-hidden');
+    if(closeTimer)clearTimeout(closeTimer);
+    closeTimer=setTimeout(()=>{
+      center.innerHTML='';
+      center.classList.remove('center-hidden');
+      closeTimer=null;
+    },250);
+    updateRingVisibility();
+    return;
+  }
+
+  if(selectedIdx!==null)closeProject();
+  if(cvOpen)toggleCV(false);
+  if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
+
+  if(document.body.classList.contains('mobile-menu-open')){
+    document.body.classList.remove('mobile-menu-open');
+    menuBtn.classList.remove('active');
+    menuBtn.textContent='index';
+  }
+
+  galleryOpen=true;
+  document.querySelectorAll('.menu-cat[data-cat="gallery"]').forEach(el=>el.classList.add('open'));
+  centerPanel.classList.remove('center-hidden');
+  updateRingVisibility();
+
+  const center=document.getElementById('center');
+  center.innerHTML='';
+  const loading=document.createElement('div');
+  loading.id='centerEmpty';
+  loading.textContent='loading…';
+  center.appendChild(loading);
+
+  const items=await loadGalleryItems();
+  if(!galleryOpen)return; // closed again while loading
+
+  center.innerHTML='';
+  if(!items.length){
+    const empty=document.createElement('div');
+    empty.id='centerEmpty';
+    empty.textContent='no images yet';
+    center.appendChild(empty);
+  }else{
+    items.forEach(m=>center.appendChild(createMediaEl(m)));
+  }
+}
+
 /* ── rotating ring of project thumbnails — desktop "home" state only ── */
 const ringStage=document.getElementById('ringStage');
 const ringEl=document.getElementById('ring');
@@ -759,9 +864,9 @@ function buildRing(){
   updateRingVisibility();
 }
 
-/* the ring is only shown when the "commercial" category is open, no project open, no CV, desktop only */
+/* the ring is only shown when the "commercial" category is open, no project open, no CV, no gallery, desktop only */
 function updateRingVisibility(){
-  const visible=!isMobile()&&openCat==='commercial'&&selectedIdx===null&&!cvOpen&&ringTiles.length>0;
+  const visible=!isMobile()&&openCat==='commercial'&&selectedIdx===null&&!cvOpen&&!galleryOpen&&ringTiles.length>0;
   ringStage.classList.toggle('show',visible);
 }
 
