@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODILE — PROJECT</title>
+<style>
+  :root{
+    --bg:#b8b8bc; --dim1:rgba(255,255,255,0.88); --dim2:rgba(255,255,255,0.45); --hl:rgba(255,255,255,1);
+    --font:-apple-system,'Helvetica Neue',sans-serif; --fs:12.5px; --nav:50px; --info:36px;
+    --item-w:clamp(280px,32vw,580px);
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;}
+  body{
+    background:var(--bg);color:var(--dim1);
+    font-family:var(--font);font-weight:300;font-size:var(--fs);line-height:1.55;
+    cursor:none;animation:fadeIn .7s ease both;
+  }
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+  #cur{position:fixed;width:5px;height:5px;background:#C8F000;box-shadow:0 0 5px 0px #C8F00066;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+  .grain{position:fixed;inset:0;opacity:0.06;pointer-events:none;z-index:600;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;opacity:0;pointer-events:none;transition:opacity .7s ease;}
+  #overlay.on{opacity:1;pointer-events:auto;}
+  #iri{position:fixed;inset:0;z-index:0;pointer-events:none;background-color:#b8b8bc;}
+
+  /* TOP NAV — breadcrumb */
+  #topNav{
+    position:fixed;top:0;left:0;right:0;height:var(--nav);
+    padding:0 20px;display:flex;align-items:center;z-index:400;
+  }
+  #navHome,#navWork{color:var(--dim2);text-decoration:none;cursor:none;transition:color .2s;flex-shrink:0;}
+  #navHome:hover,#navWork:hover{color:var(--dim1);}
+  .navSep{color:var(--dim2);margin:0 2px;flex-shrink:0;}
+  #navTitle{
+    color:var(--dim1);min-width:0;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+  }
+
+  /* INFO TOGGLE — bracketed text after the title */
+  #info-btn{
+    margin-left:12px;font-size:12.5px;color:var(--hl);
+    opacity:.5;cursor:none;user-select:none;flex-shrink:0;
+    transition:opacity .2s;
+  }
+  #info-btn::before{content:'[';margin-right:2px;}
+  #info-btn::after{content:']';margin-left:2px;}
+  #info-btn:hover{opacity:.8;}
+  #info-btn.open{opacity:1;}
+
+  /* INFO PANEL — below the project title in the breadcrumb, hidden until toggled */
+  #info-panel{
+    position:fixed;top:calc(var(--nav) + 4px);left:20px;
+    z-index:400;max-width:min(340px, calc(100vw - 40px));
+    display:flex;flex-direction:column;
+    opacity:0;transform:translateY(-6px);pointer-events:none;
+    transition:opacity .3s ease,transform .3s ease;
+  }
+  #info-panel.open{opacity:1;transform:translateY(0);pointer-events:auto;}
+
+  /* unified info text — same size, colour, casing, spacing */
+  #info-panel{font-size:12px;color:var(--dim1);line-height:1.7;gap:6px;}
+  #info-year,#info-tags,#info-desc{
+    color:var(--dim1);line-height:1.7;
+  }
+  #info-desc{white-space:pre-wrap;}
+
+  /* NEXT — top right, pill button */
+  #next-btn{
+    position:fixed;top:50%;right:20px;transform:translateY(-50%);
+    display:inline-flex;align-items:center;
+    padding:6px 16px;border:1px solid var(--dim2);border-radius:14px;
+    background:none;color:var(--dim2);font-family:var(--font);font-size:var(--fs);
+    font-weight:300;letter-spacing:.04em;cursor:none;z-index:400;
+    transition:color .15s,border-color .15s,background .15s;user-select:none;
+  }
+  #next-btn:hover{color:var(--dim1);border-color:var(--dim1);}
+
+  /* CAROUSEL */
+  #carousel-container{
+    position:fixed;
+    top:var(--nav);
+    bottom:0;
+    left:0;right:0;
+    overflow:hidden;
+    z-index:1;
+  }
+  #carousel-track{
+    position:absolute;
+    top:0;bottom:0;left:0;
+    display:flex;
+    flex-direction:row;
+    align-items:flex-end;
+    gap:4px;
+    will-change:transform;
+  }
+  .c-item{
+    flex-shrink:0;
+    align-self:flex-end;
+  }
+  .c-item img,.c-item video{
+    display:block;
+    width:var(--item-w);
+    height:auto;
+    opacity:0;
+    transition:opacity .5s ease;
+  }
+  .c-item img.on,.c-item video.on{opacity:1;}
+  /* double-slot item */
+  .c-item.wide img,.c-item.wide video,
+  .v-wrap.wide video{
+    width:calc(var(--item-w) * 2 + 4px);
+  }
+
+  /* single-media mode: full height, centered */
+  #carousel-container.single{
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  #carousel-container.single #carousel-track{
+    position:static;transform:none !important;
+    display:flex;align-items:flex-end;justify-content:center;gap:0;
+  }
+  #carousel-container.single .c-item{align-self:flex-end;}
+  #carousel-container.single .c-item img,
+  #carousel-container.single .c-item video{
+    width:auto;
+    height:calc(100vh - var(--nav));
+    max-width:90vw;
+  }
+
+  /* two-row mode (>18 items) — images légèrement plus petites */
+  #carousel-container.two-rows { --item-w: clamp(160px, 17vw, 320px); }
+  #carousel-container.two-rows #carousel-track{
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:flex-end;
+    height:100%;
+    bottom:auto;
+    gap:4px;
+  }
+  .c-row{
+    display:flex;flex-direction:row;
+    gap:4px;
+    overflow:hidden;
+    max-height:calc((100vh - var(--nav)) / 2 - 2px);
+  }
+  .c-row.row-top    { align-items:flex-end; }
+  .c-row.row-bottom { align-items:flex-end; }
+
+  /* description card — text slot in the carousel */
+  .c-item.desc-card{
+    width:var(--item-w);
+    padding:28px 24px 32px;
+    color:var(--dim1);
+    font-size:var(--fs);line-height:1.8;
+    align-self:flex-end;
+    opacity:0;animation:fadeIn .6s ease .3s forwards;
+  }
+
+  /* video controls overlay */
+  .v-wrap{position:relative;align-self:flex-end;flex-shrink:0;}
+  .v-wrap video{display:block;}
+  .v-controls{
+    position:absolute;bottom:10px;right:10px;
+    display:flex;gap:6px;
+    opacity:0;transition:opacity .2s;
+  }
+  .v-wrap:hover .v-controls{opacity:1;}
+  .v-btn{
+    width:28px;height:28px;
+    background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.3);border-radius:50%;
+    color:#fff;font-size:12.5px;line-height:1;
+    cursor:none;display:flex;align-items:center;justify-content:center;
+    transition:background .15s,border-color .15s;
+  }
+  .v-btn:hover{background:rgba(0,0,0,0.75);border-color:rgba(255,255,255,0.6);}
+  /* always show controls on touch devices */
+  @media(hover:none){.v-controls{opacity:1;}}
+
+  /* fullscreen image overlay */
+  #img-viewer{
+    position:fixed;inset:0;background:rgba(0,0,0,.92);
+    z-index:2000;display:flex;align-items:center;justify-content:center;
+  }
+  #img-viewer img{max-width:100vw;max-height:100vh;object-fit:contain;}
+
+  /* no custom cursor on touch devices */
+  @media (hover:none){
+    #cur{display:none;}
+    *,*::before,*::after{cursor:auto!important;}
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div id="iri"></div>
+<div id="overlay"></div>
+<script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
+<div id="cur"></div>
+
+<div id="info-panel">
+  <div id="info-year"   style="display:none"></div>
+  <div id="info-tags"   style="display:none"></div>
+  <div id="info-desc"   style="display:none"></div>
+</div>
+
+<nav id="topNav">
+  <a id="navHome" href="odile_hub.html">odile.xyz</a><span class="navSep"> / </span><a id="navWork" href="odile_work.html">work</a><span class="navSep"> / </span><span id="navTitle">—</span><span id="info-btn">+</span>
+</nav>
+<span id="next-btn">next</span>
+
+<div id="carousel-container">
+  <div id="carousel-track"></div>
+</div>
+
+
+<script>
+/* cursor */
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => { cur.style.left=e.clientX+'px'; cur.style.top=e.clientY+'px'; });
+
+/* iri bg */
+let mx=.5,my=.5;
+const iri=document.getElementById('iri');
+const blobs=[{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const base= [{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const bd=[
+  {ax:.38,ay:.30,ease:.05,color:'220,180,60', op:.70,ex:90,ey:70},
+  {ax:-.42,ay:.34,ease:.04,color:'200,160,210',op:.50,ex:70,ey:60},
+  {ax:.36,ay:-.38,ease:.045,color:'160,210,200',op:.40,ex:60,ey:50},
+  {ax:.18,ay:.16,ease:.03,color:'210,200,190',op:.30,ex:80,ey:80},
+];
+document.addEventListener('mousemove',e=>{mx=e.clientX/innerWidth;my=e.clientY/innerHeight;});
+(function t(){let g='';blobs.forEach((b,i)=>{const d=bd[i];b.x+=(base[i].x+(mx-.5)*d.ax*100-b.x)*d.ease;b.y+=(base[i].y+(my-.5)*d.ay*100-b.y)*d.ease;g+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;});iri.style.backgroundImage=g.slice(0,-1);requestAnimationFrame(t);})();
+
+/* nav */
+function go(href){document.getElementById('overlay').classList.add('on');setTimeout(()=>window.location.href=href,700);}
+document.getElementById('navHome').addEventListener('click',e=>{e.preventDefault();go('odile_hub.html');});
+document.getElementById('navWork').addEventListener('click',e=>{e.preventDefault();go('odile_work.html');});
+
+/* params */
+const p=new URLSearchParams(location.search);
+const id=p.get('id')||'';
+const title=p.get('title')||'—', year=p.get('year')||'—';
+const nextIndex=p.get('nextIndex');
+let allProjects=[];
+try{allProjects=JSON.parse(sessionStorage.getItem('odileProjects')||'[]');}catch(e){}
+if(!allProjects.length){try{allProjects=JSON.parse(p.get('projects')||'[]');}catch(e){}}
+
+document.title=`ODILE — ${title.toUpperCase()}`;
+document.getElementById('navTitle').textContent=title;
+
+/* align info-panel to the start of the project title in the breadcrumb */
+function positionInfoPanel(){
+  const navTitle=document.getElementById('navTitle');
+  const panel=document.getElementById('info-panel');
+  const left=navTitle.getBoundingClientRect().left;
+  panel.style.left=left+'px';
+  panel.style.maxWidth=`min(380px, calc(100vw - ${left}px - 20px))`;
+}
+positionInfoPanel();
+window.addEventListener('resize',positionInfoPanel);
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(positionInfoPanel);}
+
+/* info toggle */
+const infoBtn=document.getElementById('info-btn');
+const infoPanel=document.getElementById('info-panel');
+infoBtn.addEventListener('click',()=>{
+  const open=infoPanel.classList.toggle('open');
+  infoBtn.classList.toggle('open',open);
+});
+
+document.getElementById('next-btn').addEventListener('click',()=>{
+  if(nextIndex!==null&&allProjects.length){
+    const ni=parseInt(nextIndex);
+    const proj=allProjects[ni%allProjects.length];
+    const nextI=(ni+1)%allProjects.length;
+    try{sessionStorage.setItem('odileProjects',JSON.stringify(allProjects));}catch(e){}
+    const q=new URLSearchParams({id:proj._id||'',title:proj.title||'—',year:proj.year||'—',index:ni,nextIndex:nextI});
+    go('odile_project.html?'+q.toString());
+  }
+});
+
+/* ── INFINITE HORIZONTAL CAROUSEL ── */
+const track = document.getElementById('carousel-track');
+const container = document.getElementById('carousel-container');
+
+let origItems = [];
+let stripWidth = 0;
+let scrollX = 0;
+let velocity = 0;
+const AUTO = 0.18;
+const FRICTION = 0.90;
+
+// Loop runs immediately and always — setInterval avoids rAF tab throttling
+function carouselLoop() {
+  velocity *= FRICTION;
+  scrollX += velocity + AUTO;
+  if (stripWidth > 0) {
+    scrollX = ((scrollX % stripWidth) + stripWidth) % stripWidth;
+  }
+  track.style.transform = `translateX(${-scrollX}px)`;
+}
+setInterval(carouselLoop, 16); // ~60fps
+
+function recompute() {
+  if (!origItems.length) return;
+  let w = 0;
+  origItems.forEach((el, i) => {
+    w += el.offsetWidth + (i < origItems.length - 1 ? 4 : 0);
+  });
+  if (w > 0) stripWidth = w + 4; // +4 for gap between last and first clone
+}
+
+// Re-measure when images finish loading
+const ro = new ResizeObserver(recompute);
+
+function makeVideoWrap(item, trackVisible, startMuted = false) {
+  const vwrap = document.createElement('div');
+  vwrap.className = 'v-wrap c-item';
+
+  const el = document.createElement('video');
+  el.src = item.url;
+  el.autoplay = true; el.loop = true; el.muted = startMuted; el.playsInline = true;
+  el.oncanplay = () => el.classList.add('on');
+  vwrap.appendChild(el);
+
+  // controls
+  const ctrl = document.createElement('div');
+  ctrl.className = 'v-controls';
+
+  // minimal SVG icons
+  const svgMuteOn  = `<svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 3.5h2.2l3.3-3v9l-3.3-3H0V3.5Z" fill="currentColor"/><path d="M8 2c1.2.9 2 2.3 2 3s-.8 2.1-2 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg>`;
+  const svgMuteOff = `<svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 3.5h2.2l3.3-3v9l-3.3-3H0V3.5Z" fill="currentColor"/><line x1="8" y1="2" x2="12" y2="8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="12" y1="2" x2="8" y2="8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`;
+  const svgFS = `<svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg"><polyline points="0,4 0,0 4,0" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><polyline points="7,0 11,0 11,4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><polyline points="11,7 11,11 7,11" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><polyline points="4,11 0,11 0,7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`;
+
+  // mute button
+  const muteBtn = document.createElement('button');
+  muteBtn.className = 'v-btn';
+  muteBtn.innerHTML = startMuted ? svgMuteOff : svgMuteOn;
+  muteBtn.title = 'Mute / unmute';
+  muteBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    el.muted = !el.muted;
+    muteBtn.innerHTML = el.muted ? svgMuteOff : svgMuteOn;
+  });
+
+  // Short videos (< 18s): always muted, no button — unless in fullscreen
+  let isShortVideo = false;
+  el.addEventListener('loadedmetadata', () => {
+    if (el.duration > 0 && el.duration < 18) {
+      isShortVideo = true;
+      el.muted = true;
+      muteBtn.style.display = 'none';
+    }
+  });
+  const onFSChange = () => {
+    const inFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+    if (isShortVideo) muteBtn.style.display = inFS ? '' : 'none';
+  };
+  document.addEventListener('fullscreenchange', onFSChange);
+  document.addEventListener('webkitfullscreenchange', onFSChange);
+
+  // fullscreen button — works on iOS via webkitEnterFullscreen
+  const fsBtn = document.createElement('button');
+  fsBtn.className = 'v-btn';
+  fsBtn.innerHTML = svgFS;
+  fsBtn.title = 'Fullscreen';
+  fsBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (el.requestFullscreen)           el.requestFullscreen().catch(()=>{});
+    else if (el.webkitEnterFullscreen)  el.webkitEnterFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  });
+
+  ctrl.appendChild(muteBtn);
+  ctrl.appendChild(fsBtn);
+  vwrap.appendChild(ctrl);
+  return { wrap: vwrap, el };
+}
+
+/* image fullscreen overlay (mobile tap) */
+const isTouchDevice = ('ontouchstart' in window);
+function openImageViewer(src) {
+  const ov = document.createElement('div');
+  ov.id = 'img-viewer';
+  const img = document.createElement('img');
+  img.src = src;
+  ov.appendChild(img);
+  ov.addEventListener('click', () => ov.remove());
+  document.body.appendChild(ov);
+}
+
+/* helper: build one media item element */
+function makeItem(item, isOrig) {
+  let wrap;
+  if (item.type === 'desc') {
+    wrap = document.createElement('div');
+    wrap.className = 'c-item desc-card';
+    const txt = document.createElement('p');
+    txt.textContent = item.text;
+    wrap.appendChild(txt);
+  } else if (item.type === 'image') {
+    wrap = document.createElement('div');
+    wrap.className = 'c-item' + (item.wide ? ' wide' : '');
+    const el = document.createElement('img');
+    el.src = item.url;
+    el.onload = () => { el.classList.add('on'); recompute(); };
+    if (isTouchDevice) {
+      el.addEventListener('click', e => { e.stopPropagation(); openImageViewer(el.src); });
+    }
+    wrap.appendChild(el);
+  } else {
+    const v = makeVideoWrap(item, true, true);
+    wrap = v.wrap;
+    if (item.wide) wrap.classList.add('wide');
+    v.el.oncanplay = () => { v.el.classList.add('on'); recompute(); };
+  }
+  if (isOrig) { origItems.push(wrap); ro.observe(wrap); }
+  return wrap;
+}
+
+function buildCarousel(mediaItems) {
+  track.innerHTML = '';
+  origItems = [];
+  stripWidth = 0;
+  if (!mediaItems || !mediaItems.length) return;
+
+  const single  = mediaItems.length === 1;
+  const twoRows = mediaItems.length > 18;
+  container.classList.toggle('single',   single);
+  container.classList.toggle('two-rows', twoRows);
+
+  /* ── single media ── */
+  if (single) {
+    const item = mediaItems[0];
+    if (item.type === 'desc') {
+      // desc-only project — use standard multi layout (no infinite loop needed)
+      track.appendChild(makeItem(item, true));
+    } else if (item.type === 'image') {
+      const wrap = document.createElement('div');
+      wrap.className = 'c-item';
+      const el = document.createElement('img');
+      el.src = item.url;
+      el.onload = () => el.classList.add('on');
+      wrap.appendChild(el);
+      track.appendChild(wrap);
+    } else {
+      track.appendChild(makeVideoWrap(item, false).wrap);
+    }
+    return;
+  }
+
+  /* ── two-row mode (>18 items) ── */
+  if (twoRows) {
+    const rowA = mediaItems.filter((_, i) => i % 2 === 0);
+    const rowB = mediaItems.filter((_, i) => i % 2 === 1);
+    // Pad rowB to same length as rowA so strip widths match perfectly
+    while (rowB.length < rowA.length) rowB.push(rowB[rowB.length % rowB.length]);
+
+    [rowA, rowB].forEach((items, ri) => {
+      const rowEl = document.createElement('div');
+      rowEl.className = `c-row ${ri === 0 ? 'row-top' : 'row-bottom'}`;
+      // Two sets for seamless loop; only first set of row A goes into origItems
+      [true, false].forEach(isFirst => {
+        items.forEach(item => rowEl.appendChild(makeItem(item, isFirst && ri === 0)));
+      });
+      track.appendChild(rowEl);
+    });
+    return;
+  }
+
+  /* ── single-row carousel ── */
+  [true, false].forEach(isFirst => {
+    mediaItems.forEach(item => track.appendChild(makeItem(item, isFirst)));
+  });
+
+  /* center first item on load */
+  const itemW = Math.min(440, Math.max(200, window.innerWidth * 0.24));
+  scrollX = -(window.innerWidth / 2 - itemW / 2);
+}
+
+/* cap velocity so a fast/inertial scroll can't fling the carousel across the whole strip */
+const MAX_VELOCITY = 60;
+function addVelocity(v) {
+  velocity = Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, velocity + v));
+}
+
+container.addEventListener('wheel', e => {
+  if (container.classList.contains('single')) return;
+  e.preventDefault();
+  addVelocity(e.deltaY * 0.6);
+}, { passive: false });
+
+let tx0 = 0;
+container.addEventListener('touchstart', e => { tx0 = e.touches[0].clientX; }, { passive: true });
+container.addEventListener('touchmove', e => {
+  addVelocity((tx0 - e.touches[0].clientX) * 0.4);
+  tx0 = e.touches[0].clientX;
+}, { passive: true });
+
+/* sanity */
+const PID='zgrgr7sj', DS='production';
+async function load(){
+  const esc=id.replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+  const base = `title,client,"year":string(year),link,"tags":tags,
+    "desc": pt::text(description),
+    "media": media[]{
+      "_type": _type,
+      "url": select(
+        _type == "mediaVideo" => video.asset->url,
+        _type == "file"       => asset->url,
+        _type == "mediaImage" => image.asset->url,
+        asset->url
+      ),
+      "wide": coalesce(wide, false)
+    }`;
+  const groq = id
+    ? `*[_type=="project"&&_id=="${esc}"][0]{${base}}`
+    : `*[_type=="project"][0]{${base}}`;
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(groq)}`);
+    const {result:proj}=await res.json();
+    if(!proj)return;
+    const t = proj.title||title;
+    document.getElementById('navTitle').textContent = t;
+    document.title = `ODILE — ${t.toUpperCase()}`;
+    positionInfoPanel();
+
+    if(proj.year){
+      const el=document.getElementById('info-year');
+      el.textContent=proj.year;
+      el.style.display='';
+    }
+    const rawTags = Array.isArray(proj.tags) ? proj.tags : [];
+    const tagStr  = rawTags.map(t=>typeof t==='string'?t:t?.title).filter(Boolean).join(', ');
+    if(tagStr){
+      const el=document.getElementById('info-tags');
+      el.textContent=tagStr;
+      el.style.display='';
+    }
+    if(proj.desc && proj.desc.trim()){
+      const el=document.getElementById('info-desc');
+      el.textContent=proj.desc.trim();
+      el.style.display='';
+    }
+
+    const items=[];
+    if(Array.isArray(proj.media) && proj.media.length) {
+      proj.media.forEach(m => {
+        if(!m?.url) return;
+        const isVideo = m._type === 'mediaVideo' || m._type === 'file';
+        items.push({ type: isVideo ? 'video' : 'image', url: m.url, wide: !!m.wide });
+      });
+    }
+    // Si une seule vidéo et durée > 20s → 2 slots automatiquement
+    const videoItems = items.filter(i => i.type === 'video');
+    if (videoItems.length === 1) {
+      try {
+        const dur = await new Promise((res, rej) => {
+          const v = document.createElement('video');
+          v.preload = 'metadata';
+          v.onloadedmetadata = () => res(v.duration);
+          v.onerror = rej;
+          v.src = videoItems[0].url;
+        });
+        if (dur > 20) videoItems[0].wide = true;
+      } catch(e) {}
+    }
+    buildCarousel(items);
+  }catch(e){console.warn('[Sanity]',e.message);}
+}
+load();
+</script>
+</body>
+</html>

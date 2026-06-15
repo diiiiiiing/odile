@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODILE — WORK</title>
+<style>
+  :root{
+    --bg:#b8b8bc; --fg:rgba(255,255,255,0.9);
+    --dim1:rgba(255,255,255,0.88); --dim2:rgba(255,255,255,0.45);
+    --dim3:rgba(255,255,255,0.10); --hl:rgba(255,255,255,1);
+    --tile:rgba(255,255,255,0.75); --tile-hl:rgba(255,255,255,1);
+    --pad:36px;
+    --font:-apple-system,'Helvetica Neue',sans-serif;
+    --fs:13px;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    width:100%;height:100%;
+    background:var(--bg);color:var(--dim1);
+    font-family:var(--font);font-weight:300;
+    font-size:var(--fs);line-height:1.55;
+    overflow:hidden;cursor:none;
+  }
+
+  #cur{position:fixed;width:5px;height:5px;background:#C8F000;
+    box-shadow:0 0 5px 0px #C8F00066;
+    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+
+  /* NAV */
+  #topNav{
+    position:fixed;top:0;left:0;right:0;height:50px;
+    padding:0 var(--pad);
+    display:flex;align-items:center;
+    z-index:400;
+    pointer-events:none;
+  }
+  #navHome{font-size:12.5px;color:var(--dim2);text-decoration:none;cursor:none;transition:color .2s;pointer-events:auto;}
+  #navHome:hover{color:var(--dim1);}
+  #navSep{color:var(--dim2);margin:0 2px;font-size:12.5px;}
+  #navSection{color:var(--dim1);font-size:12.5px;}
+
+  #ringStage{
+    position:fixed;z-index:1;overflow:visible;
+    opacity:0;animation:appear .8s cubic-bezier(0.22,1,0.36,1) .1s forwards;
+  }
+  @keyframes appear{from{opacity:0;transform:scale(0.84) rotate(-10deg);}to{opacity:1;transform:none;}}
+  #ring{position:absolute;inset:0;overflow:visible;}
+
+  .tile{position:absolute;cursor:none;overflow:visible;}
+  .tile-sq{width:100%;height:100%;background:var(--tile);display:block;will-change:transform,opacity;transition:background .4s;background-size:cover;background-position:center;}
+
+  /* center label */
+  #centerWrap{
+    position:fixed;pointer-events:none;z-index:10;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    transition:opacity .35s;
+  }
+  #centerLabel{
+    color:var(--dim2);text-align:center;max-width:160px;line-height:1.4;
+    opacity:0;animation:fi .6s ease 1s forwards;
+    transition:color .2s;
+    pointer-events:none;cursor:none;
+  }
+  #centerLabel.hl{color:var(--hl);}
+  @keyframes fi{to{opacity:1;}}
+
+  /* index toggle — centered, bracketed text */
+  #indexBtn{
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+    font-size:12.5px;color:var(--hl);white-space:nowrap;line-height:1;
+    opacity:.5;z-index:30;cursor:none;user-select:none;
+    transition:opacity .2s;
+  }
+  #indexBtn::before{content:'[';margin-right:2px;}
+  #indexBtn::after{content:']';margin-left:2px;}
+  #indexBtn:hover{opacity:.8;}
+  #indexBtn.open{opacity:1;}
+  #indexBtn.gone{opacity:0;pointer-events:none;}
+
+  /* info / contact — top right */
+  #contactBtn{
+    position:fixed;top:0;right:var(--pad);height:50px;
+    display:inline-flex;align-items:center;
+    font-size:12.5px;color:var(--hl);
+    opacity:.5;z-index:40;cursor:none;user-select:none;
+    transition:opacity .2s;
+  }
+  #contactBtn::before{content:'[';margin-right:2px;}
+  #contactBtn::after{content:']';margin-left:2px;}
+  #contactBtn:hover{opacity:.8;}
+  #contactBtn.open{opacity:1;}
+  #contactPanel{
+    position:fixed;top:50px;right:var(--pad);
+    z-index:40;max-width:min(280px, calc(100vw - 40px));
+    display:flex;flex-direction:column;align-items:flex-end;gap:8px;text-align:right;
+    opacity:0;transform:translateY(-6px);pointer-events:none;
+    transition:opacity .3s ease,transform .3s ease;
+  }
+  #contactPanel.open{opacity:1;transform:translateY(0);pointer-events:auto;}
+  #contactPanel .c-line{color:var(--dim2);font-size:12.5px;line-height:1.5;}
+  #contactPanel a{
+    color:var(--hl);font-size:12.5px;text-decoration:none;
+    opacity:.5;cursor:none;transition:opacity .2s;
+  }
+  #contactPanel a::before{content:'[';margin-right:2px;}
+  #contactPanel a::after{content:']';margin-left:2px;}
+  #contactPanel a:hover{opacity:.85;}
+
+  /* INDEX PANEL */
+  #panelIndex{
+    position:fixed;bottom:0;left:0;
+    width:46%;
+    max-height:calc(100vh - 60px);
+    display:flex;flex-direction:column;z-index:20;
+    opacity:0;transform:translateX(-16px);pointer-events:none;
+    transition:opacity .75s cubic-bezier(0.77,0,0.18,1),
+               transform .75s cubic-bezier(0.77,0,0.18,1);
+    background:none;
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+  }
+  #panelIndex.open{opacity:1;transform:translateX(0);pointer-events:auto;}
+  @media (max-width:640px){
+    #panelIndex{transform:translateY(20px);}
+    #panelIndex.open{transform:translateY(0);}
+  }
+
+  #ringClip{ display:none; }
+  #separator{ display:none; }
+
+  /* 3 columns: year / title / category */
+  .idx-header{
+    display:grid;
+    grid-template-columns:52px 1fr minmax(120px,220px);
+    padding:14px var(--pad) 10px;
+    flex-shrink:0;
+    color:var(--dim2);
+    border-bottom:1px solid rgba(255,255,255,0.12);
+  }
+  .col-h{cursor:none;user-select:none;transition:color .15s;white-space:nowrap;}
+  .col-h:last-child{text-align:right;}
+  .col-h:hover{color:var(--dim1);}
+  .col-h.sorted{color:var(--hl);}
+  .sort-arrow{display:inline-block;margin-left:3px;transition:transform .2s;}
+
+  #indexList{
+    flex:1;overflow-y:auto;overflow-x:hidden;
+    padding-bottom:60px;
+  }
+  #indexList::-webkit-scrollbar{width:0;}
+
+  .idx-row{
+    display:grid;
+    grid-template-columns:52px 1fr minmax(120px,220px);
+    padding:8px var(--pad);
+    cursor:none;color:var(--dim2);position:relative;
+    transition:color .15s;
+    border-bottom:1px solid rgba(255,255,255,0.07);
+  }
+  .idx-row::before{
+    content:'';position:absolute;
+    left:0;top:4px;bottom:4px;width:2px;
+    background:var(--fg);
+    transform:scaleY(0);transform-origin:center;
+    transition:transform .12s ease;
+  }
+  .idx-row:hover{color:var(--dim1);}
+  .idx-row.active{color:var(--hl);}
+  .idx-row.active::before{transform:scaleY(1);}
+  .idx-row.fading{color:var(--dim2);transition:color 1.1s ease;}
+  .idx-row.fading::before{transform:scaleY(0);transition:transform .7s ease;}
+
+  /* cells — no wrap, truncate */
+  .r-year,.r-title,.r-cat{
+    font-size:var(--fs);font-weight:300;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .r-cat{text-align:right;padding-left:8px;}
+  .idx-row.dimmed{opacity:0.18;transition:opacity .4s;pointer-events:none;}
+
+  /* CATEGORY FILTER */
+  #catFilter{
+    display:flex;flex-direction:row;flex-wrap:wrap;
+    gap:5px;padding:10px var(--pad) 12px;
+    flex-shrink:0;
+    border-bottom:1px solid rgba(255,255,255,0.07);
+  }
+  .cat-tag{
+    font-family:var(--font);font-size:var(--fs);font-weight:300;
+    color:var(--dim2);
+    letter-spacing:.04em;
+    cursor:none;user-select:none;
+    transition:color .15s;
+  }
+  .cat-tag::before{content:'[';margin-right:2px;}
+  .cat-tag::after{content:']';margin-left:2px;}
+  .cat-tag:hover{color:var(--dim1);}
+  .cat-tag.active{color:var(--hl);}
+
+#overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
+    opacity:0;pointer-events:none;transition:opacity .7s ease;}
+  #overlay.on{opacity:1;pointer-events:auto;}
+  @keyframes workFadeIn{from{opacity:0;}to{opacity:1;}}
+  body{animation:workFadeIn .7s ease both;}
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1024px) and (min-width: 641px) {
+    #panelIndex { width: 55%; }
+    .idx-header, .idx-row { grid-template-columns: 46px 1fr minmax(90px,160px); }
+  }
+
+  @media (max-width: 640px) {
+    :root { --pad: 18px; --fs: 13px; }
+
+    /* bottom sheet — glass morphism */
+    #panelIndex {
+      width: 100%;
+      max-height: 55vh;
+      bottom: 0; left: 0;
+      transform: translateY(28px);
+      border-radius: 20px 20px 0 0;
+      background: rgba(168,168,172,0.78);
+      backdrop-filter: blur(32px) saturate(1.8);
+      -webkit-backdrop-filter: blur(32px) saturate(1.8);
+      box-shadow: 0 -1px 0 rgba(255,255,255,.20), 0 -8px 40px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+    #panelIndex.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+    /* drag handle pill */
+    #panelIndex::before {
+      content: '';
+      display: block;
+      width: 34px; height: 3.5px;
+      border-radius: 2px;
+      background: rgba(255,255,255,.28);
+      margin: 10px auto 4px;
+      flex-shrink: 0;
+    }
+
+    /* 2-column grid — drop category on narrow screens */
+    .idx-header, .idx-row {
+      grid-template-columns: 40px 1fr;
+      padding-left: var(--pad); padding-right: var(--pad);
+    }
+    .r-cat, .col-h[data-sort="cat"] { display: none; }
+
+    /* header border slightly more visible on glass */
+    .idx-header { border-bottom-color: rgba(255,255,255,.18); }
+
+    /* horizontal-scroll tags — no wrap */
+    #catFilter {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding: 8px var(--pad) 8px;
+      gap: 6px;
+    }
+    #catFilter::-webkit-scrollbar { display: none; }
+    .cat-tag {
+      flex-shrink: 0;
+      font-size: var(--fs); padding: 5px 14px;
+      cursor: default;
+    }
+
+    /* more tappable center label */
+    #centerLabel { font-size: 14.5px; padding: 20px; letter-spacing: .12em; }
+
+    /* no cursor on touch */
+    #cur { display: none; }
+  }
+
+  /* no custom cursor on touch devices */
+  @media (hover: none) {
+    #cur { display: none; }
+    *, *::before, *::after { cursor: auto !important; }
+  }
+</style>
+</head>
+<body>
+<div id="iri" style="position:fixed;inset:0;z-index:0;pointer-events:none;background-color:#b8b8bc;"></div>
+<div id="overlay"></div>
+<script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
+<div id="cur"></div>
+<div id="separator"></div>
+<div id="ringClip"></div>
+
+<div id="topNav">
+  <a id="navHome" href="odile_hub.html">odile.xyz</a><span id="navSep"> / </span><span id="navSection">work</span>
+</div>
+
+<span id="contactBtn">infos</span>
+<div id="contactPanel">
+  <span class="c-line">currently designer at UNVEIL®</span>
+  <a href="#" id="emailCopy">thomasding227@gmail.com</a>
+</div>
+
+<div id="ringStage">
+  <div id="ring"></div>
+</div>
+
+<div id="centerWrap">
+  <span id="centerLabel"></span>
+</div>
+
+<span id="indexBtn">+ index</span>
+
+<div id="panelIndex">
+  <div class="idx-header">
+    <span class="col-h" data-sort="year">year<span class="sort-arrow">↓</span></span>
+    <span class="col-h" data-sort="title">project<span class="sort-arrow"></span></span>
+    <span class="col-h" data-sort="cat" style="text-align:right">category<span class="sort-arrow"></span></span>
+  </div>
+  <div id="catFilter"></div>
+  <div id="indexList"></div>
+</div>
+
+
+<script>
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX+'px';
+  cur.style.top  = e.clientY+'px';
+});
+
+document.getElementById('navHome').addEventListener('click', e => {
+  e.preventDefault();
+  const ov = document.getElementById('overlay');
+  ov.classList.add('on');
+  setTimeout(() => { window.location.href = 'odile_hub.html'; }, 700);
+});
+
+// ── Sanity CMS ─────────────────────────────────────────────────
+const SANITY_PROJECT_ID = 'zgrgr7sj';
+const SANITY_DATASET    = 'production';
+// GROQ query — fetch all project documents, map to the fields we use.
+// Field names here assume your Sanity schema uses: title, year, client, category, description
+// Adjust the field names on the right side if yours differ (e.g. "desc" → "description")
+const GROQ = `*[_type == "project"] | order(year desc) {
+  _id,
+  title,
+  "year": string(year),
+  "client": coalesce(client, "—"),
+  "tags": tags[]->{title},
+  "desc": pt::text(description),
+  link,
+  "thumb": coalesce(
+    thumbnail.asset->{url, "ar": metadata.dimensions.aspectRatio},
+    media[_type == "mediaImage"][0].image.asset->{url, "ar": metadata.dimensions.aspectRatio}
+  )
+}`;
+const SANITY_URL = `https://${SANITY_PROJECT_ID}.api.sanity.io/v2021-10-21/data/query/${SANITY_DATASET}?query=${encodeURIComponent(GROQ)}`;
+
+// Fallback data shown while loading / if fetch fails
+const FALLBACK = [
+  {title:"Desert Study I",   year:"2023",client:"—",cat:"Photography",        desc:"Corps en mouvement sur terre craquelée."},
+  {title:"Salt Flat Series", year:"2022",client:"—",cat:"Photography",        desc:"Explorations gestuelles dans des paysages de sel."},
+  {title:"Éclipse",          year:"2023",client:"—",cat:"Direction / Film",   desc:"Contrejour et silhouettes."},
+  {title:"Ground Zero",      year:"2021",client:"—",cat:"Photography",        desc:"Archéologie du mouvement."},
+  {title:"Kinesthésie",      year:"2023",client:"—",cat:"Performance / Film", desc:"Séquences d'effort et de repos."},
+  {title:"Miroir Blanc",     year:"2022",client:"—",cat:"Photography",        desc:"Réflexions dans des lacs asséchés."},
+  {title:"Horizon Zéro",     year:"2021",client:"—",cat:"Photography",        desc:"Ligne d'horizon comme frontière."},
+  {title:"Lithique",         year:"2020",client:"—",cat:"Photography",        desc:"Rencontre entre peau et roche."},
+  {title:"Corps Nomade",     year:"2022",client:"—",cat:"Performance",        desc:"Errance et ancrage."},
+  {title:"Brutalisme Doux",  year:"2023",client:"—",cat:"Photography",        desc:"Architecture du mouvement spontané."},
+  {title:"Fissure",          year:"2021",client:"—",cat:"Photography",        desc:"Craquelures du sol comme cartographie."},
+  {title:"Solstice",         year:"2022",client:"—",cat:"Photography",        desc:"Lumière rasante de fin de journée."},
+  {title:"Inertie",          year:"2020",client:"—",cat:"Photography",        desc:"Pause dans le mouvement."},
+  {title:"Carapace",         year:"2023",client:"—",cat:"Photography",        desc:"Protection et vulnérabilité."},
+  {title:"Sédiment",         year:"2021",client:"—",cat:"Photography",        desc:"Strates de temps visible."},
+  {title:"Verticalité",      year:"2022",client:"—",cat:"Photography",        desc:"L'axe du corps comme seul repère."},
+  {title:"Aride",            year:"2023",client:"—",cat:"Photography",        desc:"Chaleur perçue, corps adapté."},
+  {title:"Érosion",          year:"2020",client:"—",cat:"Photography",        desc:"Usure lente du paysage."},
+  {title:"Pesanteur",        year:"2021",client:"—",cat:"Performance / Film", desc:"La gravité comme collaboratrice."},
+  {title:"Lacune",           year:"2022",client:"—",cat:"Photography",        desc:"Ce qui manque dans le cadre."},
+  {title:"Empreinte",        year:"2023",client:"—",cat:"Photography",        desc:"Traces laissées, traces trouvées."},
+  {title:"Bas-Relief",       year:"2021",client:"—",cat:"Photography",        desc:"Corps sculpté par la lumière."},
+  {title:"Bascule",          year:"2022",client:"—",cat:"Performance",        desc:"Équilibre précaire."},
+  {title:"Épilogue",         year:"2023",client:"—",cat:"Photography",        desc:"Fin du mouvement."},
+];
+
+// Start with fallback — replaced by Sanity data when loaded
+let projects = [...FALLBACK];
+
+// Async init — fetch Sanity, then reinitialise everything
+async function loadFromSanity() {
+  try {
+    const res  = await fetch(SANITY_URL);
+    if (!res.ok) throw new Error(`Sanity ${res.status}`);
+    const json = await res.json();
+    const raw  = json.result || [];
+    if (!raw.length) return; // empty project, keep fallback
+    // Normalise — ensure all fields exist
+    projects = raw.map(p => ({
+      _id:    p._id,
+      title:  p.title  || '(untitled)',
+      year:   p.year   || '—',
+      client: p.client || '—',
+      cat:    Array.isArray(p.tags) && p.tags.length
+                ? p.tags.map(t => (typeof t === 'string' ? t : t?.title)).filter(Boolean).join(', ')
+                : '—',
+      desc:   p.desc   || '',
+      link:   p.link   || '',
+      image:   p.thumb?.url || '',
+      imageAR: p.thumb?.ar  || (16/9),
+    }));
+    console.log(`[Sanity] ${projects.length} projects loaded`);
+    reinit();
+  } catch(e) {
+    console.warn('[Sanity] fetch failed, using fallback:', e.message);
+  }
+}
+
+
+let N = projects.length;
+
+// ── Layout geometry (recalculated on resize) ──────────────────
+let VW, VH, R_DEF, S_DEF, R_OPEN, S_OPEN, CX_OPEN, CY_OPEN;
+
+function computeLayout() {
+  VW = window.innerWidth;
+  VH = window.innerHeight;
+  const mobile  = VW < 640;
+  const tablet  = VW < 1024;
+  const indexFrac = mobile ? 1.0 : tablet ? 0.55 : 0.44;
+  const INDEX_W   = VW * indexFrac;
+  R_DEF   = Math.min(VW, VH) * (mobile ? 0.33 : 0.40);
+  S_DEF   = R_DEF * 2 + 260;
+  R_OPEN  = mobile ? Math.min(VW * 0.26, VH * 0.13) : VH * 0.92;
+  S_OPEN  = R_OPEN * 2 + 260;
+  CX_OPEN = mobile ? VW / 2 : INDEX_W + R_OPEN * 1.55;
+  CY_OPEN = mobile ? VH * 0.21 : VH * 0.50;
+}
+computeLayout();
+
+const TILE_W = 0.42; // fraction of ring radius
+function getTileRatio(ar) {
+  if (!ar || ar <= 0) ar = 16/9;
+  if (ar >= 1) {
+    // paysage / carré : largeur fixe, hauteur se réduit
+    return { wr: TILE_W, hr: TILE_W / ar };
+  } else {
+    // portrait : on plafonne la hauteur pour éviter qu'elles dominent le ring
+    const h = Math.min(TILE_W / ar, TILE_W * 0.9);
+    return { wr: h * ar, hr: h };
+  }
+}
+
+const ringStage   = document.getElementById('ringStage');
+const ringEl      = document.getElementById('ring');
+const centerWrap  = document.getElementById('centerWrap');
+const centerLabel = document.getElementById('centerLabel');
+const indexBtn    = document.getElementById('indexBtn');
+const contactBtn  = document.getElementById('contactBtn');
+const contactPanel= document.getElementById('contactPanel');
+contactBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const open = contactPanel.classList.toggle('open');
+  contactBtn.classList.toggle('open', open);
+});
+document.addEventListener('click', (e) => {
+  if (!contactPanel.classList.contains('open')) return;
+  if (contactBtn.contains(e.target) || contactPanel.contains(e.target)) return;
+  contactPanel.classList.remove('open');
+  contactBtn.classList.remove('open');
+});
+const emailCopy = document.getElementById('emailCopy');
+emailCopy.addEventListener('click', (e) => {
+  e.preventDefault();
+  navigator.clipboard.writeText('thomasding227@gmail.com');
+  const original = emailCopy.textContent;
+  emailCopy.textContent = 'copied';
+  setTimeout(() => { emailCopy.textContent = original; }, 1200);
+});
+const panelIndex  = document.getElementById('panelIndex');
+const separator   = document.getElementById('separator');
+const indexList   = document.getElementById('indexList');
+
+// persistent state (survives reinit)
+let indexOpen   = false;
+let activeIndex = -1;
+let atmoPaused  = false;
+let ringAngle   = 0, ringTarget = 0, atmo = 0;
+let lR  = R_DEF,   lS  = S_DEF;
+let lCX = VW / 2,  lCY = VH / 2;
+let sortKey = 'year', sortDir = -1;
+let sortedOrder = [];
+let ringOrder = [], ringSlot = [];
+let activeFilter = null;
+
+// these grow with reinit
+let hoverT    = new Float32Array(N);
+let curFiltOp = new Float32Array(N).fill(1);
+let fadeTimers = new Array(N).fill(null);
+let tileEls   = [];
+let rowEls    = new Array(N).fill(null);
+
+function applyStagePos(cx, cy, size) {
+  ringStage.style.left   = (cx - size/2) + 'px';
+  ringStage.style.top    = (cy - size/2) + 'px';
+  ringStage.style.width  = size + 'px';
+  ringStage.style.height = size + 'px';
+}
+applyStagePos(VW/2, VH/2, S_DEF);
+
+window.addEventListener('resize', () => {
+  computeLayout();
+  // snap lerp targets to new default if index is closed
+  if (!indexOpen) {
+    lCX = VW / 2; lCY = VH / 2; lR = R_DEF; lS = S_DEF;
+    applyStagePos(lCX, lCY, lS);
+  }
+  centerWrap.style.left  = (lCX - 100) + 'px';
+  centerWrap.style.top   = (lCY - 24)  + 'px';
+}, { passive: true });
+
+// ── reinit — called on load + after Sanity data arrives ────────
+function reinit() {
+  N = projects.length;
+  hoverT     = new Float32Array(N);
+  curFiltOp  = new Float32Array(N);
+  projects.forEach((p, i) => {
+    const match = !activeFilter || (p.cat && p.cat.includes(activeFilter));
+    curFiltOp[i] = match ? 1 : 0.12;
+  });
+  fadeTimers = new Array(N).fill(null);
+  tileEls    = [];
+  rowEls     = new Array(N).fill(null);
+  ringOrder  = projects.map((_, i) => i);
+  ringSlot   = projects.map((_, i) => i);
+  activeIndex = -1;
+
+  // rebuild ring tiles
+  ringEl.innerHTML = '';
+  projects.forEach((proj, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    const sq = document.createElement('div');
+    sq.className = 'tile-sq';
+    if (proj.image) sq.style.backgroundImage = `url(${proj.image})`;
+    tile.appendChild(sq);
+    tile.addEventListener('mouseenter', () => activate(i, false));
+    tile.addEventListener('mouseleave', () => deactivate(i));
+    tile.addEventListener('click',      () => goToProject(i));
+    ringEl.appendChild(tile);
+
+    tileEls.push({tile, sq, ratio: getTileRatio(proj.imageAR)});
+  });
+
+  // rebuild category tags + index rows
+  buildCatFilter();
+  sortBy(sortKey);
+}
+
+// ── index rows ─────────────────────────────────────────────────
+function buildRows() {
+  indexList.innerHTML = '';
+
+  sortedOrder.forEach((origIdx) => {
+    const proj = projects[origIdx];
+    const row  = document.createElement('div');
+    row.className   = 'idx-row';
+    row.dataset.idx = origIdx;
+    row.innerHTML   =
+      `<span class="r-year">${proj.year}</span>`+
+      `<span class="r-title">${proj.title}</span>`+
+      `<span class="r-cat">${proj.cat}</span>`;
+    const rowMatch = !activeFilter || (proj.cat && proj.cat.includes(activeFilter));
+    if (!rowMatch) row.classList.add('dimmed');
+    row.addEventListener('mouseenter', () => activate(origIdx, true));
+    row.addEventListener('mouseleave', () => deactivate(origIdx));
+    row.addEventListener('click',      () => goToProject(origIdx));
+    indexList.appendChild(row);
+    rowEls[origIdx] = row;
+  });
+}
+
+// ── category filter ────────────────────────────────────────────
+function buildCatFilter() {
+  const catEl = document.getElementById('catFilter');
+  const cats = [...new Set(
+    projects.map(p => p.cat).filter(Boolean)
+      .flatMap(c => c.split(',').map(s => s.trim()))
+  )].sort();
+  catEl.innerHTML = '';
+  cats.forEach(cat => {
+    const tag = document.createElement('span');
+    tag.className = 'cat-tag' + (activeFilter === cat ? ' active' : '');
+    tag.textContent = cat;
+    tag.addEventListener('click', e => { e.stopPropagation(); toggleFilter(cat); });
+    catEl.appendChild(tag);
+  });
+}
+
+function toggleFilter(cat) {
+  activeFilter = activeFilter === cat ? null : cat;
+  document.querySelectorAll('.cat-tag').forEach(el => {
+    el.classList.toggle('active', el.textContent === activeFilter);
+  });
+  buildRows();
+}
+
+function sortBy(key) {
+  if (sortKey === key) {
+    sortDir = -sortDir;
+  } else {
+    sortKey = key;
+    sortDir = key === 'year' ? -1 : 1;
+  }
+  sortedOrder = projects.map((_, i) => i).sort((a, b) => {
+    const va = projects[a][key] || '';
+    const vb = projects[b][key] || '';
+    if (key === 'year') return (parseInt(vb) - parseInt(va)) * -sortDir;
+    return va.localeCompare(vb, 'fr') * sortDir;
+  });
+  document.querySelectorAll('.col-h').forEach(el => {
+    const arrow = el.querySelector('.sort-arrow');
+    const k = el.dataset.sort;
+    el.classList.toggle('sorted', k === sortKey);
+    if (arrow) arrow.textContent = k === sortKey ? (k === 'year' ? (sortDir === 1 ? ' ↑' : ' ↓') : (sortDir === 1 ? ' ↓' : ' ↑')) : '';
+  });
+  if (activeIndex >= 0) deactivate(activeIndex);
+  buildRows();
+  if (indexOpen) applyRingOrder();
+}
+
+document.querySelectorAll('.col-h[data-sort]').forEach(el => {
+  el.addEventListener('click', () => sortBy(el.dataset.sort));
+});
+
+// initial build
+reinit();
+
+
+function applyRingOrder() {
+  // make ring order match sortedOrder
+  ringOrder = [...sortedOrder];
+  ringSlot  = new Array(N);
+  ringOrder.forEach((origIdx, slot) => { ringSlot[origIdx] = slot; });
+}
+
+function activate(i, fromIndex) {
+  activeIndex = i;
+  atmoPaused  = true;
+  rowEls.forEach(r => { if (r) r.classList.remove('active', 'fading'); });
+  if (rowEls[i]) rowEls[i].classList.add('active');
+  if (!indexOpen) {
+    centerLabel.textContent = projects[i].title;
+    centerLabel.classList.add('hl');
+    indexBtn.classList.add('gone');
+  }
+  if (fromIndex) {
+    // find this project's current slot in the ring
+    const slot = ringSlot[i];
+    const tileBaseAngle = (slot / N) * 2 * Math.PI - Math.PI / 2;
+    const wantTotal = (-Math.PI - tileBaseAngle) * (180 / Math.PI);
+    const wantRing  = wantTotal - atmo;
+    const delta     = ((wantRing - ringTarget) % 360 + 540) % 360 - 180;
+    ringTarget += delta;
+  }
+  if (rowEls[i]) rowEls[i].scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+
+function deactivate(i) {
+  if (activeIndex !== i) return;
+  activeIndex = -1;
+  atmoPaused  = false;
+  if (fadeTimers[i]) clearTimeout(fadeTimers[i]);
+  if (rowEls[i]) {
+    rowEls[i].classList.remove('active');
+    rowEls[i].classList.add('fading');
+    fadeTimers[i] = setTimeout(() => { if (rowEls[i]) rowEls[i].classList.remove('fading'); }, 1300);
+  }
+  centerLabel.textContent = '';
+  centerLabel.classList.remove('hl');
+  if (!indexOpen) indexBtn.classList.remove('gone');
+}
+
+// ── navigate ───────────────────────────────────────────────────
+function goToProject(i) {
+  document.getElementById('overlay').classList.add('on');
+  try { sessionStorage.setItem('odileProjects', JSON.stringify(projects)); } catch(e) {}
+  setTimeout(() => {
+    const proj = projects[i];
+    const q = new URLSearchParams({
+      id:    proj._id || '',
+      title: proj.title,
+      year:  proj.year,
+      index: i,
+      nextIndex: (i+1)%N,
+    });
+    window.location.href = 'odile_project.html?' + q.toString();
+  }, 300);
+}
+
+
+// ── iridescent background (same as hub) ─────────────────────────
+let mx2 = 0.5, my2 = 0.5;
+const iri = document.getElementById('iri');
+const blobs = [
+  { x: 50, y: 100 }, { x: 20, y: 60 }, { x: 80, y: 40 }, { x: 50, y: 50 }
+];
+const blobBase = [
+  { x: 50, y: 100 }, { x: 20, y: 60 }, { x: 80, y: 40 }, { x: 50, y: 50 }
+];
+const blobDef = [
+  { ax:  0.38, ay:  0.30, ease: 0.05, color: '220,180,60',  op: 0.70, ex: 90, ey: 70 },
+  { ax: -0.42, ay:  0.34, ease: 0.04, color: '200,160,210', op: 0.50, ex: 70, ey: 60 },
+  { ax:  0.36, ay: -0.38, ease: 0.045,color: '160,210,200', op: 0.40, ex: 60, ey: 50 },
+  { ax:  0.18, ay:  0.16, ease: 0.03, color: '210,200,190', op: 0.30, ex: 80, ey: 80 },
+];
+document.addEventListener('mousemove', e => {
+  mx2 = e.clientX / window.innerWidth;
+  my2 = e.clientY / window.innerHeight;
+});
+(function blobTick() {
+  let grad = '';
+  blobs.forEach((b, i) => {
+    const d = blobDef[i];
+    b.x += (blobBase[i].x + (mx2 - 0.5) * d.ax * 100 - b.x) * d.ease;
+    b.y += (blobBase[i].y + (my2 - 0.5) * d.ay * 100 - b.y) * d.ease;
+    grad += `radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;
+  });
+  iri.style.backgroundImage = grad.slice(0, -1);
+  requestAnimationFrame(blobTick);
+})();
+function closeIndex() {
+  if (!indexOpen) return;
+  indexOpen = false;
+  panelIndex.classList.remove('open');
+  separator.classList.remove('open');
+  indexBtn.textContent = '+ index';
+  indexBtn.classList.remove('open', 'gone');
+  if (activeIndex >= 0) deactivate(activeIndex);
+  // reset category filter so all tiles come back to full opacity
+  if (activeFilter) {
+    activeFilter = null;
+    document.querySelectorAll('.cat-tag').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.idx-row').forEach(el => el.classList.remove('dimmed'));
+  }
+}
+
+indexBtn.addEventListener('click', () => {
+  indexOpen = !indexOpen;
+  panelIndex.classList.toggle('open', indexOpen);
+  separator.classList.toggle('open', indexOpen);
+  indexBtn.textContent = indexOpen ? '− index' : '+ index';
+  indexBtn.classList.toggle('open', indexOpen);
+  indexBtn.classList.toggle('gone', indexOpen);
+  if (!indexOpen && activeIndex >= 0) deactivate(activeIndex);
+  if (indexOpen) applyRingOrder();
+});
+
+// Échap — ferme l'index
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeIndex();
+});
+
+// Clic en dehors du panel — ferme l'index
+document.addEventListener('click', e => {
+  if (!indexOpen) return;
+  if (panelIndex.contains(e.target)) return;
+  if (indexBtn.contains(e.target)) return;
+  closeIndex();
+});
+
+// ── scroll ──────────────────────────────────────────────────────
+let lastMouseX = 0;
+document.addEventListener('mousemove', e => { lastMouseX = e.clientX; });
+
+document.addEventListener('wheel', e => {
+  // When index is open and cursor is over the index panel → scroll the list
+  if (indexOpen && lastMouseX < panelIndex.offsetWidth) {
+    return;
+  }
+  e.preventDefault();
+  ringTarget += e.deltaY * 0.18;
+}, {passive:false});
+
+let lty = null;
+document.addEventListener('touchstart', e => { lty = e.touches[0].clientY; }, {passive:true});
+document.addEventListener('touchmove', e => {
+  if (!lty) return;
+  // Let the panel scroll naturally — only rotate the ring outside it
+  if (indexOpen && panelIndex.contains(e.target)) return;
+  ringTarget += (lty - e.touches[0].clientY) * 0.35;
+  lty = e.touches[0].clientY;
+  e.preventDefault();
+}, {passive:false});
+document.addEventListener('touchend', () => { lty = null; }, {passive:true});
+
+// Swipe down on the panel handle area → close
+let panelSwipeY = null;
+panelIndex.addEventListener('touchstart', e => {
+  panelSwipeY = e.touches[0].clientY;
+}, {passive:true});
+panelIndex.addEventListener('touchend', e => {
+  if (panelSwipeY === null) return;
+  const dy = e.changedTouches[0].clientY - panelSwipeY;
+  panelSwipeY = null;
+  // only close if swipe started near top 48px of panel and moved down ≥ 55px
+  const panelTop = panelIndex.getBoundingClientRect().top;
+  const startedNearTop = (e.changedTouches[0].clientY - dy) - panelTop < 48;
+  if (dy > 55 && startedNearTop) closeIndex();
+}, {passive:true});
+
+// ── main loop ───────────────────────────────────────────────────
+const LERP = 0.065;
+const PUSH  = 24;
+
+(function loop() {
+  ringAngle += (ringTarget - ringAngle) * 0.09;
+  if (!atmoPaused) atmo += 0.005;
+  const total = ringAngle + atmo;
+  ringEl.style.transform = `rotate(${total}deg)`;
+
+  const tCX = indexOpen ? CX_OPEN  : VW / 2;
+  const tCY = indexOpen ? CY_OPEN  : VH / 2;
+  const tR  = indexOpen ? R_OPEN   : R_DEF;
+  const tS  = indexOpen ? S_OPEN   : S_DEF;
+
+  lCX += (tCX - lCX) * LERP;
+  lCY += (tCY - lCY) * LERP;
+  lR  += (tR  - lR)  * LERP;
+  lS  += (tS  - lS)  * LERP;
+
+  ringStage.style.transition = 'none';
+  applyStagePos(lCX, lCY, lS);
+
+  // center wrap follows ring center
+  centerWrap.style.left   = (lCX - 100) + 'px';
+  centerWrap.style.top    = (lCY - 24)  + 'px';
+  centerWrap.style.width  = '200px';
+  centerWrap.style.height = '48px';
+
+  const half     = lS / 2;
+  const hasActive = activeIndex >= 0;
+
+  tileEls.forEach(({tile, sq, ratio}, i) => {
+    // angle based on current ring slot (changes when index sort changes)
+    const slot = ringSlot[i];
+    const a  = (slot / N) * 2 * Math.PI - Math.PI / 2;
+    const tw = ratio.wr * lR;
+    const th = ratio.hr * lR;
+    tile.style.width  = tw + 'px';
+    tile.style.height = th + 'px';
+
+    const px = half + lR * Math.cos(a) - tw / 2;
+    const py = half + lR * Math.sin(a) - th / 2;
+    tile.style.left = px + 'px';
+    tile.style.top  = py + 'px';
+
+    const want = i === activeIndex ? 1 : 0;
+    hoverT[i] += (want - hoverT[i]) * 0.09;
+    const t = hoverT[i];
+
+    const absAngle = a + total * Math.PI / 180;
+    const dx = Math.cos(absAngle) * PUSH * t;
+    const dy = Math.sin(absAngle) * PUSH * t;
+
+    const bright  = 0.75 + 0.25 * t;
+    const catMatch = !activeFilter || (projects[i].cat && projects[i].cat.includes(activeFilter));
+    curFiltOp[i] += ((catMatch ? 1 : 0.12) - curFiltOp[i]) * 0.07;
+
+    sq.style.transform  = `rotate(${-total}deg) translate(${dx}px,${dy}px)`;
+    if (!sq.style.backgroundImage) sq.style.backgroundColor = `rgba(255,255,255,${bright})`;
+    else sq.style.filter = `brightness(${0.75 + 0.35 * t})`;
+    sq.style.opacity    = curFiltOp[i];
+    sq.style.boxShadow  = t > 0.02 ? `0 0 ${28*t}px rgba(255,255,255,${0.20*t})` : 'none';
+  });
+
+  requestAnimationFrame(loop);
+})();
+
+// kick off Sanity — will call reinit() when data arrives
+loadFromSanity();
+</script>
+</body>
+</html>

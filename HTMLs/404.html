@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 — odile.xyz</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#b8b8bc; --pad:36px; --nav:50px;
+    --dim1:rgba(255,255,255,0.88); --dim2:rgba(255,255,255,0.45);
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    width:100%;height:100%;
+    background:var(--bg);
+    overflow:hidden;cursor:none;
+    font-family:-apple-system,'Helvetica Neue',sans-serif;font-weight:300;font-size:12.5px;
+    color:var(--dim1);
+  }
+  body{animation:fadeIn .6s ease both;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  #iri{position:fixed;inset:0;z-index:0;pointer-events:none;background-color:#b8b8bc;}
+
+  #cur{position:fixed;width:5px;height:5px;background:#E5FF00;
+    box-shadow:0 0 5px 0px #E5FF0066;
+    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
+    opacity:0;pointer-events:none;transition:opacity .7s ease;}
+  #overlay.on{opacity:1;pointer-events:auto;}
+
+  /* NAV */
+  #topNav{
+    position:fixed;top:0;left:0;right:0;height:var(--nav);
+    padding:0 var(--pad);display:flex;align-items:center;z-index:400;
+  }
+  #navHome{font-size:12.5px;color:var(--dim2);text-decoration:none;cursor:none;transition:color .2s;}
+  #navHome:hover{color:var(--dim1);}
+  #navSep{color:var(--dim2);margin:0 2px;font-size:12.5px;}
+  #navSection{color:var(--dim1);font-size:12.5px;}
+
+  /* ANVIL BUTTON — bottom center (icon, opacity only) */
+  #anvilBtn{
+    position:fixed;bottom:26px;left:50%;transform:translateX(-50%);
+    cursor:none;z-index:10;user-select:none;
+    color:#fff;opacity:.5;transition:opacity .2s;
+  }
+  #anvilBtn:hover{opacity:.9;}
+
+  /* CENTER */
+  #main{
+    position:fixed;inset:0;z-index:10;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  /* POPUP CARD */
+  .popup{
+    background:#f0f0ee;
+    border:2.5px solid #999997;
+    border-radius:10px;
+    overflow:hidden;
+    width:min(500px,90vw);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.65);
+    animation:popIn .55s cubic-bezier(0.22,1,0.36,1) .15s both;
+  }
+  @keyframes popIn{
+    from{opacity:0;transform:scale(0.86);}
+    to{opacity:1;transform:none;}
+  }
+
+  /* illustration */
+  #error-img{
+    width:100%;display:block;
+    aspect-ratio:500/295;
+    background:#d2d2d0; /* placeholder bg while loading */
+    opacity:0;transition:opacity .5s ease;
+  }
+  #error-img.on{opacity:1;}
+
+  .popup-text{
+    padding:20px 38px 26px;
+    text-align:center;
+    border-top:1.5px solid #dcdcd9;
+    background:white;
+  }
+  .popup-text p{
+    font-family:'Nunito','Arial Rounded MT Bold',sans-serif;
+    font-size:15.5px;font-weight:700;
+    line-height:1.7;color:#1a1a1a;
+  }
+
+  /* no custom cursor on touch devices */
+  @media (hover:none){
+    #cur{display:none;}
+    *,*::before,*::after{cursor:auto!important;}
+  }
+</style>
+</head>
+<body>
+<div id="iri"></div>
+<div id="overlay"></div>
+<script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
+<div id="cur"></div>
+
+<nav id="topNav">
+  <a id="navHome" href="odile_hub.html">odile.xyz</a><span id="navSep"> / </span><span id="navSection">404</span>
+</nav>
+
+<div id="main">
+  <div class="popup">
+
+    <!-- Image from CMS — src set by JS below -->
+    <img id="error-img" src="" alt="">
+
+    <div class="popup-text">
+      <p>
+        error 404<br>
+        Why not take a break?<br>
+        You can pause exploring or press the anvil.
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<div id="anvilBtn">
+  <svg width="50" height="24" viewBox="0 0 229 111" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M87.3792 0C88.5299 0.098683 91.0756 0.0348803 92.3125 0.0360713L101.817 0.0401551L132.118 0.043216L228.011 0.0416868C228.049 2.99775 228.263 6.39126 227.834 9.27978C227.623 10.7076 222.647 11.6739 221.299 12.0402C219.183 12.6195 217.078 13.2434 214.987 13.9118C193.448 20.7367 164.669 33.6562 157.074 57.1014C151.62 73.9325 164.296 89.6796 180.194 94.3241L180.201 110.77L151.968 110.784C148.396 106.094 138.007 103.878 132.369 103.064C127.695 102.531 122.988 102.352 118.288 102.529C110.024 102.828 97.3899 104.583 91.5877 110.814C82.73 110.526 72.4255 110.754 63.4863 110.797C63.4605 105.309 63.4674 99.8211 63.5074 94.3333C72.1869 91.3704 77.1367 88.2013 85.8122 80.8923C93.7721 74.1863 102.311 54.8531 87.679 47.8784C86.6915 47.4077 73.031 47.6797 70.51 47.6688C70.1546 47.2089 70.281 47.0088 70.2628 46.2902C69.8938 45.916 67.5371 46.0218 66.6903 45.9921C60.8365 45.8298 55.0078 45.158 49.2704 43.9844C35.0149 41.1173 21.8508 34.3049 11.2771 24.3232C9.03475 22.1948 0.0246463 13.1791 0.000145699 10.6539C-0.00648988 9.97787 0.213335 9.31806 0.699094 8.8357C1.38171 8.15802 2.39015 7.9171 3.31913 7.84343C5.57472 7.66444 7.95961 7.87389 10.2293 7.87814L24.258 7.86623L70.2599 7.87899L70.2824 5.5647C75.3746 5.80699 82.0178 5.5744 87.3169 5.60928L87.3792 0Z" fill="currentColor"/>
+  </svg>
+</div>
+
+<script>
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top  = e.clientY + 'px';
+});
+
+/* ── iridescent background (identical to hub) ── */
+let mx=0.5, my=0.5;
+const iri=document.getElementById('iri');
+const blobs=[{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const base= [{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const blobDef=[
+  {ax:.38, ay:.30, ease:.05, color:'220,180,60', op:.70, ex:90, ey:70},
+  {ax:-.42,ay:.34, ease:.04, color:'200,160,210',op:.50, ex:70, ey:60},
+  {ax:.36, ay:-.38,ease:.045,color:'160,210,200',op:.40, ex:60, ey:50},
+  {ax:.18, ay:.16, ease:.03, color:'210,200,190',op:.30, ex:80, ey:80},
+];
+document.addEventListener('mousemove',e=>{mx=e.clientX/innerWidth;my=e.clientY/innerHeight;});
+(function tick(){
+  let g='';
+  blobs.forEach((b,i)=>{
+    const d=blobDef[i];
+    b.x+=(base[i].x+(mx-.5)*d.ax*100-b.x)*d.ease;
+    b.y+=(base[i].y+(my-.5)*d.ay*100-b.y)*d.ease;
+    g+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;
+  });
+  iri.style.backgroundImage=g.slice(0,-1);
+  requestAnimationFrame(tick);
+})();
+
+function goHome(e){
+  e.preventDefault();
+  document.getElementById('overlay').classList.add('on');
+  setTimeout(() => { window.location.href = 'odile_hub.html'; }, 700);
+}
+document.getElementById('anvilBtn').addEventListener('click', goHome);
+document.getElementById('navHome').addEventListener('click', goHome);
+
+/* ── Load 404 image from Sanity ──
+   In Sanity Studio, go to Assets and upload the image.
+   Then paste the CDN URL as the value of IMG_URL below.     */
+const IMG_URL = 'https://cdn.sanity.io/images/zgrgr7sj/production/2e3e34576dde5eb0a73dd248ae773bf1b7c6c52b-2752x1536.png';
+
+const img = document.getElementById('error-img');
+if (IMG_URL) {
+  img.src = IMG_URL;
+  img.onload = () => img.classList.add('on');
+}
+</script>
+</body>
+</html>

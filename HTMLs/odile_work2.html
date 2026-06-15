@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODILE — WORK</title>
+<style>
+  :root{
+    --bg:#b8b8bc;
+    --dim1:rgba(0,0,0,0.65);--dim2:rgba(0,0,0,0.28);--hl:rgba(0,0,0,0.88);
+    --font:-apple-system,'Helvetica Neue',sans-serif;--fs:12px;--nav:50px;--idx:360px;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html{background:#b8b8bc;}
+  body{
+    background:var(--bg);color:var(--dim1);
+    font-family:var(--font);font-weight:300;font-size:var(--fs);line-height:1.55;
+    cursor:none;overflow:hidden;
+    animation:fadeIn .7s ease both;
+  }
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  #cur{position:fixed;width:5px;height:5px;background:#E5FF00;box-shadow:0 0 5px 0px #E5FF0066;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+  #iri{position:fixed;inset:0;z-index:0;pointer-events:none;}
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;opacity:0;pointer-events:none;transition:opacity .7s ease;}
+  #overlay.on{opacity:1;pointer-events:auto;}
+
+  /* NAV */
+  #topNav{
+    position:fixed;top:0;left:0;right:0;height:var(--nav);
+    padding:0 36px;display:flex;align-items:center;justify-content:space-between;z-index:400;
+  }
+  #navHome{color:var(--dim2);text-decoration:none;cursor:none;transition:color .2s;}
+  #navHome:hover{color:var(--dim1);}
+  #navSep{color:var(--dim2);margin:0 2px;}
+  #navSection{color:var(--dim1);}
+
+  /* INDEX PANEL — always visible */
+  #panelIndex{
+    position:fixed;top:var(--nav);left:0;bottom:0;
+    width:var(--idx);
+    display:flex;flex-direction:column;
+    z-index:300;
+  }
+
+  /* category filter chips */
+  #catFilter{
+    display:flex;flex-wrap:wrap;gap:5px;
+    padding:16px 24px 10px;
+    flex-shrink:0;
+  }
+  .cat-btn{
+    padding:6px 16px;border:1px solid var(--dim2);border-radius:14px;
+    background:none;color:var(--dim2);font-family:var(--font);font-size:var(--fs);
+    font-weight:300;letter-spacing:.04em;cursor:none;transition:color .15s,border-color .15s,background .15s;
+    line-height:1.4;
+  }
+  .cat-btn:hover{color:var(--dim1);border-color:var(--dim1);}
+  .cat-btn.active{background:rgba(0,0,0,0.65);color:rgba(255,255,255,0.88);border-color:transparent;}
+
+  /* index header */
+  .idx-header{
+    display:grid;grid-template-columns:40px 1fr 120px;
+    padding:6px 24px;flex-shrink:0;color:var(--dim2);
+  }
+  .col-h{cursor:none;user-select:none;transition:color .15s;}
+  .col-h:hover{color:var(--dim1);}
+  .col-h.sorted{color:var(--hl);}
+  .sort-arrow{display:inline-block;margin-left:3px;}
+
+  /* index rows */
+  #indexList{
+    flex:1;overflow-y:auto;overflow-x:hidden;
+    padding-bottom:60px;
+    mask-image:linear-gradient(to bottom,black 85%,transparent 100%);
+    -webkit-mask-image:linear-gradient(to bottom,black 85%,transparent 100%);
+  }
+  #indexList::-webkit-scrollbar{width:0;}
+  .idx-row{
+    display:grid;grid-template-columns:40px 1fr 120px;
+    padding:5px 24px;cursor:none;color:var(--dim2);
+    position:relative;transition:color .1s;
+  }
+  .idx-row::before{
+    content:'';position:absolute;left:0;top:4px;bottom:4px;width:1px;
+    background:rgba(0,0,0,0.7);transform:scaleY(0);transform-origin:center;
+  }
+  .idx-row.active{color:var(--hl);}
+  .idx-row.active::before{transform:scaleY(1);transition:transform .12s ease;}
+  .idx-row.hidden{display:none;}
+  .r-year,.r-title,.r-client{font-size:var(--fs);font-weight:300;}
+  .r-client{color:var(--dim2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* CAROUSEL */
+  #carousel-container{
+    position:fixed;
+    top:var(--nav);bottom:0;
+    left:var(--idx);right:0;
+    overflow:hidden;z-index:1;
+  }
+  #carousel-track{
+    position:absolute;top:0;bottom:0;left:0;
+    display:flex;flex-direction:row;align-items:flex-end;
+    gap:4px;will-change:transform;
+  }
+  .c-item{flex-shrink:0;align-self:flex-end;cursor:none;width:320px;}
+  .c-item img{
+    display:block;
+    width:320px;
+    height:calc(100vh - var(--nav));
+    object-fit:cover;
+    opacity:0;transition:opacity .5s ease;
+  }
+  .c-item img.on{opacity:1;}
+
+  /* CROSSES LAYER */
+  #crosses{position:fixed;inset:0;pointer-events:none;z-index:10;overflow:hidden;}
+  .cross{position:absolute;pointer-events:none;transform-origin:center;will-change:transform;}
+  .cross svg{display:block;width:100%;height:100%;}
+
+  /* no custom cursor on touch devices */
+  @media (hover:none){
+    #cur{display:none;}
+    *,*::before,*::after{cursor:auto!important;}
+  }
+</style>
+</head>
+<body>
+<div id="iri"></div>
+<div id="overlay"></div>
+<script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
+<div id="cur"></div>
+
+<nav id="topNav">
+  <div style="display:flex;align-items:center;">
+    <a id="navHome" href="odile_hub.html">odile.xyz</a>
+    <span id="navSep"> / </span>
+    <span id="navSection">work</span>
+  </div>
+</nav>
+
+<!-- INDEX PANEL -->
+<div id="panelIndex">
+  <div id="catFilter"></div>
+  <div class="idx-header">
+    <span class="col-h" data-sort="year">year<span class="sort-arrow"></span></span>
+    <span class="col-h" data-sort="title">project<span class="sort-arrow"></span></span>
+    <span class="col-h" data-sort="client">client<span class="sort-arrow"></span></span>
+  </div>
+  <div id="indexList"></div>
+</div>
+
+<div id="crosses"></div>
+
+<div id="carousel-container">
+  <div id="carousel-track"></div>
+</div>
+
+<script>
+/* cursor */
+const cur=document.getElementById('cur');
+document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
+
+/* nav */
+document.getElementById('navHome').addEventListener('click',e=>{
+  e.preventDefault();
+  document.getElementById('overlay').classList.add('on');
+  setTimeout(()=>{window.location.href='odile_hub.html';},700);
+});
+
+/* iridescent bg */
+let mx=.5,my=.5;
+const iri=document.getElementById('iri');
+const blobs=[{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const blobBase=[{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const bd=[
+  {ax:.38,ay:.30,ease:.05,color:'220,180,60', op:.55,ex:90,ey:70},
+  {ax:-.42,ay:.34,ease:.04,color:'200,160,210',op:.38,ex:70,ey:60},
+  {ax:.36,ay:-.38,ease:.045,color:'160,210,200',op:.28,ex:60,ey:50},
+  {ax:.18,ay:.16,ease:.03,color:'210,200,190',op:.22,ex:80,ey:80},
+];
+document.addEventListener('mousemove',e=>{mx=e.clientX/innerWidth;my=e.clientY/innerHeight;});
+(function iriLoop(){
+  let g='';
+  blobs.forEach((b,i)=>{
+    const d=bd[i];
+    b.x+=(blobBase[i].x+(mx-.5)*d.ax*100-b.x)*d.ease;
+    b.y+=(blobBase[i].y+(my-.5)*d.ay*100-b.y)*d.ease;
+    g+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;
+  });
+  iri.style.backgroundImage=g.slice(0,-1);
+  requestAnimationFrame(iriLoop);
+})();
+
+/* Sanity */
+const PID='zgrgr7sj',DS='production';
+const GROQ=`*[_type=="project"]|order(year desc){
+  _id,title,client,"year":string(year),"tags":tags,
+  "image":coalesce(thumbnail.asset->url,images[0].asset->url)
+}`;
+
+let projects=[];
+let activeCat='all';
+let sortKey='year',sortDir=-1;
+let rowEls=[];
+
+async function loadFromSanity(){
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(GROQ)}`);
+    const{result}=await res.json();
+    if(result?.length){
+      projects=result.map(p=>({
+        _id:p._id||'',
+        title:p.title||'(untitled)',
+        client:p.client||'',
+        year:p.year||'—',
+        tags:Array.isArray(p.tags)?p.tags.map(t=>t.toLowerCase().trim()).filter(Boolean):[],
+        image:p.image||'',
+      }));
+    }
+  }catch(e){console.warn('[Sanity]',e.message);}
+  buildIndex();
+  buildCarousel(projects);
+  initCrosses();
+}
+
+/* SVG cross */
+function makeCrossSVG(color){
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 22 22');svg.setAttribute('fill',color);
+  const h=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  h.setAttribute('x','0');h.setAttribute('y','8');h.setAttribute('width','22');h.setAttribute('height','6');
+  const v=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  v.setAttribute('x','8');v.setAttribute('y','0');v.setAttribute('width','6');v.setAttribute('height','22');
+  svg.appendChild(h);svg.appendChild(v);
+  return svg;
+}
+
+/* ── CAROUSEL ── */
+const track=document.getElementById('carousel-track');
+const container=document.getElementById('carousel-container');
+let origItems=[];
+let stripWidth=0;
+let scrollX=0;
+let velocity=0;
+const AUTO=0.28;       // px/frame at 60fps — gentle auto-drift
+const FRICTION=0.93;   // smoother deceleration
+const MAX_VEL=14;      // speed cap
+
+let lastRaf=performance.now();
+(function carouselLoop(now){
+  const dt=Math.min(now-lastRaf,50); lastRaf=now;
+  const scale=dt/16.67; // normalise to 60fps
+  velocity=Math.max(-MAX_VEL,Math.min(MAX_VEL,velocity));
+  velocity*=Math.pow(FRICTION,scale);
+  scrollX+=(velocity+AUTO)*scale;
+  if(stripWidth>0) scrollX=((scrollX%stripWidth)+stripWidth)%stripWidth;
+  track.style.transform=`translateX(${-scrollX}px)`;
+  requestAnimationFrame(carouselLoop);
+})(performance.now());
+
+function recompute(){
+  if(!origItems.length)return;
+  let w=0;
+  origItems.forEach((el,i)=>{w+=el.offsetWidth+(i<origItems.length-1?4:0);});
+  if(w>0) stripWidth=w+4;
+}
+const ro=new ResizeObserver(recompute);
+
+function buildCarousel(list){
+  track.innerHTML='';
+  origItems=[];
+  stripWidth=0;
+  scrollX=0;
+  velocity=0;
+  if(!list.length)return;
+
+  container.classList.remove('single');
+
+  [0,1].forEach(setIdx=>{
+    list.forEach((proj,pi)=>{
+      const wrap=document.createElement('div');
+      wrap.className='c-item';
+      let el;
+      if(proj.image){
+        el=document.createElement('img');
+        el.src=proj.image;
+        el.onload=()=>{el.classList.add('on');recompute();};
+      } else {
+        el=document.createElement('div');
+        el.style.cssText=`height:calc(100vh - 50px);width:320px;background:rgba(255,255,255,0.10);display:block;`;
+        el.classList.add('on');
+        setTimeout(recompute,0);
+      }
+      wrap.appendChild(el);
+      // find original index in projects array
+      const origIdx=projects.indexOf(proj); // reference equality — always correct
+      wrap.addEventListener('click',()=>goToProject(origIdx>=0?origIdx:pi));
+      track.appendChild(wrap);
+      if(setIdx===0){origItems.push(wrap);ro.observe(wrap);}
+    });
+  });
+}
+
+container.addEventListener('wheel',e=>{
+  e.preventDefault();
+  velocity=Math.max(-MAX_VEL,Math.min(MAX_VEL,velocity+e.deltaY*0.35));
+},{passive:false});
+let tx0=0;
+container.addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;},{passive:true});
+container.addEventListener('touchmove',e=>{
+  velocity+=(tx0-e.touches[0].clientX)*0.4;
+  tx0=e.touches[0].clientX;
+},{passive:true});
+
+/* ── INDEX ── */
+function buildIndex(){
+  const catFilter=document.getElementById('catFilter');
+  // individual tags — split each project's tags
+  const allTags=[...new Set(projects.flatMap(p=>p.tags).filter(Boolean))].sort();
+  const cats=['all',...allTags];
+  catFilter.innerHTML='';
+  cats.forEach(cat=>{
+    const btn=document.createElement('button');
+    btn.className='cat-btn'+(cat===activeCat?' active':'');
+    btn.textContent=cat;
+    btn.addEventListener('click',()=>setFilter(cat));
+    catFilter.appendChild(btn);
+  });
+
+  document.querySelectorAll('.col-h[data-sort]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const k=el.dataset.sort;
+      if(sortKey===k) sortDir=-sortDir; else{sortKey=k;sortDir=k==='year'?-1:1;}
+      buildRows();
+    });
+  });
+  buildRows();
+}
+
+function buildRows(){
+  const indexList=document.getElementById('indexList');
+  indexList.innerHTML='';
+  rowEls=[];
+
+  const sorted=[...projects.map((p,i)=>({...p,i}))].sort((a,b)=>{
+    if(sortKey==='year') return(parseInt(a.year)-parseInt(b.year))*sortDir;
+    return(a[sortKey]||'').localeCompare(b[sortKey]||'','fr')*sortDir;
+  });
+
+  document.querySelectorAll('.col-h[data-sort]').forEach(el=>{
+    const arr=el.querySelector('.sort-arrow');
+    if(arr) arr.textContent=el.dataset.sort===sortKey?(sortDir===1?' ↑':' ↓'):'';
+    el.classList.toggle('sorted',el.dataset.sort===sortKey);
+  });
+
+  sorted.forEach(({i,title,year,client,tags})=>{
+    const visible=activeCat==='all'||tags.includes(activeCat);
+    const row=document.createElement('div');
+    row.className='idx-row'+(visible?'':' hidden');
+    row.dataset.origIdx=i;
+    row.innerHTML=
+      `<span class="r-year">${year}</span>`+
+      `<span class="r-title">${title}</span>`+
+      `<span class="r-client">${client||''}</span>`;
+    row.addEventListener('mouseenter',()=>row.classList.add('active'));
+    row.addEventListener('mouseleave',()=>row.classList.remove('active'));
+    row.addEventListener('click',()=>goToProject(i));
+    indexList.appendChild(row);
+    rowEls.push(row);
+  });
+}
+
+function setFilter(cat){
+  activeCat=cat;
+  document.querySelectorAll('.cat-btn').forEach(btn=>{
+    btn.classList.toggle('active',btn.textContent.trim()===cat);
+  });
+  // filter index rows
+  rowEls.forEach(row=>{
+    const i=parseInt(row.dataset.origIdx);
+    row.classList.toggle('hidden',cat!=='all'&&!projects[i].tags.includes(cat));
+  });
+  // rebuild carousel with filtered list
+  const filtered=cat==='all'?projects:projects.filter(p=>p.tags.includes(cat));
+  buildCarousel(filtered);
+}
+
+/* ── CROSSES — file indienne, full screen horizontal ── */
+function initCrosses(){
+  const crossLayer=document.getElementById('crosses');
+  const VW=window.innerWidth,VH=window.innerHeight;
+  const COLORS=['#00DEC4','#D4FF00','#FF52E5','#32B8FF'];
+  const NUM=10;
+  const LERP=0.13;
+  const IDLE_SPEED=0.000012;
+  let idleOffset=0,lastTime=Date.now();
+
+  // crosses flow bottom-left → top-right diagonally
+  function targetX(t){
+    return -40+t*(VW+80);
+  }
+  function pathY(t){
+    // base: linear from VH+40 (bottom) to -40 (top) as t goes 0→1
+    // small perpendicular wave adds life without breaking the direction
+    return (VH+40) - t*(VH+80) + Math.sin(t*Math.PI*4)*VH*0.18;
+  }
+
+  const items=[];
+  for(let i=0;i<NUM;i++){
+    const size=14+Math.random()*22; // 14–36px random sizes
+    const wrap=document.createElement('div');
+    wrap.className='cross';
+    wrap.style.width=size+'px';wrap.style.height=size+'px';
+    wrap.style.opacity=(0.55+Math.random()*0.30).toFixed(2);
+    wrap.appendChild(makeCrossSVG(COLORS[i%COLORS.length]));
+    crossLayer.appendChild(wrap);
+    const t0=i/NUM;
+    items.push({
+      el:wrap, offset:t0,
+      cx:targetX(t0), cy:pathY(t0),
+      lastT:t0,
+      floatSpd:0.4+Math.random()*0.6,   // individual float speed
+      floatPh:Math.random()*Math.PI*2,   // float phase offset
+    });
+  }
+
+  (function tick(){
+    const now=Date.now();
+    const dt=(now-lastTime)/1000;
+    idleOffset+=dt*IDLE_SPEED*1000;
+    lastTime=now;
+
+    const prog=stripWidth>0?(scrollX/stripWidth)*2.5+idleOffset:idleOffset;
+
+    items.forEach(item=>{
+      const t=((prog+item.offset)%1+1)%1;
+
+      // detect wrap in either direction (forward or scroll-back)
+      const wrapped=Math.abs(t-item.lastT)>0.5;
+      item.lastT=t;
+
+      const tx=targetX(t);
+      const ty=pathY(t)+Math.sin(now*0.001*item.floatSpd+item.floatPh)*5; // ±5px float
+
+      if(wrapped){
+        item.cx=tx; item.cy=ty; // instant snap on loop
+      } else {
+        item.cx+=(tx-item.cx)*LERP;
+        item.cy+=(ty-item.cy)*LERP;
+      }
+      item.el.style.transform=`translate3d(${item.cx}px,${item.cy}px,0) translate(-50%,-50%)`;
+    });
+    requestAnimationFrame(tick);
+  })();
+}
+
+/* ── navigate ── */
+function goToProject(i){
+  document.getElementById('overlay').classList.add('on');
+  setTimeout(()=>{
+    const proj=projects[i],next=projects[(i+1)%projects.length];
+    const q=new URLSearchParams({
+      id:proj._id,title:proj.title,year:proj.year,
+      cat:proj.tags.join(', '),
+      next:next.title,nextIndex:(i+1)%projects.length,index:i,
+      projects:JSON.stringify(projects),
+    });
+    window.location.href='odile_project.html?'+q.toString();
+  },300);
+}
+
+loadFromSanity();
+</script>
+</body>
+</html>

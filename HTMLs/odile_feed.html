@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODILE — FEED</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    --bg-color: #b8b8bc;
+    --txt-1: rgba(255,255,255,.85);
+    --txt-2: rgba(255,255,255,.45);
+    --txt-3: rgba(255,255,255,.28);
+    --line-1: rgba(255,255,255,.50);
+    --line-2: rgba(255,255,255,.20);
+    --line-3: rgba(255,255,255,.08);
+    --chat-bg: rgba(0,0,0,.15);
+    /* glass UI (post overlay) scale */
+    --s1: rgba(255,255,255,.10);
+    --s2: rgba(255,255,255,.18);
+    --s3: rgba(255,255,255,.22);
+    --s4: rgba(255,255,255,.28);
+    --b1: rgba(255,255,255,.25);
+    --b2: rgba(255,255,255,.30);
+    --b3: rgba(255,255,255,.35);
+    --t1: rgba(255,255,255,.28);
+    --t2g: rgba(255,255,255,.45);
+    --t3g: rgba(255,255,255,.50);
+    --t4g: rgba(255,255,255,.6);
+    --t5g: rgba(255,255,255,.75);
+    --t6g: rgba(255,255,255,.8);
+    --t7g: rgba(255,255,255,.9);
+    --t8g: rgba(255,255,255,.95);
+    --overlay-tint: rgba(184,184,188,.3);
+    --highlight-1: rgba(255,255,255,.6);
+    --highlight-2: rgba(255,255,255,.15);
+    --near-color: rgba(255,160,80,.8);
+  }
+  body.bright {
+    --bg-color: #FFFFFF;
+    --txt-1: rgba(0,0,0,.85);
+    --txt-2: rgba(0,0,0,.45);
+    --txt-3: rgba(0,0,0,.28);
+    --line-1: rgba(0,0,0,.35);
+    --line-2: rgba(0,0,0,.14);
+    --line-3: rgba(0,0,0,.06);
+    --chat-bg: rgba(255,255,255,.35);
+    /* glass UI (post overlay) scale */
+    --s1: rgba(0,0,0,.035);
+    --s2: rgba(0,0,0,.05);
+    --s3: rgba(0,0,0,.06);
+    --s4: rgba(0,0,0,.08);
+    --b1: rgba(0,0,0,.10);
+    --b2: rgba(0,0,0,.12);
+    --b3: rgba(0,0,0,.16);
+    --t1: rgba(0,0,0,.28);
+    --t2g: rgba(0,0,0,.45);
+    --t3g: rgba(0,0,0,.5);
+    --t4g: rgba(0,0,0,.6);
+    --t5g: rgba(0,0,0,.72);
+    --t6g: rgba(0,0,0,.8);
+    --t7g: rgba(0,0,0,.9);
+    --t8g: rgba(0,0,0,.95);
+    --overlay-tint: rgba(255,255,255,.55);
+    --highlight-1: rgba(255,255,255,.7);
+    --highlight-2: rgba(0,0,0,.03);
+    --near-color: rgba(200,90,0,.85);
+  }
+  html, body { background:var(--bg-color); transition: background-color 1.2s cubic-bezier(.65,0,.35,1); }
+  body {
+    cursor: none;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    animation: fadeIn .6s ease both;
+  }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  #iri {
+    position: fixed; inset: 0; z-index: 0;
+    pointer-events: none; background-color: var(--bg-color);
+    transition: background-color 1.2s cubic-bezier(.65,0,.35,1),
+                opacity 1.2s cubic-bezier(.65,0,.35,1);
+  }
+  body.bright #iri { opacity: 0; }
+  #cur {
+    position: fixed; width: 5px; height: 5px;
+    background: #1E8A8C; pointer-events: none;
+    box-shadow: 0 0 5px 0px #1E8A8C66;
+    z-index: 9999; transform: translate(-50%,-50%);
+  }
+  #overlay {
+    position: fixed; inset: 0; background: #b8b8bc; z-index: 1000;
+    opacity: 0; pointer-events: none; transition: opacity .7s ease;
+  }
+  #overlay.on { opacity:1; pointer-events:auto; }
+
+  #feed {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0;
+  }
+
+  .feed-item {
+    cursor: none; display: block;
+    line-height: 0; position: relative;
+  }
+  .feed-item img, .feed-item video {
+    display: block; width: 100%; height: auto;
+  }
+  .feed-item video { cursor: none; }
+  .feed-ph {
+    width: 100%; aspect-ratio: 3 / 4;
+    background: rgba(255,255,255,0.18); display: block;
+  }
+
+  .pseudo-label {
+    position: absolute; bottom: 7px; right: 9px;
+    font: 12.5px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: #fff; letter-spacing: .05em;
+    opacity: 0; transition: opacity .25s;
+    pointer-events: auto;
+    text-shadow: none;
+    white-space: nowrap; text-transform: lowercase;
+  }
+  .feed-item:hover .pseudo-label { opacity: 1; }
+
+  /* top nav */
+  #topNav {
+    position: fixed; top: 0; left: 0; right: 0; height: 50px;
+    padding: 0 20px; display: flex; align-items: center;
+    z-index: 400;
+    font: 300 12.5px/1 -apple-system, 'Helvetica Neue', sans-serif;
+  }
+  #navHome {
+    color: var(--txt-2); text-decoration: none;
+    cursor: none; transition: color .5s ease;
+  }
+  #navHome:hover { color: var(--txt-1); }
+  #navSep { color: var(--txt-3); margin: 0 2px; transition: color .5s ease; }
+  #navSection { color: rgba(255,255,255,.7); transition: color .5s ease; }
+  body.bright #navSection { color: var(--txt-1); }
+
+  /* ── CHAT ── */
+  #chat {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 256px; z-index: 500;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  #chat-toggle { display: none; }
+  #chat-dot { display: none; }
+  #chat-msgs {
+    height: 210px;
+    overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    gap: 3px; padding: 8px 10px 4px;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(transparent, black 28px);
+    mask-image: linear-gradient(transparent, black 28px);
+  }
+  #chat-msgs::-webkit-scrollbar { display: none; }
+  .chat-msg {
+    font: 300 12.5px/1.5 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--txt-1);
+    transition: color .5s ease;
+    word-break: break-word;
+    display: flex; align-items: baseline; gap: 5px;
+    animation: msgIn .6s cubic-bezier(.22,1,.36,1) both,
+               msgFloat var(--float-dur, 6s) ease-in-out var(--float-delay, 0s) infinite;
+    flex-shrink: 0;
+    will-change: transform, opacity;
+  }
+  @keyframes msgIn {
+    from { opacity:0; transform:translateY(6px); filter:blur(3px); }
+    to   { opacity:1; transform:translateY(0);    filter:blur(0); }
+  }
+  @keyframes msgFloat {
+    0%, 100% { transform: translate(0, 0); opacity: .82; }
+    50%      { transform: translate(var(--drift-x, 1px), var(--drift-y, -2px)); opacity: 1; }
+  }
+  .chat-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .chat-emoji {
+    width: 16px; height: 16px; object-fit: contain;
+    vertical-align: middle; margin: 0 1px;
+    display: inline;
+  }
+  #chat-emojis {
+    display: flex; gap: 2px; justify-content: flex-start; padding: 0 2px 0 10px;
+  }
+  .emoji-btn {
+    background: none; border: none; cursor: none;
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: .45; transition: opacity .15s, transform .15s;
+    flex-shrink: 0; padding: 0;
+  }
+  .emoji-btn:hover { opacity: 1; transform: scale(1.2); }
+  .emoji-btn img { width: 16px; height: 16px; object-fit: contain; display: block; }
+  #chat-bottom {
+    display: flex; gap: 6px; align-items: center;
+  }
+  #chat-input-wrap {
+    flex: 1;
+    border: 1px solid var(--line-2);
+    border-radius: 20px;
+    overflow: hidden;
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    background: var(--chat-bg);
+    transition: background-color .5s ease, border-color .5s ease;
+  }
+  #chat-input {
+    width: 100%; background: none; border: none; outline: none;
+    font: 300 12.5px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--txt-1);
+    padding: 7px 10px;
+    cursor: none;
+    transition: color .5s ease;
+  }
+  #chat-input::placeholder { color: var(--txt-3); transition: color .5s ease; }
+  #chat-send {
+    flex-shrink: 0;
+    background: none; border: none;
+    color: var(--txt-1); cursor: none;
+    opacity: .5;
+    width: 30px; height: 30px;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity .2s ease;
+  }
+  #chat-send svg { width: 18px; height: 18px; display: block; }
+  #chat-send .cooldown-label {
+    display: none;
+    font: 300 12px/1 -apple-system, 'Helvetica Neue', sans-serif;
+  }
+  #chat-send.cooldown svg { display: none; }
+  #chat-send.cooldown .cooldown-label { display: inline; }
+  #chat-send:not(:disabled):hover { opacity: .85; }
+  #chat-send:disabled { opacity: .25; }
+
+  /* logo */
+  #logo {
+    position: fixed; top: 20px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10; pointer-events: none;
+    width: clamp(80px, 12vw, 160px);
+    opacity: .7;
+    display: block;
+    filter: brightness(0) saturate(100%) invert(74%) sepia(25%) saturate(520%) hue-rotate(136deg) brightness(98%) contrast(86%);
+    transition: top 1.2s cubic-bezier(.65,0,.35,1), width 1.2s cubic-bezier(.65,0,.35,1),
+                transform 1.2s cubic-bezier(.65,0,.35,1), opacity .9s ease;
+  }
+  #logo-path {
+    fill: #030302;
+  }
+
+  /* ── INTRO ── */
+  body.intro #logo {
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: min(60vw, 520px);
+    opacity: 0;
+  }
+  body.intro #logo.show {
+    opacity: 1;
+  }
+  #topNav, #chat, #submit-btn, #chat-toggle, #feed, #sentinel-top, #sentinel-bottom {
+    transition: opacity .8s ease .3s;
+  }
+  body.intro #topNav, body.intro #chat, body.intro #submit-btn, body.intro #chat-toggle,
+  body.intro #feed, body.intro #sentinel-top, body.intro #sentinel-bottom {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* submit button — Instagram-style "create" icon */
+  #submit-btn {
+    position: fixed; bottom: 24px; left: 24px;
+    z-index: 500;
+    background: none; border: 1px solid var(--line-2); border-radius: 50%;
+    color: var(--txt-1);
+    cursor: none;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    opacity: .6;
+    transition: opacity .2s ease, border-color .2s ease;
+  }
+  #submit-btn svg { width: 20px; height: 20px; display: block; }
+  #submit-btn:hover { opacity: 1; border-color: var(--line-1); }
+
+  /* text card in feed */
+  .text-card {
+    width: 100%; padding: 16px 0;
+    background: none;
+    box-sizing: border-box;
+  }
+  .text-card p {
+    font: 400 22px/1.45 -apple-system, 'Helvetica Neue', Helvetica, sans-serif;
+    color: var(--txt-1); letter-spacing: -.02em;
+    white-space: pre-wrap; word-break: break-word;
+    margin: 0;
+    transition: color .5s ease;
+  }
+
+  /* submit overlay */
+  #submit-overlay {
+    position: fixed; inset: 0; z-index: 2000;
+    background: var(--overlay-tint);
+    backdrop-filter: blur(40px) saturate(1.8);
+    -webkit-backdrop-filter: blur(40px) saturate(1.8);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s ease, background-color .5s ease;
+  }
+  #submit-overlay.on { opacity: 1; pointer-events: auto; }
+
+  /* card — liquid glass */
+  #form-card {
+    background: var(--s4);
+    backdrop-filter: blur(60px) saturate(2);
+    -webkit-backdrop-filter: blur(60px) saturate(2);
+    border: .5px solid var(--b2);
+    border-radius: 24px;
+    padding: 20px 20px 22px;
+    width: min(360px, 90vw);
+    box-shadow: 0 8px 40px rgba(0,0,0,.10),
+      inset 0 1px 0 var(--highlight-1),
+      inset 0 -1px 0 var(--highlight-2);
+    position: relative;
+    display: flex; flex-direction: column; gap: 10px;
+    transition: background-color .5s ease, border-color .5s ease, box-shadow .5s ease;
+  }
+
+  /* card header */
+  #card-header {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2px;
+  }
+  #card-title {
+    font: 400 13px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--t4g); letter-spacing: .02em;
+    transition: color .5s ease;
+  }
+  #submit-close {
+    background: none;
+    border: none;
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    font: 13px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--t2g); cursor: none;
+    flex-shrink: 0;
+    transition: color .5s ease;
+  }
+  #submit-close:hover { color: var(--t7g); }
+
+  /* segmented control */
+  #type-toggle {
+    display: flex;
+    background: var(--s1);
+    border-radius: 10px; padding: 3px; gap: 3px;
+    transition: background-color .5s ease;
+  }
+  .type-btn {
+    flex: 1; border: none; border-radius: 8px;
+    font: 400 12.5px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--t3g); cursor: none;
+    padding: 8px 0; letter-spacing: .02em;
+    background: none;
+    transition: background .18s, color .5s ease, box-shadow .18s;
+  }
+  .type-btn.active {
+    background: var(--s4);
+    color: var(--t7g);
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+
+  /* drop zone */
+  #drop-zone {
+    width: 100%; height: min(190px, 42vw);
+    border: 1px dashed var(--b3);
+    border-radius: 14px;
+    background: var(--s1);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; transition: border-color .2s, background .2s, background-color .5s ease;
+  }
+  #drop-zone.over {
+    border-color: var(--t5g);
+    background: var(--s2);
+  }
+  #drop-text {
+    text-align: center;
+    font: 14.5px/1.75 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--t3g);
+    pointer-events: none;
+    transition: color .5s ease;
+  }
+  #drop-text small { font-size: 12.5px; color: var(--t1); transition: color .5s ease; }
+  #file-input {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: none; width: 100%; height: 100%;
+  }
+  #preview-wrap {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none; overflow: hidden; border-radius: 12px;
+  }
+  #preview-wrap img, #preview-wrap video {
+    max-width: 100%; max-height: 100%; object-fit: contain; display: block;
+  }
+
+  /* text zone */
+  #text-zone { display: none; position: relative; }
+  #text-zone.on { display: block; }
+  #text-input {
+    width: 100%; height: min(190px, 42vw);
+    background: var(--s2);
+    border: 1px solid var(--b3);
+    border-radius: 14px;
+    padding: 14px 14px 28px; resize: none; outline: none;
+    font: 14px/1.55 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--t6g);
+    transition: background-color .5s ease, border-color .5s ease, color .5s ease;
+  }
+  #text-input::placeholder { color: var(--t1); transition: color .5s ease; }
+  #char-count {
+    position: absolute; bottom: 10px; right: 12px;
+    font: 12.5px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--t1); pointer-events: none;
+    transition: color .5s ease;
+  }
+  #char-count.near { color: var(--near-color); }
+
+  /* instagram input */
+  #pseudo-input {
+    background: var(--s1);
+    border: .5px solid var(--b1);
+    border-radius: 11px;
+    padding: 12px 14px;
+    font: 14px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--t6g); outline: none; width: 100%;
+    transition: background-color .5s ease, border-color .5s ease, color .5s ease;
+  }
+  #pseudo-input::placeholder { color: var(--t1); transition: color .5s ease; }
+
+  /* send button */
+  #submit-send {
+    background: var(--s2);
+    border: .5px solid var(--b2);
+    border-radius: 12px;
+    padding: 14px;
+    font: 400 13px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--t5g); cursor: none;
+    width: 100%; letter-spacing: .04em;
+    transition: background .18s, transform .15s, background-color .5s ease, border-color .5s ease, color .5s ease;
+    box-shadow: inset 0 1px 0 var(--highlight-2);
+    margin-top: 2px;
+  }
+  #submit-send:hover:not(:disabled) {
+    background: var(--s4);
+    color: var(--t8g);
+  }
+  #submit-send:active:not(:disabled) { transform: scale(.98); }
+  #submit-send:disabled { opacity: .3; }
+
+  /* status */
+  #submit-status {
+    text-align: center;
+    font: 12.5px/1 -apple-system, 'Helvetica Neue', sans-serif;
+    color: var(--t2g); min-height: 14px;
+    transition: color .5s ease;
+  }
+
+  /* ── MOBILE ── */
+  @media (max-width: 700px) {
+    #chat {
+      left: 10px; right: 10px; width: auto; bottom: 64px;
+      opacity: 0; transform: translateY(12px) scale(.98);
+      pointer-events: none; transform-origin: bottom right;
+      transition: opacity .35s cubic-bezier(.22,1,.36,1),
+                  transform .35s cubic-bezier(.22,1,.36,1);
+    }
+    #chat.open {
+      opacity: 1; transform: none; pointer-events: auto;
+    }
+    #chat-msgs {
+      height: 120px;
+    }
+    #submit-btn, #chat-toggle {
+      display: flex; align-items: center; justify-content: center;
+      position: fixed; bottom: 10px; z-index: 501;
+      border: 1px solid var(--line-2); border-radius: 50%; background: none;
+      color: var(--txt-1);
+      cursor: none;
+      padding: 0; width: 34px; height: 34px; opacity: .6;
+      transition: opacity .25s ease, border-color .25s ease;
+    }
+    #submit-btn svg, #chat-toggle svg { width: 20px; height: 20px; display: block; }
+    #chat-toggle { right: 10px; }
+    #chat-toggle .close-icon { display: none; }
+    #chat-toggle.open .chat-icon { display: none; }
+    #chat-toggle.open .close-icon { display: block; }
+    #chat-toggle.open { opacity: 1; }
+    #chat-dot {
+      display: block;
+      width: 0; height: 6px; border-radius: 50%;
+      background: var(--near-color);
+      opacity: 0; transform: scale(.5);
+      margin-left: 0;
+      transition: opacity .25s ease, transform .25s ease,
+                  width .25s ease, margin-left .25s ease;
+    }
+    #chat-dot.show { opacity: 1; transform: scale(1); width: 6px; margin-left: 6px; }
+    #chat-input, #pseudo-input, #text-input {
+      font-size: 16px; /* avoid iOS auto-zoom on focus */
+    }
+    #chat-input { padding: 9px 12px; }
+    #chat-send {
+      height: 30px; padding: 0 14px; font-size: 12.5px;
+    }
+    .emoji-btn { width: 30px; height: 30px; }
+    .emoji-btn img { width: 18px; height: 18px; }
+    #submit-btn {
+      left: 10px; right: auto; top: auto;
+    }
+    body.chat-open #submit-btn {
+      opacity: 0; pointer-events: none;
+    }
+    #logo {
+      width: clamp(60px, 18vw, 90px); top: 14px;
+    }
+    #topNav {
+      padding: 0 12px;
+    }
+    #form-card {
+      width: 92vw; padding: 16px 16px 18px;
+    }
+    #drop-zone, #text-input {
+      height: min(220px, 50vw);
+    }
+  }
+
+  /* no custom cursor on touch devices */
+  @media (hover: none) {
+    #cur { display: none; }
+    *, *::before, *::after { cursor: auto !important; }
+  }
+</style>
+</head>
+<body class="intro">
+<div id="iri"></div>
+<div id="overlay"></div>
+<script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
+<div id="cur"></div>
+
+<nav id="topNav">
+  <a id="navHome" href="odile_hub.html">odile.xyz</a><span id="navSep"> / </span><span id="navSection">feed</span>
+</nav>
+
+<svg id="logo" viewBox="0 0 2912 1248" xmlns="http://www.w3.org/2000/svg" aria-label="odilegram">
+  <path id="logo-path" d="M1159.66,127.11c49.82-12.72,76.12,21.52,78.13,67.57,4.3,98.27-40.57,205.13-84.24,291.03-9.13,17.71-18.6,35.25-28.41,52.6-4.36,7.68-24.71,40.43-25.54,47.11-3.09,32.02,6.76,68.28,11.9,99.46,9.98,60.65,52.63,106.27,95.91,33.49-1.78-5.12-3.23-10.35-4.33-15.66-14.61-67.98-1.2-142.77,34.97-207.02,37.66-66.89,150.99-96.5,177.84-2.1,6.97,32.84-2.69,71.79-21.13,98.8-29.16,42.69-69.39,60.72-117.59,70.54,2.34,27.35,8.04,58.4,27.41,79.5,9.57,10.43,27.27,17.51,41.6,17.28,65.1-1,93.95-70.4,107.35-123.88,1.89-10.03,2.23-20.07,3.44-30.24,8.87-74.87,55.08-173.7,143.11-172.38,27.13.4,45.11,12.24,63.24,31.75,1.43-1.82,4.17-5.59,5.82-6.93,17.87-14.47,44.1-8.54,47.37,16.16,2.29,17.35,2.22,33.05,2.46,50.07.37,21.72.59,43.45.65,65.18.12,36.48,1.72,86.82-.31,122.34,41.95-71.09,65.23-134.46,74.17-217.26-5.79-4.23-10.64-8.03-15.51-13.36-12.43-13.37-18.95-31.17-18.12-49.4.67-13.35,5.36-26.45,15.52-35.45,19.25-17.24,57.34-15.39,67.61,11.21,6.79,17.58,5.45,37.7,3.7,56.07,20.67-3.44,62.97-7.1,81.98-1.1,55.68,19.94,29.19,74.18,19.82,115.65-9.7,42.95-24,112.68-4.63,154.43,11.28,24.34,38.31,4.72,48.68-12.36,16.38-26.95,8.05-39.22,8.37-69.45.29-19.16,2.21-38.26,5.72-57.1,14.1-79.62,71.09-189.48,173.48-154.04,18.71,6.47,32.23,20.39,43.33,36.5,16.71-7.46,35.24-11.31,49.37,2.86,4.79,19.12-4.6,72.88-7.02,95.72-2.28,21.2-3.82,42.48-4.62,63.79-.99,25.98-2.58,79.32,14.73,102.13,2.53,3.33,7.83,4.61,11.82,4.73,17.08.53,32.51-36.72,34.36-50.91,2.39-18.44,2.48-43.13,3.22-62.46,1.8-40.03,3.37-80.07,4.71-120.12.71-18.63,1.29-39.13,4.06-57.51,4.71-34.76,60.54-15.53,65.28,6.27,6.83,31.41,1.08,71.69,1.18,103.79,9.13-33.42,23.64-82.78,46.6-108.92,14.65-16.67,45.51-3.3,59.1,9.49,37.05,34.88,22.32,93.44,24.55,138.53,10.29-32.61,20.86-68.06,35.82-98.55,9.12-17.59,24.78-48.72,45.02-54.56,30.79-8.87,64.26,16.61,70.07,46.85,4.55,23.71,2.08,46.8.55,70.36-2.56,39.47-4.7,78.4-2.92,117.87.93,18.46,3.7,63.51,22.61,73.96,3.66,2.02,10.25,3.1,14.09,1.28,30.14-14.35,35.2-52.09,47.37-79.46,1.79-4.05,3.83-6.48,7.82-7.76,6.47.23,12.07,6.96,12.43,13.51,3.8,70.58-50.18,167.43-131.73,113.27-37.69-26.57-43.09-76.68-44.94-119.04-1.84-42.61,4.12-85.07,7.96-127.41.75-8.23,4.42-33.01-2.38-37.75-6.56,1.8-13.63,17.24-17.01,23.01-19.35,33.05-30.54,75.82-37.38,113.44-4.68,25.61-7.71,51.5-9.06,77.5-.48,7.95-.64,42.49-4.27,46.12-17.3,17.32-65.92-3.67-70.81-26.43-11.65-54.29-5.13-110.97-5.16-166.03,0-10.62,3.13-61.66-3.41-66.77l-2.25.64c-6.07,5.23-11.49,17.49-14.58,24.93-29.11,69.93-37.96,146.61-42.15,221.65-.99,17.79.04,36.71-21.42,40.6-33.2,6.01-48.59-7.36-54.79-39.09-10.04,14.97-24.21,29.08-41.69,34.65-15.47,5.01-32.31,3.48-46.63-4.22-29.05-15.47-38.62-42.96-47.56-72.02-11.97,25.13-19.2,36.83-38.61,56.39l-6.67,5.24c-4.22,3.05-10.14,6.73-14.85,8.99-18.54,8.99-39.94,10.08-59.29,2.99-27.33-9.74-44.48-29.19-56.45-54.71-20.54,30.92-45.82,64.6-88.52,58.75-16.75-2.3-34.03-15.14-43.27-29.15-46.93-71.19-15.39-167.74-3.1-244.94,3.01-18.85-7.27-16.74-22.63-19.22-8.01-1.29-16.37-1.94-24.43-2.98-14.56,94.15-50.75,190.64-117.43,260.47.3,35.38-.56,76.71-1.41,112.03-2.78,67.97-7.94,164.72-61.08,213.81-67.59,62.43-188.11,30.82-179.98-73.8,2.5-32.18,7.91-48.09,22.29-76.97,33.55-67.43,95.61-103.44,148.58-152.26.97-23.05.61-46.74,2.03-69.68-14.99,29.77-36.17,60.94-68.88,72.97-19.6,7.08-41.22,6.07-60.07-2.81-31.18-14.32-45.29-40.45-56.52-70.83-16.19,26.68-28.01,45.45-54.2,63.95-32.19,22.75-70.38,28.56-108.87,21.38-30.43-5.47-57.34-23.03-74.6-48.67-10.81,19.18-29.16,37.28-49.61,45.89-20.99,8.8-44.6,8.97-65.71.48-36.12-14.85-51.77-51.76-65.77-84.78-17.12,29.64-35.97,62.42-68.72,76.53-50.94,21.94-84.85-15.55-102.76-57.59-22.74,36.84-54.32,86.85-107.36,59.61-35.49-18.22-49.55-61.42-60.85-97.23-14.09,34.94-30.54,68.66-62.94,90.3-20.7,13.99-46.15,19.1-70.65,14.18-84.7-17.76-90.05-136.43-76.24-203.35-15.32,6.15-28.35,9.76-44.72,11.44-9.03,80.15-46.01,187.65-136.36,206.11-37.14,7.59-77.64-2.22-108.96-23.18-93.5-62.57-97.51-206.46-38.59-293.65,17.5-25.91,50.3-54.52,82.01-60.4,14.41-34.03,40.04-48.58,76.75-48.62,96.1-.1,125.96,105.44,126.27,184.12,1.6-.14,3.2-.3,4.79-.47,53.13-5.8,56.57-44.54,86.7-80.61,23.18-27.74,46.94-46.36,84.17-50.18,23.36-2.4,42.84,1,61.47,15.99,3.15-80.11,16.49-211.28,60.33-278.58,10.43-16.02,23.99-31.64,43.62-35.63,14.54-2.95,30.89.97,43.13,9.17,72.15,48.32-22.1,287.11-46.61,351.32-6.44,16.86-21.98,46.56-25.12,62.65-3.7,18.91,5.44,92.44,10.15,115.11,3.37,16.23,8.65,41.39,23.56,50.83,4.6,2.91,9.93,3.87,15.23,2.62,21.79-5.13,45.86-50.24,49.4-71.25,2.85-16.93.8-36.48,1.22-53.72.78-32.15,6.28-131.06,21.33-155.07,3.79-6.05,10.07-8.89,16.85-10.37,12.85-2.79,29.19-2.02,40.46,5.44,6.83,4.53,9.64,12.16,10.13,20.1,1.09,17.81-3.97,37.57-6.05,55.35-6.17,52.8-16.13,133.71-5.63,185.1,1.98,9.71,5.42,21.72,14.32,27.37,4.35,2.76,9.23,3.17,14.15,1.99,23.55-5.68,55.5-56.9,58.91-79.39,2.15-14.21-1.81-30.75-3.21-45.1-1.67-18.29-3.08-36.61-4.25-54.94-6.2-115.35,2.35-267.31,62.48-368.31,17.87-29.24,41.41-58.33,75.9-67.14ZM1647.32,844.37c-50.57,49.3-113.72,108.33-116.23,184.72-.43,12.87,2.96,27.81,11.5,37.88,7.25,7.07,14.42,10.75,24.69,10.6,43.17-.64,59.15-52.85,66.21-87.32,6.81-33.3,10.07-66.3,12.12-100.07.45-7.73,3.41-40.89,1.71-45.82ZM2157.86,788.6c-.07,0-.14.01-.2.01.06,0,.13,0,.2-.01ZM2162.13,784.63h0s0,0,0,0ZM260.83,505.28c-52.37,55.46-60.75,188.26-4.6,245.88,25.29,25.95,62.91,21.62,90.09.04,39.45-39.68,49.68-87.73,60.15-140.59-52.23-9.2-96.99-34.36-128.85-77.61-3.78-5.14-13.63-25.86-16.79-27.72ZM687.31,504.63c-9.27-8.67-16.07-12.75-29.08-12.32-2.48.07-4.96.28-7.42.63-72.41,19.27-91.65,159.2-75.19,220.19,5.18,19.19,13.15,37.34,35.48,37.71,45.27-12,62.7-81.07,75.03-120.51,5.51-17.63,3.26-34.74,2.88-52.8-.51-24.28-1.54-48.62-1.68-72.9ZM2177.15,485.43c-6.82-3.25-13.61-3.51-20.95-2.34-90.67,28.61-108.82,275.76-36.53,264.17,19.57-6.73,31.66-24.44,40.39-42.29,19.27-39.41,51.37-152.09,36.73-194.97-3.47-10.18-9.66-19.81-19.64-24.57ZM1648.66,506.46c-7.65-16.42-18.97-25.48-37.65-24.5-66.36,10.23-85.92,154.08-74.01,205.18,5.63,24.17,10.42,52.04,40.61,52.16,54.22-13,75.38-125.17,75.38-172.33,0-20.98,5.25-39.92-4.33-60.51ZM1348.76,484.03c-45.9,13.84-69.67,99.83-72.08,141.7l14.06-4.78c45.37-15.93,77.5-55.34,77.98-104.22.15-14.4-1.64-32.7-19.96-32.7ZM373.92,447.93c-8.45-9.11-21.78-16.89-34.68-15.05-6.29,1.62-13.01,5.25-15.83,11.18-22.52,47.39,34.81,97.56,68.09,116.59,1.81,1.03,3.62,2.05,5.44,3.05,4.45,2.1,9.09,4.44,13.75,5.97.43-40.3-8.21-90.94-36.78-121.74ZM1178.42,169.31c-55.14,48.73-76.09,216.11-80.62,289.25-1.18,18.65-1.87,37.32-2.07,56.01,2.69-4.48,5.3-9.01,7.84-13.58,42.47-79.8,82.98-172.85,91.24-263.57,1.24-13.64,4.46-67.97-16.39-68.11ZM809.76,210.21c-21.63,27.75-39.15,165.02-42.5,203.74-.72,8.37-3.95,39.11-3.4,47.23l.87,1.04,1.06-1.86c15.89-39.88,61.44-211.43,47.01-246.28-.72-1.74-1.59-2.69-3.03-3.86ZM923.58,317.41c22.01-2.45,41.87,13.33,44.45,35.33,2.57,21.99-13.1,41.94-35.08,44.64-22.15,2.72-42.29-13.1-44.89-35.27-2.6-22.17,13.34-42.22,35.53-44.69Z"/>
+</svg>
+
+<div id="sentinel-top"></div>
+<div id="feed"></div>
+<div id="sentinel-bottom"></div>
+
+<button id="submit-btn" aria-label="new post">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+</button>
+
+<div id="chat">
+  <div id="chat-msgs"></div>
+  <div id="chat-emojis">
+    <button class="emoji-btn" data-emoji="e1"><img src="e1.png" alt="✨"></button>
+    <button class="emoji-btn" data-emoji="e2"><img src="e2.png" alt="🌸"></button>
+    <button class="emoji-btn" data-emoji="e3"><img src="e3.png" alt="💫"></button>
+    <button class="emoji-btn" data-emoji="e4"><img src="e4.png" alt="🌙"></button>
+    <button class="emoji-btn" data-emoji="e5"><img src="e5.png" alt="🫧"></button>
+  </div>
+  <div id="chat-bottom">
+    <div id="chat-input-wrap">
+      <input id="chat-input" type="text" maxlength="120" placeholder="message…" autocomplete="off" spellcheck="false">
+    </div>
+    <button id="chat-send" aria-label="send">
+      <svg class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      <span class="cooldown-label"></span>
+    </button>
+  </div>
+</div>
+<button id="chat-toggle" aria-label="chat">
+  <svg class="chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+  <svg class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  <span id="chat-dot"></span>
+</button>
+
+<div id="submit-overlay">
+  <div id="form-card">
+    <div id="card-header">
+      <span id="card-title">New post</span>
+      <button id="submit-close">✕</button>
+    </div>
+    <div id="type-toggle">
+      <button class="type-btn active" data-type="media">Media</button>
+      <button class="type-btn" data-type="text">Text</button>
+    </div>
+    <div id="drop-zone">
+      <div id="drop-text">
+        Drop a file here<br>
+        <small>Image or video · tap to choose</small>
+      </div>
+      <input type="file" id="file-input" accept="image/*,video/*,.heic,.heif">
+      <div id="preview-wrap"></div>
+    </div>
+    <div id="text-zone">
+      <textarea id="text-input" placeholder="Write something…" maxlength="280" spellcheck="false"></textarea>
+      <div id="char-count">0 / 280</div>
+    </div>
+    <input type="text" id="pseudo-input" placeholder="@instagram" maxlength="32" autocomplete="off" spellcheck="false" autocapitalize="none">
+    <button id="submit-send" disabled>Send</button>
+    <div id="submit-status"></div>
+  </div>
+</div>
+
+<script>
+/* intro — odilegram fades in centered, then moves to top as UI fades in */
+(function () {
+  const logo = document.getElementById('logo');
+  // double rAF: ensure initial opacity is painted before the fade-in transition starts
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      logo.classList.add('show');
+    });
+  });
+  setTimeout(() => {
+    document.body.classList.remove('intro');
+    document.body.classList.add('bright');
+  }, 1600);
+})();
+
+/* Supabase */
+const { createClient } = supabase;
+const sb = createClient(
+  'https://iwmfhvhhbpcsjcsakigg.supabase.co',
+  'sb_publishable_wp_9hP65hwOLHAoPDAhQRA_MYR5ER3-'
+);
+
+/* app settings (chat cooldown / submission moderation), set from admin */
+let appSettings = { chat_cooldown_seconds: 0, require_approval: true };
+async function loadSettings() {
+  const { data } = await sb
+    .from('app_settings')
+    .select('chat_cooldown_seconds, require_approval')
+    .eq('id', 1)
+    .maybeSingle();
+  if (data) appSettings = data;
+}
+loadSettings();
+
+/* cursor */
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => {
+  cur.style.left = e.clientX + 'px';
+  cur.style.top  = e.clientY + 'px';
+});
+
+/* nav */
+document.getElementById('navHome').addEventListener('click', e => {
+  e.preventDefault();
+  document.getElementById('overlay').classList.add('on');
+  setTimeout(() => window.location.href = 'odile_hub.html', 700);
+});
+
+/* iridescent bg */
+let mx = .5, my = .5;
+const iri = document.getElementById('iri');
+const blobs   = [{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const base    = [{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const blobDef = [
+  {ax: .38, ay: .30,  ease:.05,  color:'220,180,60',  op:.70, ex:90, ey:70},
+  {ax:-.42, ay: .34,  ease:.04,  color:'200,160,210', op:.50, ex:70, ey:60},
+  {ax: .36, ay:-.38,  ease:.045, color:'160,210,200', op:.40, ex:60, ey:50},
+  {ax: .18, ay: .16,  ease:.03,  color:'210,200,190', op:.30, ex:80, ey:80},
+];
+document.addEventListener('mousemove', e => { mx = e.clientX/innerWidth; my = e.clientY/innerHeight; });
+(function tick() {
+  let g = '';
+  blobs.forEach((b,i) => {
+    const d = blobDef[i];
+    b.x += (base[i].x + (mx-.5)*d.ax*100 - b.x) * d.ease;
+    b.y += (base[i].y + (my-.5)*d.ay*100 - b.y) * d.ease;
+    g += `radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;
+  });
+  iri.style.backgroundImage = g.slice(0,-1);
+  requestAnimationFrame(tick);
+})();
+
+/* feed state */
+const PLACEHOLDER = Array(12).fill({_id:'',thumb:'',videoUrl:'',pseudo:''});
+let items     = [...PLACEHOLDER];
+let cursor    = 0;
+let preCursor = 0;
+const BATCH   = 10;
+const feed    = document.getElementById('feed');
+const isMobileFeed = window.matchMedia('(max-width: 700px)').matches;
+const SIZES   = isMobileFeed
+  ? ['68vw','80vw','92vw','62vw','96vw','72vw','88vw','64vw','94vw','76vw']
+  : ['18vw','24vw','33vw','14vw','28vw','20vw','30vw','16vw','26vw','22vw'];
+const TEXT_SIZES = isMobileFeed
+  ? ['86vw','90vw','88vw','92vw','85vw']
+  : ['26vw','28vw','27vw','29vw','26.5vw'];
+let sizeIdx   = 0;
+
+function makeCard(item) {
+  const div = document.createElement('div');
+  div.className = 'feed-item';
+
+  if (item.text) {
+    /* text blocks: fixed readable width, centered in feed */
+    div.style.width = TEXT_SIZES[sizeIdx % TEXT_SIZES.length];
+    sizeIdx++;
+    const block = document.createElement('div');
+    block.className = 'text-card';
+    const p = document.createElement('p');
+    p.textContent = item.text;
+    block.appendChild(p);
+    div.appendChild(block);
+  } else {
+    div.style.width = SIZES[sizeIdx % SIZES.length];
+    sizeIdx++;
+  }
+
+  if (!item.text) {
+    if (item.videoUrl) {
+      const v = document.createElement('video');
+      v.src = item.videoUrl;
+      v.autoplay = true; v.muted = true; v.loop = true; v.playsInline = true;
+      div.appendChild(v);
+    } else if (item.thumb) {
+      const img = document.createElement('img');
+      img.src = item.thumb; img.alt = '';
+      div.appendChild(img);
+    } else {
+      const ph = document.createElement('div');
+      ph.className = 'feed-ph';
+      div.appendChild(ph);
+    }
+  }
+
+  if (item.pseudo) {
+    const lbl = document.createElement('div');
+    lbl.className = 'pseudo-label';
+    lbl.textContent = '@' + item.pseudo;
+    lbl.addEventListener('click', e => {
+      e.stopPropagation();
+      window.open('https://instagram.com/' + item.pseudo, '_blank');
+    });
+    div.appendChild(lbl);
+  }
+  return div;
+}
+
+function appendBatch() {
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < BATCH; i++) {
+    frag.appendChild(makeCard(items[cursor % items.length]));
+    cursor++;
+  }
+  feed.appendChild(frag);
+}
+
+function prependBatch() {
+  const cards = [];
+  for (let i = 0; i < BATCH; i++) {
+    preCursor--;
+    const idx = ((preCursor % items.length) + items.length) % items.length;
+    cards.unshift(makeCard(items[idx]));
+  }
+  const prevHeight = document.body.scrollHeight;
+  const prevScroll = window.scrollY;
+  const frag = document.createDocumentFragment();
+  cards.forEach(c => frag.appendChild(c));
+  feed.insertBefore(frag, feed.firstChild);
+  window.scrollTo(0, prevScroll + (document.body.scrollHeight - prevHeight));
+}
+
+/* observers */
+const ioBottom = new IntersectionObserver(entries => {
+  if (entries[0].isIntersecting) appendBatch();
+}, { rootMargin: '400px' });
+ioBottom.observe(document.getElementById('sentinel-bottom'));
+
+const ioTop = new IntersectionObserver(entries => {
+  if (entries[0].isIntersecting) prependBatch();
+}, { rootMargin: '400px' });
+let topActive = false;
+window.addEventListener('scroll', () => {
+  if (!topActive && window.scrollY > 300) {
+    topActive = true;
+    ioTop.observe(document.getElementById('sentinel-top'));
+  }
+}, { passive: true });
+
+appendBatch(); appendBatch();
+
+/* load approved submissions from Supabase */
+async function loadFeed() {
+  const { data } = await sb
+    .from('submissions')
+    .select('id, pseudo, file_url, file_type, text_content')
+    .eq('approved', true)
+    .order('created_at', { ascending: false });
+  if (!data?.length) return;
+  items = data.map(r => ({
+    _id:      r.id,
+    thumb:    r.file_type === 'image' ? r.file_url : '',
+    videoUrl: r.file_type === 'video' ? r.file_url : '',
+    text:     r.file_type === 'text'  ? r.text_content : '',
+    pseudo:   r.pseudo,
+  }));
+  feed.innerHTML = '';
+  cursor = 0; preCursor = 0; sizeIdx = 0;
+  appendBatch(); appendBatch();
+}
+loadFeed();
+
+/* ── submit overlay ── */
+const submitOverlay = document.getElementById('submit-overlay');
+const submitBtn     = document.getElementById('submit-btn');
+const closeBtn      = document.getElementById('submit-close');
+const dropZone      = document.getElementById('drop-zone');
+const fileInput     = document.getElementById('file-input');
+const previewWrap   = document.getElementById('preview-wrap');
+const dropText      = document.getElementById('drop-text');
+const textZone      = document.getElementById('text-zone');
+const textInput     = document.getElementById('text-input');
+const charCount     = document.getElementById('char-count');
+const pseudoInput   = document.getElementById('pseudo-input');
+const sendBtn       = document.getElementById('submit-send');
+const statusEl      = document.getElementById('submit-status');
+
+const MAX_CHARS = 280;
+let selectedFile = null;
+let postType = 'media'; // 'media' | 'text'
+
+/* type toggle */
+document.querySelectorAll('.type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    postType = btn.dataset.type;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    dropZone.style.display = postType === 'media' ? '' : 'none';
+    textZone.classList.toggle('on', postType === 'text');
+    selectedFile = null;
+    fileInput.value = '';
+    previewWrap.innerHTML = '';
+    dropText.style.display = '';
+    textInput.value = '';
+    charCount.textContent = `0 / ${MAX_CHARS}`;
+    charCount.classList.remove('near');
+    checkReady();
+  });
+});
+
+function openOverlay()  { submitOverlay.classList.add('on'); }
+function closeOverlay() { submitOverlay.classList.remove('on'); resetForm(); }
+
+function resetForm() {
+  selectedFile = null;
+  postType = 'media';
+  fileInput.value = '';
+  previewWrap.innerHTML = '';
+  dropText.style.display = '';
+  textInput.value = '';
+  charCount.textContent = `0 / ${MAX_CHARS}`;
+  charCount.classList.remove('near');
+  pseudoInput.value = '';
+  sendBtn.disabled = true;
+  statusEl.textContent = '';
+  document.querySelectorAll('.type-btn').forEach((b,i) => b.classList.toggle('active', i === 0));
+  dropZone.style.display = '';
+  textZone.classList.remove('on');
+}
+
+function checkReady() {
+  const handle = pseudoInput.value.trim();
+  if (postType === 'text') {
+    sendBtn.disabled = !(textInput.value.trim() && handle);
+  } else {
+    sendBtn.disabled = !(selectedFile && handle);
+  }
+}
+
+/* ── HEIC/HEIF support ──
+   iPhones export photos as .heic by default, which browsers can't display
+   or render in <img>/<video> tags. Convert to JPEG client-side before
+   previewing/uploading so it shows correctly for everyone. */
+function isHeicFile(file) {
+  const type = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+  return type === 'image/heic' || type === 'image/heif' ||
+         name.endsWith('.heic') || name.endsWith('.heif');
+}
+
+async function prepareFile(file) {
+  if (!isHeicFile(file)) return file;
+  const prevText = dropText.innerHTML;
+  dropText.style.display = '';
+  dropText.textContent = 'Converting HEIC…';
+  try {
+    const out = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    const blob = Array.isArray(out) ? out[0] : out;
+    const newName = file.name.replace(/\.(heic|heif)$/i, '.jpg');
+    return new File([blob], newName, { type: 'image/jpeg' });
+  } catch (err) {
+    console.error('HEIC conversion failed', err);
+    statusEl.textContent = 'could not read HEIC file — try another photo';
+    return null;
+  } finally {
+    dropText.innerHTML = prevText;
+  }
+}
+
+function setPreview(file) {
+  previewWrap.innerHTML = '';
+  dropText.style.display = 'none';
+  if (file.type.startsWith('video')) {
+    const v = document.createElement('video');
+    v.src = URL.createObjectURL(file);
+    v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+    previewWrap.appendChild(v);
+  } else {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(file);
+    previewWrap.appendChild(img);
+  }
+}
+
+textInput.addEventListener('input', () => {
+  const len = textInput.value.length;
+  charCount.textContent = `${len} / ${MAX_CHARS}`;
+  charCount.classList.toggle('near', len >= MAX_CHARS * 0.85);
+  checkReady();
+});
+
+submitBtn.addEventListener('click', openOverlay);
+closeBtn.addEventListener('click', closeOverlay);
+pseudoInput.addEventListener('input', checkReady);
+
+fileInput.addEventListener('change', async () => {
+  if (fileInput.files[0]) {
+    const f = await prepareFile(fileInput.files[0]);
+    fileInput.value = '';
+    if (!f) { checkReady(); return; }
+    selectedFile = f;
+    setPreview(selectedFile);
+    checkReady();
+  }
+});
+
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('over'));
+dropZone.addEventListener('drop', async e => {
+  e.preventDefault(); dropZone.classList.remove('over');
+  const f0 = e.dataTransfer.files[0];
+  if (f0 && (f0.type.startsWith('image') || f0.type.startsWith('video') || isHeicFile(f0))) {
+    const f = await prepareFile(f0);
+    if (!f) return;
+    selectedFile = f; setPreview(f); checkReady();
+  }
+});
+
+sendBtn.addEventListener('click', async () => {
+  const handle = pseudoInput.value.trim().replace(/^@/, '');
+  if (!handle) return;
+  sendBtn.disabled = true;
+  statusEl.textContent = postType === 'text' ? 'sending…' : 'uploading…';
+
+  const autoApprove = !appSettings.require_approval;
+
+  if (postType === 'text') {
+    const body = textInput.value.trim();
+    if (!body) { sendBtn.disabled = false; return; }
+    const { error } = await sb.from('submissions').insert({
+      pseudo:       handle,
+      file_type:    'text',
+      text_content: body,
+      ...(autoApprove ? { approved: true } : {}),
+    });
+    if (error) { statusEl.textContent = 'error — try again'; sendBtn.disabled = false; return; }
+  } else {
+    if (!selectedFile) { sendBtn.disabled = false; return; }
+    const ext  = selectedFile.name.split('.').pop().toLowerCase();
+    const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const { data: up, error: upErr } = await sb.storage
+      .from('media')
+      .upload(path, selectedFile, { contentType: selectedFile.type, upsert: false });
+    if (upErr) { statusEl.textContent = 'upload error — try again'; sendBtn.disabled = false; return; }
+    const { data: { publicUrl } } = sb.storage.from('media').getPublicUrl(up.path);
+    const { error: insErr } = await sb.from('submissions').insert({
+      pseudo:    handle,
+      file_url:  publicUrl,
+      file_type: selectedFile.type.startsWith('video') ? 'video' : 'image',
+      ...(autoApprove ? { approved: true } : {}),
+    });
+    if (insErr) { statusEl.textContent = 'error — try again'; sendBtn.disabled = false; return; }
+  }
+
+  statusEl.textContent = autoApprove ? 'sent' : 'sent · pending review';
+  if (autoApprove) loadFeed();
+  setTimeout(closeOverlay, 2200);
+});
+
+/* ── CHAT ── */
+const CHAT_COLOR = (() => {
+  let c = sessionStorage.getItem('chat-color');
+  if (!c) {
+    const hues = [0,20,40,60,120,160,180,200,220,260,280,300,320];
+    const h = hues[Math.floor(Math.random() * hues.length)];
+    c = `hsl(${h},60%,72%)`;
+    sessionStorage.setItem('chat-color', c);
+  }
+  return c;
+})();
+
+const chatMsgs  = document.getElementById('chat-msgs');
+const chatInput = document.getElementById('chat-input');
+const chatSend  = document.getElementById('chat-send');
+
+/* ── mobile chat collapse/expand ── */
+const chatEl          = document.getElementById('chat');
+const chatToggle      = document.getElementById('chat-toggle');
+const chatDot         = document.getElementById('chat-dot');
+
+if (chatToggle) {
+  chatToggle.addEventListener('click', () => {
+    const open = chatEl.classList.toggle('open');
+    chatToggle.classList.toggle('open', open);
+    document.body.classList.toggle('chat-open', open);
+    if (open) {
+      chatDot.classList.remove('show');
+      requestAnimationFrame(() => { chatMsgs.scrollTop = chatMsgs.scrollHeight; });
+    }
+  });
+}
+
+function addChatMsg(text, color) {
+  const el = document.createElement('div');
+  el.className = 'chat-msg';
+  /* give each message its own gentle, out-of-sync drift so the chat feels
+     like it's softly breathing rather than bobbing in lockstep */
+  el.style.setProperty('--float-dur', (5 + Math.random() * 3).toFixed(2) + 's');
+  el.style.setProperty('--float-delay', (-Math.random() * 8).toFixed(2) + 's');
+  el.style.setProperty('--drift-x', (Math.random() * 4 - 2).toFixed(2) + 'px');
+  el.style.setProperty('--drift-y', (-1 - Math.random() * 2.5).toFixed(2) + 'px');
+  const dot = document.createElement('span');
+  dot.className = 'chat-dot';
+  dot.style.background = color;
+  el.appendChild(dot);
+  /* parse [e1]–[e5] emoji tags inline */
+  const body = document.createElement('span');
+  text.split(/(\[e[1-5]\])/).forEach(part => {
+    const m = part.match(/^\[e([1-5])\]$/);
+    if (m) {
+      const img = document.createElement('img');
+      img.src = `e${m[1]}.png`;
+      img.alt = part;
+      img.className = 'chat-emoji';
+      body.appendChild(img);
+    } else if (part) {
+      body.appendChild(document.createTextNode(part));
+    }
+  });
+  el.appendChild(body);
+  chatMsgs.appendChild(el);
+  while (chatMsgs.children.length > 60) chatMsgs.removeChild(chatMsgs.firstChild);
+  chatMsgs.scrollTop = chatMsgs.scrollHeight;
+  if (chatHistoryLoaded && chatDot && chatEl && !chatEl.classList.contains('open')) {
+    chatDot.classList.add('show');
+  }
+}
+
+const chatChannel = sb.channel('feed-chat', { config: { broadcast: { self: true } } });
+chatChannel.on('broadcast', { event: 'msg' }, ({ payload }) => {
+  addChatMsg(payload.text, payload.color);
+}).subscribe();
+
+/* load persisted chat history so messages survive a refresh */
+let chatHistoryLoaded = false;
+async function loadChatHistory() {
+  const { data, error } = await sb
+    .from('chat_messages')
+    .select('text, color, created_at')
+    .order('created_at', { ascending: false })
+    .limit(60);
+  if (!error && data) data.reverse().forEach(m => addChatMsg(m.text, m.color));
+  chatHistoryLoaded = true;
+}
+loadChatHistory();
+
+let chatCooldownUntil = 0;
+let chatCooldownTimer = null;
+
+function startChatCooldown() {
+  const seconds = appSettings.chat_cooldown_seconds || 0;
+  if (seconds <= 0) return;
+  chatCooldownUntil = Date.now() + seconds * 1000;
+  chatSend.disabled = true;
+  const label = chatSend.querySelector('.cooldown-label');
+  const tick = () => {
+    const remaining = Math.ceil((chatCooldownUntil - Date.now()) / 1000);
+    if (remaining <= 0) {
+      chatSend.disabled = false;
+      chatSend.classList.remove('cooldown');
+      clearInterval(chatCooldownTimer);
+      chatCooldownTimer = null;
+      return;
+    }
+    chatSend.classList.add('cooldown');
+    label.textContent = remaining + 's';
+  };
+  tick();
+  if (chatCooldownTimer) clearInterval(chatCooldownTimer);
+  chatCooldownTimer = setInterval(tick, 250);
+}
+
+function sendChatMsg() {
+  if (Date.now() < chatCooldownUntil) return;
+  const text = chatInput.value.trim();
+  if (!text) return;
+  chatChannel.send({ type: 'broadcast', event: 'msg', payload: { text, color: CHAT_COLOR } });
+  sb.from('chat_messages').insert({ text, color: CHAT_COLOR }).then(({ error }) => {
+    if (error) console.error('chat insert error', error);
+  });
+  chatInput.value = '';
+  startChatCooldown();
+}
+
+chatSend.addEventListener('click', sendChatMsg);
+chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChatMsg(); });
+
+document.querySelectorAll('.emoji-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tag = `[${btn.dataset.emoji}]`;
+    const pos = chatInput.selectionStart ?? chatInput.value.length;
+    chatInput.value = chatInput.value.slice(0, pos) + tag + chatInput.value.slice(pos);
+    chatInput.focus();
+  });
+});
+</script>
+</body>
+</html>

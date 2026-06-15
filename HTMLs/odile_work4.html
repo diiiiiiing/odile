@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODILE — WORK</title>
+<style>
+  :root{
+    --bg:#b8b8bc; --fg:#0a0a0a;
+    --dim1:rgba(0,0,0,.55); --dim2:rgba(0,0,0,.3);
+    --pad:32px;
+    --font:-apple-system,'Helvetica Neue',sans-serif;
+    --fs:10px;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    width:100%;height:100%;
+    background:var(--bg);color:var(--fg);
+    font-family:var(--font);font-weight:400;
+    font-size:var(--fs);line-height:1.7;
+    letter-spacing:.02em;text-transform:uppercase;
+    overflow:hidden;cursor:none;
+  }
+  body{animation:fadeIn .6s ease both;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  /* reactive iridescent background, same as the hub */
+  .bg-iri{position:fixed;inset:0;z-index:0;background-color:var(--bg);}
+
+  #cur{position:fixed;width:5px;height:5px;background:#000;
+    box-shadow:0 0 5px 0px rgba(0,0,0,.35);
+    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
+    opacity:0;pointer-events:none;transition:opacity .7s ease;}
+  #overlay.on{opacity:1;pointer-events:auto;}
+
+  /* TOP-RIGHT INFO */
+  #info{
+    position:fixed;top:30px;right:var(--pad);
+    display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+    text-align:right;max-width:240px;
+  }
+  #info .i-line{color:var(--fg);}
+  #info a{
+    color:var(--fg);text-decoration:none;cursor:none;
+  }
+  #info a:hover,#info a.active{font-weight:700;}
+
+  .ext-link{color:var(--fg);text-decoration:none;cursor:none;}
+  .ext-link:hover{font-weight:700;}
+
+  /* MOBILE NAV BUTTONS — hidden on desktop, shown <=640px */
+  .nav-btn{
+    display:none;
+    position:fixed;top:30px;z-index:70;
+    background:none;border:none;
+    color:var(--fg);font:inherit;
+    text-transform:uppercase;letter-spacing:.02em;
+    padding:0;cursor:none;
+  }
+  #menuBtn{left:var(--pad);}
+  #infoBtn{right:var(--pad);}
+  .nav-btn:hover,.nav-btn.active{font-weight:700;}
+
+  /* bio/email shown inside the CV panel on mobile only */
+  .mobile-info-header{display:none;flex-direction:column;gap:3px;}
+  .mobile-info-header a{color:var(--fg);text-decoration:none;cursor:none;}
+  .mobile-info-header a:hover{font-weight:700;}
+
+  /* LEFT MENU COLUMN */
+  #menu{
+    position:fixed;top:30px;left:var(--pad);
+    max-height:calc(100vh - 60px);width:300px;
+    display:flex;flex-direction:column;gap:28px;
+    overflow-y:auto;
+  }
+  #menu::-webkit-scrollbar{width:0;}
+  .menu-group{display:flex;flex-direction:column;gap:0;}
+  .menu-items{
+    display:grid;grid-template-rows:0fr;
+    margin-top:0;overflow:hidden;
+    transition:grid-template-rows .4s ease,margin-top .4s ease;
+  }
+  .menu-items.open{grid-template-rows:1fr;margin-top:28px;}
+  .menu-items-inner{
+    display:flex;flex-direction:column;min-height:0;overflow:hidden;
+    opacity:0;transition:opacity .25s ease;
+  }
+  .menu-items.open .menu-items-inner{opacity:1;transition-delay:.1s;}
+  .menu-cat{
+    color:var(--fg);cursor:none;
+    width:fit-content;
+  }
+  .menu-cat:hover,.menu-cat.open{font-weight:700;}
+  .menu-group a{
+    color:var(--fg);text-decoration:none;cursor:none;
+    width:fit-content;
+  }
+  .menu-group a:hover,.menu-group a.active{font-weight:700;}
+
+  /* CENTER — info, then media stacked top to bottom */
+  #center{
+    position:fixed;top:0;bottom:0;left:50%;
+    transform:translateX(-50%);
+    width:min(48vw,620px);
+    overflow-y:auto;overflow-x:hidden;
+    padding:90px 0 60px;
+    display:flex;flex-direction:column;gap:18px;
+  }
+  #center::-webkit-scrollbar{display:none;}
+  @keyframes phIn{to{opacity:1;}}
+  #centerEmpty{
+    padding:60px 0;text-align:center;
+    color:var(--fg);
+    opacity:0;animation:phIn .4s ease forwards;animation-delay:.25s;
+  }
+
+  /* media, stacked vertically */
+  .media-item{
+    width:100%;height:auto;display:block;
+    opacity:0;transition:opacity .4s ease;
+  }
+  .media-item.show{opacity:1;}
+  video.media-item{cursor:auto;}
+  .media-item.ph{aspect-ratio:4/5;background:#d9d9d9;opacity:1;}
+
+  /* PROJECT INFO — revealed first, before media */
+  .proj-info{
+    display:flex;flex-direction:column;gap:6px;
+    padding-bottom:18px;color:var(--fg);
+    opacity:0;animation:phIn .4s ease forwards;
+  }
+  .proj-info .proj-title{font-weight:700;}
+  .proj-info .proj-tags{opacity:.5;}
+  .proj-info .proj-link{width:fit-content;}
+
+  /* CV PANEL */
+  #cv{
+    position:fixed;top:0;bottom:0;left:50%;
+    transform:translateX(-50%);
+    width:min(38vw,480px);
+    overflow-y:hidden;
+    padding:90px 0 60px;
+    display:none;flex-direction:column;gap:24px;
+    color:var(--fg);
+  }
+  #cv.show{display:flex;}
+  #cv::-webkit-scrollbar{width:0;}
+  #cv .cv-section{display:flex;flex-direction:column;gap:2px;}
+  #cv .cv-head{font-weight:700;margin-bottom:4px;}
+  #cv .cv-row{display:flex;gap:12px;}
+  #cv .cv-row .cv-date{flex-shrink:0;width:110px;}
+
+  /* below this width, the project text column (#center) starts to overlap
+     the menu ("commercial" list) and the top-right info ("currently
+     designer at unveil®") — narrow everything down before that happens */
+  @media (max-width:1320px){
+    #info{display:none;}
+    #menu{width:200px;}
+    #center,#cv{width:min(60vw,420px);}
+  }
+
+  /* ── MOBILE — index/info become full-screen drawers behind nav buttons ── */
+  @media (max-width:640px){
+    :root{--pad:20px;--fs:11px;}
+
+    .nav-btn{display:block;}
+
+    #menu{
+      position:fixed;inset:0;
+      width:100%;max-height:none;
+      padding:70px var(--pad) 30px;
+      background:var(--bg);
+      transform:translateX(-100%);
+      transition:transform .35s cubic-bezier(.22,1,.36,1);
+      z-index:60;
+    }
+    body.mobile-menu-open #menu{transform:translateX(0);}
+
+    #center{
+      left:0;right:0;transform:none;width:100%;
+      padding:70px var(--pad) 50px;
+    }
+
+    #cv{
+      left:0;right:0;transform:none;width:100%;
+      display:flex!important;
+      padding:70px var(--pad) 50px;
+      transform:translateX(100%);
+      transition:transform .35s cubic-bezier(.22,1,.36,1);
+      z-index:60;overflow-y:auto;
+    }
+    #cv.show{transform:translateX(0);}
+
+    .mobile-info-header{display:flex;}
+  }
+
+  /* no custom cursor on touch devices */
+  @media (hover:none){
+    #cur{display:none;}
+    *,*::before,*::after{cursor:auto!important;}
+  }
+</style>
+</head>
+<body>
+<div class="bg-iri" id="iri"></div>
+<div id="overlay"></div>
+<script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
+<div id="cur"></div>
+
+<button id="menuBtn" class="nav-btn">index</button>
+<button id="infoBtn" class="nav-btn">info</button>
+
+<div id="info">
+  <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
+  <a href="#" id="emailCopy">thomasding227@gmail.com</a>
+  <a href="#" id="cvBtn">CV</a>
+</div>
+
+<div id="menu"></div>
+
+<div id="center"></div>
+
+<div id="cv">
+  <div class="mobile-info-header">
+    <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
+    <a href="#" id="emailCopyMobile">thomasding227@gmail.com</a>
+  </div>
+  <div class="cv-section">
+    <div class="cv-head">Thomas Ding</div>
+    <div>Designer — <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></div>
+  </div>
+
+  <div class="cv-section">
+    <div class="cv-head">Experience</div>
+    <div class="cv-row"><span class="cv-date">2025 — now</span><span><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span></div>
+    <div class="cv-row"><span class="cv-date">2023 — 2025</span><span><a href="https://www.womenmanagement.com/paris/home.web" target="_blank" rel="noopener" class="ext-link">Women Management</a></span></div>
+    <div class="cv-row"><span class="cv-date">2022 — 2023</span><span>Dream Factory</span></div>
+  </div>
+
+  <div class="cv-section">
+    <div class="cv-head">Skills</div>
+    <div>Art direction, graphic design, image, video, AI</div>
+  </div>
+
+</div>
+
+<script>
+/* cursor */
+const cur=document.getElementById('cur');
+document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
+
+/* reactive iridescent background, same as the hub */
+(function(){
+  const iri=document.getElementById('iri');
+  let mx=0.5,my=0.5;
+  const base=[{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+  const blobs=base.map(b=>({...b}));
+  const blobDef=[
+    {ax:0.38,ay:0.30,ease:0.05,color:'220,180,60',op:0.70,ex:90,ey:70},
+    {ax:-0.42,ay:0.34,ease:0.04,color:'200,160,210',op:0.50,ex:70,ey:60},
+    {ax:0.36,ay:-0.38,ease:0.045,color:'160,210,200',op:0.40,ex:60,ey:50},
+    {ax:0.18,ay:0.16,ease:0.03,color:'210,200,190',op:0.30,ex:80,ey:80},
+  ];
+  document.addEventListener('mousemove',e=>{
+    mx=e.clientX/window.innerWidth;
+    my=e.clientY/window.innerHeight;
+  });
+  (function tick(){
+    let grad='';
+    blobs.forEach((b,i)=>{
+      const d=blobDef[i];
+      b.x+=(base[i].x+(mx-0.5)*d.ax*100-b.x)*d.ease;
+      b.y+=(base[i].y+(my-0.5)*d.ay*100-b.y)*d.ease;
+      grad+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;
+    });
+    iri.style.backgroundImage=grad.slice(0,-1);
+    requestAnimationFrame(tick);
+  })();
+})();
+
+/* scroll the CV or the media column, no matter where the cursor is */
+window.addEventListener('wheel',e=>{
+  if(cvOpen)cvPanel.scrollTop+=e.deltaY;
+  else centerPanel.scrollTop+=e.deltaY;
+},{passive:true});
+
+/* email copy */
+function copyEmail(el){
+  navigator.clipboard.writeText('thomasding227@gmail.com');
+  const original=el.textContent;
+  el.textContent='copied';
+  setTimeout(()=>{el.textContent=original;},1200);
+}
+const emailCopy=document.getElementById('emailCopy');
+emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);});
+const emailCopyMobile=document.getElementById('emailCopyMobile');
+emailCopyMobile.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopyMobile);});
+
+/* CV toggle */
+let cvOpen=false;
+const cvBtn=document.getElementById('cvBtn');
+const cvPanel=document.getElementById('cv');
+const centerPanel=document.getElementById('center');
+function toggleCV(force){
+  cvOpen=force!==undefined?force:!cvOpen;
+  cvBtn.classList.toggle('active',cvOpen);
+  cvPanel.classList.toggle('show',cvOpen);
+  centerPanel.style.display=cvOpen?'none':'flex';
+  infoBtn.classList.toggle('active',cvOpen);
+  infoBtn.textContent=cvOpen?'close':'info';
+}
+cvBtn.addEventListener('click',e=>{e.preventDefault();toggleCV();});
+
+/* mobile nav — index/info open as full-screen drawers */
+const menuBtn=document.getElementById('menuBtn');
+const infoBtn=document.getElementById('infoBtn');
+menuBtn.addEventListener('click',e=>{
+  e.preventDefault();
+  if(cvOpen)toggleCV(false);
+  const open=document.body.classList.toggle('mobile-menu-open');
+  menuBtn.classList.toggle('active',open);
+  menuBtn.textContent=open?'close':'index';
+});
+infoBtn.addEventListener('click',e=>{
+  e.preventDefault();
+  if(document.body.classList.contains('mobile-menu-open')){
+    document.body.classList.remove('mobile-menu-open');
+    menuBtn.classList.remove('active');
+    menuBtn.textContent='index';
+  }
+  toggleCV();
+});
+
+/* ── FALLBACK DATA — used if the CMS is unreachable or empty ── */
+const FALLBACK_PROJECTS=[
+  {title:'Project Alpha',      tags:['commercial'], media:[[1,1],[4,5],[16,9]].map(toPh)},
+  {title:'Working Title 02',   tags:['commercial'], media:[[4,5],[4,5],[1,1],[16,9]].map(toPh)},
+  {title:'Concrete Study',     tags:['commercial'], media:[[1,1],[16,9]].map(toPh)},
+  {title:'Untitled Campaign',  tags:['commercial'], media:[[4,5],[1,1],[4,5]].map(toPh)},
+  {title:'Field Recordings',   tags:['personal'],   media:[[16,9],[1,1]].map(toPh)},
+  {title:'Notes on Light',     tags:['personal'],   media:[[1,1],[4,5],[1,1],[16,9]].map(toPh)},
+  {title:'Specimen 07',        tags:['editorial'],  media:[[4,5],[4,5]].map(toPh)},
+  {title:'Loop & Repeat',      tags:['editorial'],  media:[[16,9],[4,5],[1,1]].map(toPh)},
+];
+function toPh([w,h]){return{type:'ph',ar:w/h};}
+
+let projects=[];
+let openCat=null;
+let selectedIdx=null;
+
+/* ── SANITY ── */
+const PID='zgrgr7sj',DS='production';
+const GROQ=`*[_type=="project"]|order(year desc){
+  _id,title,client,"year":string(year),description,link,
+  "tags":tags[]->{title},
+  "media":media[]{
+    _type,
+    _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+    _type=="file"=>{"url":asset->url,"mime":asset->mimeType},
+    _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
+    _type=="mediaVideo"=>{"url":video.asset->url,"mime":video.asset->mimeType}
+  }
+}`;
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* projects are personal content: title/client/year/description + media (images, videos, or placeholders) */
+async function loadFromSanity(){
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(GROQ)}`);
+    const{result}=await res.json();
+    if(result?.length){
+      projects=result.map(p=>({
+        title:p.title||'(untitled)',
+        client:p.client||'',
+        year:p.year||'',
+        link:p.link||'',
+        description:Array.isArray(p.description)
+          ?p.description.filter(b=>b._type==='block'&&Array.isArray(b.children))
+            .map(b=>b.children.map(c=>c.text||'').join(''))
+            .filter(t=>t.trim())
+          :[],
+        tags:Array.isArray(p.tags)?p.tags.map(t=>(t?.title||'').toLowerCase().trim()).filter(Boolean):[],
+        media:Array.isArray(p.media)?p.media.map(m=>{
+          if(m._type==='image'||m._type==='mediaImage')return{type:'image',url:m.url,ar:m.ar||1};
+          if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url};
+          return null;
+        }).filter(Boolean):[],
+      }));
+    }
+  }catch(e){console.warn('[Sanity]',e.message);}
+  if(!projects.length)projects=FALLBACK_PROJECTS;
+  buildMenu();
+}
+
+/* group projects by their first tag, preserving year-desc order */
+function buildMenu(){
+  const menu=document.getElementById('menu');
+  menu.innerHTML='';
+  if(!projects.length)return;
+
+  const groups=new Map();
+  projects.forEach((p,i)=>{
+    const cat=(p.tags[0]||'other').toLowerCase();
+    if(!groups.has(cat))groups.set(cat,[]);
+    groups.get(cat).push(i);
+  });
+
+  groups.forEach((idxs,cat)=>{
+    const group=document.createElement('div');
+    group.className='menu-group';
+
+    const head=document.createElement('div');
+    head.className='menu-cat'+(openCat===cat?' open':'');
+    head.dataset.cat=cat;
+    head.textContent=cat;
+    head.addEventListener('click',()=>toggleCategory(cat));
+    group.appendChild(head);
+
+    const items=document.createElement('div');
+    items.className='menu-items'+(openCat===cat?' open':'');
+    items.dataset.cat=cat;
+    const inner=document.createElement('div');
+    inner.className='menu-items-inner';
+    idxs.forEach(i=>{
+      const a=document.createElement('a');
+      a.href='#';
+      a.textContent=projects[i].title;
+      a.dataset.idx=i;
+      if(selectedIdx===i)a.classList.add('active');
+      a.addEventListener('click',e=>{e.preventDefault();selectProject(i);});
+      inner.appendChild(a);
+    });
+    items.appendChild(inner);
+    group.appendChild(items);
+
+    menu.appendChild(group);
+  });
+}
+
+/* open/close a category without rebuilding the menu, so the foldout transitions can play */
+function toggleCategory(cat){
+  openCat=(openCat===cat)?null:cat;
+  document.querySelectorAll('.menu-cat').forEach(el=>{
+    el.classList.toggle('open',el.dataset.cat===openCat);
+  });
+  document.querySelectorAll('.menu-items').forEach(el=>{
+    el.classList.toggle('open',el.dataset.cat===openCat);
+  });
+}
+
+/* show a project's images in the center scrollable column */
+function selectProject(i){
+  selectedIdx=i;
+  document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
+  const newActive=document.querySelector(`.menu-items a[data-idx="${i}"]`);
+  if(newActive)newActive.classList.add('active');
+
+  if(cvOpen)toggleCV(false);
+
+  if(document.body.classList.contains('mobile-menu-open')){
+    document.body.classList.remove('mobile-menu-open');
+    menuBtn.classList.remove('active');
+    menuBtn.textContent='index';
+  }
+
+  const center=document.getElementById('center');
+  center.innerHTML='';
+  const proj=projects[i];
+
+  /* reveal info first */
+  const info=document.createElement('div');
+  info.className='proj-info';
+  const title=document.createElement('div');
+  title.className='proj-title';
+  title.textContent=proj.title;
+  info.appendChild(title);
+  const meta=[proj.client,proj.year].filter(Boolean).join(' — ');
+  if(meta){
+    const m=document.createElement('div');
+    m.textContent=meta;
+    info.appendChild(m);
+  }
+  proj.description?.forEach(line=>{
+    const p=document.createElement('div');
+    p.textContent=line;
+    info.appendChild(p);
+  });
+  if(proj.tags?.length){
+    const t=document.createElement('div');
+    t.className='proj-tags';
+    t.textContent=proj.tags.join(', ');
+    info.appendChild(t);
+  }
+  if(proj.link){
+    const a=document.createElement('a');
+    a.href=proj.link;a.target='_blank';a.rel='noopener';
+    a.className='ext-link proj-link';
+    a.textContent='visit project';
+    info.appendChild(a);
+  }
+  center.appendChild(info);
+
+  /* then reveal media, stacked top to bottom, after the info */
+  if(!proj.media?.length){
+    const empty=document.createElement('div');
+    empty.id='centerEmpty';
+    empty.textContent='no media';
+    center.appendChild(empty);
+  }else{
+    proj.media.forEach(m=>center.appendChild(createMediaEl(m)));
+  }
+}
+
+/* render a single media item (image/video/placeholder) */
+function createMediaEl(m){
+  if(m.type==='image'){
+    const img=document.createElement('img');
+    img.className='media-item';
+    img.addEventListener('load',()=>img.classList.add('show'));
+    img.src=m.url;
+    return img;
+  }
+  if(m.type==='video'){
+    const vid=document.createElement('video');
+    vid.className='media-item';
+    vid.muted=true;vid.loop=true;vid.autoplay=true;vid.playsInline=true;
+    vid.controls=true;vid.controlsList='nodownload noremoteplayback';
+    vid.addEventListener('loadeddata',()=>vid.classList.add('show'));
+    vid.src=m.url;
+    return vid;
+  }
+  const ph=document.createElement('div');
+  ph.className='media-item ph';
+  return ph;
+}
+
+loadFromSanity();
+</script>
+</body>
+</html>
