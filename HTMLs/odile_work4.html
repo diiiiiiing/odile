@@ -316,24 +316,18 @@
      starts invisible during its delay then stays at its rest opacity afterwards */
   @keyframes ci-in{from{opacity:0}to{opacity:var(--ci-op,1)}}
 
-  /* circles drift CCW; each ring fades in from the inside out
-     ci-1 = outermost (longest delay), ci-9 = innermost (shortest delay) */
+  /* circles spin CCW as a group; each ring fades in solid, inside→out */
   #lg-circles{transform-origin:570.86px 570.86px;animation:spin-ccw 40s linear infinite;}
   #lg-circles circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
-  #lg-circles .ci-9{--ci-op:.7;stroke-dasharray:  56  19;animation:dc9 3s   linear infinite  -.5s, ci-in .45s ease  0.20s both;}
-  #lg-circles .ci-8{--ci-op:.6;stroke-dasharray: 158  53;animation:dc8 4s   linear infinite -3.0s, ci-in .45s ease  0.40s both;}
-  #lg-circles .ci-7{--ci-op:.7;stroke-dasharray: 304 102;animation:dc7 4.5s linear infinite -1.9s, ci-in .45s ease  0.60s both;}
-  #lg-circles .ci-6{--ci-op:.6;stroke-dasharray: 453 151;animation:dc6 5s   linear infinite  -.4s, ci-in .45s ease  0.80s both;}
-  #lg-circles .ci-5{--ci-op:.7;stroke-dasharray: 603 201;animation:dc5 5.5s linear infinite -1.6s, ci-in .45s ease  1.00s both;}
-  #lg-circles .ci-4{--ci-op:.6;stroke-dasharray: 753 252;animation:dc4 6s   linear infinite -2.1s, ci-in .45s ease  1.20s both;}
-  #lg-circles .ci-3{--ci-op:.7;stroke-dasharray: 904 302;animation:dc3 6.5s linear infinite  -.8s, ci-in .45s ease  1.40s both;}
-  #lg-circles .ci-2{--ci-op:.6;stroke-dasharray:1054 352;animation:dc2 7s   linear infinite -1.2s, ci-in .45s ease  1.60s both;}
-  #lg-circles .ci-1{--ci-op:.7;stroke-dasharray:1205 402;animation:dc1 8s   linear infinite     0s, ci-in .45s ease  1.80s both;}
-  @keyframes dc1{to{stroke-dashoffset:-1607;}}@keyframes dc2{to{stroke-dashoffset: 1406;}}
-  @keyframes dc3{to{stroke-dashoffset:-1206;}}@keyframes dc4{to{stroke-dashoffset: 1005;}}
-  @keyframes dc5{to{stroke-dashoffset: -804;}}@keyframes dc6{to{stroke-dashoffset:  604;}}
-  @keyframes dc7{to{stroke-dashoffset: -406;}}@keyframes dc8{to{stroke-dashoffset:  211;}}
-  @keyframes dc9{to{stroke-dashoffset:  -75;}}
+  #lg-circles .ci-9{--ci-op:.7;animation:ci-in .3s ease 0.10s both;}
+  #lg-circles .ci-8{--ci-op:.6;animation:ci-in .3s ease 0.22s both;}
+  #lg-circles .ci-7{--ci-op:.7;animation:ci-in .3s ease 0.34s both;}
+  #lg-circles .ci-6{--ci-op:.6;animation:ci-in .3s ease 0.46s both;}
+  #lg-circles .ci-5{--ci-op:.7;animation:ci-in .3s ease 0.58s both;}
+  #lg-circles .ci-4{--ci-op:.6;animation:ci-in .3s ease 0.70s both;}
+  #lg-circles .ci-3{--ci-op:.7;animation:ci-in .3s ease 0.82s both;}
+  #lg-circles .ci-2{--ci-op:.6;animation:ci-in .3s ease 0.94s both;}
+  #lg-circles .ci-1{--ci-op:.7;animation:ci-in .3s ease 1.06s both;}
 
   /* ornaments spin CW; each appears one-by-one via inline style set in JS */
   #lg-outer{transform-origin:570.86px 570.86px;animation:spin-cw 22s linear infinite;}
