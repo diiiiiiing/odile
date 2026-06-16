@@ -275,6 +275,24 @@
     .mobile-info-header{display:flex;}
     .media-grid{grid-template-columns:1fr;}
     #loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}
+
+    /* mobile home — project grid replacing the empty center */
+    #mobileHome{display:flex;flex-direction:column;gap:28px;}
+    .mh-cat-label{font-weight:700;margin-bottom:10px;}
+    .mh-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+    .mh-item{display:flex;flex-direction:column;gap:5px;cursor:pointer;}
+    .mh-thumb{width:100%;aspect-ratio:1/1;background:var(--dim2);background-size:cover;background-position:center;}
+    .mh-name{font-size:var(--fs);}
+
+    /* back button on mobile when a project is open */
+    #mobileBack{
+      display:none;
+      position:fixed;bottom:30px;left:var(--pad);z-index:60;
+      background:none;border:none;color:var(--fg);
+      font:inherit;text-transform:uppercase;letter-spacing:.02em;
+      padding:0;cursor:pointer;
+    }
+    #mobileBack.show{display:block;}
   }
 
   /* no custom cursor on touch devices */
@@ -358,6 +376,7 @@
 <div id="center"></div>
 
 <a href="#" id="nextProject" class="ext-link next-link">next project</a>
+<button id="mobileBack">← back</button>
 
 <div id="cv">
   <div class="cv-section">
@@ -448,6 +467,7 @@ function hideLoader(){
         const el=document.getElementById(id);
         if(el)el.style.opacity='1';
       });
+      buildMobileHome();
     },700);
   },wait);
 }
@@ -783,6 +803,64 @@ function buildMenu(){
   menu.appendChild(gGroup);
 }
 
+/* ── MOBILE HOME — grid of thumbnails per category shown on landing ── */
+const mobileBackBtn=document.getElementById('mobileBack');
+mobileBackBtn.addEventListener('click',()=>closeProject());
+
+function buildMobileHome(){
+  if(!isMobile())return;
+  const center=document.getElementById('center');
+  center.innerHTML='';
+  center.scrollTop=0;
+
+  const wrap=document.createElement('div');
+  wrap.id='mobileHome';
+
+  const groups=new Map();
+  menuOrder.forEach(i=>{
+    const cat=getProjectCategory(projects[i]);
+    if(!groups.has(cat))groups.set(cat,[]);
+    groups.get(cat).push(i);
+  });
+
+  groups.forEach((idxs,cat)=>{
+    const section=document.createElement('div');
+
+    const label=document.createElement('div');
+    label.className='mh-cat-label';
+    label.textContent=cat;
+    section.appendChild(label);
+
+    const grid=document.createElement('div');
+    grid.className='mh-grid';
+
+    idxs.forEach(i=>{
+      const p=projects[i];
+      const item=document.createElement('div');
+      item.className='mh-item';
+
+      const thumb=document.createElement('div');
+      thumb.className='mh-thumb';
+      if(p.thumb)thumb.style.backgroundImage=`url(${p.thumb})`;
+
+      const name=document.createElement('div');
+      name.className='mh-name';
+      name.textContent=p.client||p.title;
+
+      item.appendChild(thumb);
+      item.appendChild(name);
+      item.addEventListener('click',()=>selectProject(i));
+      grid.appendChild(item);
+    });
+
+    section.appendChild(grid);
+    wrap.appendChild(section);
+  });
+
+  center.appendChild(wrap);
+  mobileBackBtn.classList.remove('show');
+}
+
 /* remove the ring highlight for every project in a given category */
 function clearCategoryFocus(cat){
   projects.forEach((p,i)=>{
@@ -852,9 +930,19 @@ function closeProject(){
   selectedIdx=null;
   document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
   if(cvOpen)toggleCV(false);
-  clearCenter();
   nextLinkTarget=null;
   updateNextLinkVisibility();
+  mobileBackBtn.classList.remove('show');
+  if(isMobile()){
+    const center=document.getElementById('center');
+    center.classList.add('center-hidden');
+    setTimeout(()=>{
+      center.classList.remove('center-hidden');
+      buildMobileHome();
+    },250);
+  }else{
+    clearCenter();
+  }
   updateRingVisibility();
 }
 
@@ -931,6 +1019,8 @@ function selectProject(i){
   nextLinkTarget=(pos!==-1&&menuOrder.length>1)?menuOrder[(pos+1)%menuOrder.length]:null;
   nextLinkEl.classList.toggle('show',false);
   updateNextLinkVisibility();
+
+  if(isMobile())mobileBackBtn.classList.add('show');
 }
 
 /* resolve once an image/video has enough data to report its size,
