@@ -16,11 +16,7 @@
     --bg:#fff; --fg:#0a0a0a;
     --dim1:rgba(0,0,0,.55); --dim2:rgba(0,0,0,.3);
   }
-  body.red-mode{
-    --bg:#8b0000; --fg:#000000;
-    --dim1:rgba(0,0,0,.55); --dim2:rgba(0,0,0,.3);
-  }
-  body.yellow-mode{
+body.yellow-mode{
     --bg:#808080; --fg:#E5FF00;
     --dim1:rgba(229,255,0,.55); --dim2:rgba(229,255,0,.3);
   }
@@ -597,12 +593,11 @@ function setInfoOpen(open){
 }
 
 /* theme cycling: dark → light → red → yellow */
-const THEMES=['dark','light','red','yellow'];
+const THEMES=['dark','light','yellow'];
 function setTheme(name){
   document.body.classList.remove('light','red-mode','yellow-mode');
   if(name==='light')document.body.classList.add('light');
-  else if(name==='red')document.body.classList.add('red-mode');
-  else if(name==='yellow')document.body.classList.add('yellow-mode');
+else if(name==='yellow')document.body.classList.add('yellow-mode');
   localStorage.setItem('odile-theme',name);
   if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
   const tb=document.getElementById('cvThemeBtn');
