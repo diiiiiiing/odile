@@ -319,15 +319,15 @@
   /* circles spin CCW as a group; each ring fades in solid, inside→out */
   #lg-circles{transform-origin:570.86px 570.86px;animation:spin-ccw 40s linear infinite;}
   #lg-circles circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
-  #lg-circles .ci-9{--ci-op:.7;animation:ci-in .3s ease 0.10s both;}
-  #lg-circles .ci-8{--ci-op:.6;animation:ci-in .3s ease 0.22s both;}
-  #lg-circles .ci-7{--ci-op:.7;animation:ci-in .3s ease 0.34s both;}
-  #lg-circles .ci-6{--ci-op:.6;animation:ci-in .3s ease 0.46s both;}
-  #lg-circles .ci-5{--ci-op:.7;animation:ci-in .3s ease 0.58s both;}
-  #lg-circles .ci-4{--ci-op:.6;animation:ci-in .3s ease 0.70s both;}
-  #lg-circles .ci-3{--ci-op:.7;animation:ci-in .3s ease 0.82s both;}
-  #lg-circles .ci-2{--ci-op:.6;animation:ci-in .3s ease 0.94s both;}
-  #lg-circles .ci-1{--ci-op:.7;animation:ci-in .3s ease 1.06s both;}
+  #lg-circles .ci-9{--ci-op:.7;animation:ci-in .4s ease 0.00s both;}
+  #lg-circles .ci-8{--ci-op:.6;animation:ci-in .4s ease 0.09s both;}
+  #lg-circles .ci-7{--ci-op:.7;animation:ci-in .4s ease 0.18s both;}
+  #lg-circles .ci-6{--ci-op:.6;animation:ci-in .4s ease 0.27s both;}
+  #lg-circles .ci-5{--ci-op:.7;animation:ci-in .4s ease 0.36s both;}
+  #lg-circles .ci-4{--ci-op:.6;animation:ci-in .4s ease 0.45s both;}
+  #lg-circles .ci-3{--ci-op:.7;animation:ci-in .4s ease 0.54s both;}
+  #lg-circles .ci-2{--ci-op:.6;animation:ci-in .4s ease 0.63s both;}
+  #lg-circles .ci-1{--ci-op:.7;animation:ci-in .4s ease 0.72s both;}
 
   /* ornaments spin CW; each appears one-by-one via inline style set in JS */
   #lg-outer{transform-origin:570.86px 570.86px;animation:spin-cw 22s linear infinite;}
@@ -409,7 +409,7 @@ fetch('./loadersvg.svg')
       /* ornaments (mice): appear one by one after circles finish, no fade */
       [...groups[1].children].forEach((g,i)=>{
         g.style.opacity='0';
-        g.style.animation=`snap-in 0.12s ease ${(1.4+i*0.05).toFixed(2)}s both`;
+        g.style.animation=`snap-in 0.15s ease ${(0.2+i*0.06).toFixed(2)}s both`;
       });
     }
     /* root paths (mice + numbers): group identical numbers by radial distance
@@ -429,7 +429,7 @@ fetch('./loadersvg.svg')
     // sort unique radii inner→outer and map each to a step index
     const sortedR=[...new Set(radii)].sort((a,b)=>a-b);
     const stepMap=Object.fromEntries(sortedR.map((r,i)=>[r,i]));
-    const STEP=0.055, START=0.05; // 55ms between groups, start at 50ms
+    const STEP=0.04, START=0.05; // 40ms between groups, start at 50ms
     paths.forEach((p,i)=>{
       const delay=(START+stepMap[radii[i]]*STEP).toFixed(3);
       p.style.opacity='0';
