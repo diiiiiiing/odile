@@ -310,7 +310,7 @@
   /* 2 groups: lg-circles = 9 concentric rings, lg-outer = 11 radial ornaments */
   @keyframes spin-cw  {to{transform:rotate( 360deg);}}
   @keyframes spin-ccw {to{transform:rotate(-360deg);}}
-  @keyframes twinkle  {0%,100%{opacity:1}50%{opacity:.06}}
+  @keyframes snap-in  {to{opacity:1}}
 
   /* staggered centre-to-edge entrance — opacity 0 → target, fill:both so each ring
      starts invisible during its delay then stays at its rest opacity afterwards */
@@ -335,19 +335,8 @@
   @keyframes dc7{to{stroke-dashoffset: -406;}}@keyframes dc8{to{stroke-dashoffset:  211;}}
   @keyframes dc9{to{stroke-dashoffset:  -75;}}
 
-  /* ornaments appear last (after all circles), then spin CW and twinkle normally */
-  #lg-outer{transform-origin:570.86px 570.86px;animation:spin-cw 22s linear infinite, ci-in .5s ease 2.05s both;}
-  #lg-outer>g{animation:twinkle 5s ease-in-out infinite;}
-  #lg-outer>g:nth-child(2) {animation-delay: -.45s;}
-  #lg-outer>g:nth-child(3) {animation-delay: -.91s;}
-  #lg-outer>g:nth-child(4) {animation-delay:-1.36s;}
-  #lg-outer>g:nth-child(5) {animation-delay:-1.82s;}
-  #lg-outer>g:nth-child(6) {animation-delay:-2.27s;}
-  #lg-outer>g:nth-child(7) {animation-delay:-2.73s;}
-  #lg-outer>g:nth-child(8) {animation-delay:-3.18s;}
-  #lg-outer>g:nth-child(9) {animation-delay:-3.64s;}
-  #lg-outer>g:nth-child(10){animation-delay:-4.09s;}
-  #lg-outer>g:nth-child(11){animation-delay:-4.55s;}
+  /* ornaments spin CW; each appears one-by-one via inline style set in JS */
+  #lg-outer{transform-origin:570.86px 570.86px;animation:spin-cw 22s linear infinite;}
 </style>
 </head>
 <body>
@@ -421,7 +410,19 @@ fetch('./loadersvg.svg')
          stagger their entrance animation from centre outward */
       [...groups[0].children].forEach((c,i)=>c.classList.add('ci-'+(i+1)));
     }
-    if(groups[1])groups[1].id='lg-outer';
+    if(groups[1]){
+      groups[1].id='lg-outer';
+      /* ornaments (mice): appear one by one after circles finish, no fade */
+      [...groups[1].children].forEach((g,i)=>{
+        g.style.opacity='0';
+        g.style.animation=`snap-in 1ms step-end ${(1.5+i*0.07).toFixed(2)}s both`;
+      });
+    }
+    /* root paths (mice + numbers): appear one by one from the first, no fade */
+    [...svg.children].filter(n=>n.tagName==='path').forEach((p,i)=>{
+      p.style.opacity='0';
+      p.style.animation=`snap-in 1ms step-end ${(0.1+i*0.07).toFixed(2)}s both`;
+    });
     loaderEl.appendChild(svg);
   }).catch(()=>{});
 let suppressRingShow=true;
