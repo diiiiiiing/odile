@@ -253,15 +253,15 @@ body.yellow-mode{
       position:fixed;inset:0;
       width:100%;max-height:none;
       padding:70px var(--pad) 30px;
-      transform:translateX(-100%);
+      transform:translateX(100%);
       transition:transform .35s cubic-bezier(.22,1,.36,1);
-      z-index:60;
+      z-index:60;background:var(--bg);
     }
-    body.mobile-menu-open #menu{transform:translateX(0);}
+    #menu.show{transform:translateX(0);}
 
     #center{
       left:0;right:0;transform:none;width:100%;
-      padding:70px var(--pad) 90px;
+      padding:70px 0 90px;
     }
 
     #cv{
@@ -270,9 +270,11 @@ body.yellow-mode{
       padding:70px var(--pad) 50px;
       transform:translateX(100%);
       transition:transform .35s cubic-bezier(.22,1,.36,1);
-      z-index:60;overflow-y:auto;
+      z-index:60;overflow-y:auto;background:var(--bg);
     }
     #cv.show{transform:translateX(0);}
+
+    .proj-info{padding-left:var(--pad);padding-right:var(--pad);}
     #cv .cv-row{flex-wrap:wrap;}
     #cv .cv-row .cv-role{flex-basis:100%;}
 
@@ -358,15 +360,16 @@ body.yellow-mode{
   /* ornaments spin CW; each appears one-by-one via inline style set in JS */
   #lg-outer{transform-origin:570.86px 570.86px;animation:spin-cw 22s linear infinite;}
 
-  /* ⛨ easter egg theme cycler — bottom-left, barely visible */
+  /* easter egg theme cycler — bottom-left, barely visible */
   #themeEgg{
     position:fixed;bottom:28px;left:var(--pad);z-index:60;
     background:none;border:none;
-    color:var(--fg);font-size:16px;
-    opacity:0.12;cursor:none;padding:0;
+    opacity:0.1;cursor:none;padding:0;
     transition:opacity .2s ease;
+    display:flex;align-items:center;
   }
-  #themeEgg:hover{opacity:0.5;}
+  #themeEgg:hover{opacity:0.45;}
+  #themeEgg svg{width:26px;height:auto;fill:var(--fg);}
   @media(hover:none){#themeEgg{cursor:auto;}}
 </style>
 </head>
@@ -646,11 +649,17 @@ cvBtn.addEventListener('click',e=>{e.preventDefault();toggleCV();});
 
 /* mobile nav — index/info open as full-screen drawers */
 const menuBtn=document.getElementById('menuBtn');
+const menuPanel=document.getElementById('menu');
 const infoBtn=document.getElementById('infoBtn');
+function closeMobileMenu(){
+  menuPanel.classList.remove('show');
+  menuBtn.classList.remove('active');
+  centerPanel.classList.remove('center-hidden');
+}
 menuBtn.addEventListener('click',e=>{
   e.preventDefault();
   if(cvOpen)toggleCV(false);
-  const open=document.body.classList.toggle('mobile-menu-open');
+  const open=menuPanel.classList.toggle('show');
   menuBtn.classList.toggle('active',open);
   centerPanel.classList.toggle('center-hidden',open);
 });
@@ -667,10 +676,7 @@ infoBtn.addEventListener('click',e=>{
   }
 
   /* mobile/tablet — the button opens the CV drawer (which holds the info too) */
-  if(document.body.classList.contains('mobile-menu-open')){
-    document.body.classList.remove('mobile-menu-open');
-    menuBtn.classList.remove('active');
-  }
+  if(menuPanel.classList.contains('show'))closeMobileMenu();
   toggleCV();
 });
 
@@ -853,11 +859,7 @@ function buildMenu(){
 const mobileLogoBtn=document.getElementById('mobileLogo');
 mobileLogoBtn.addEventListener('click',()=>{
   if(cvOpen)toggleCV(false);
-  if(document.body.classList.contains('mobile-menu-open')){
-    document.body.classList.remove('mobile-menu-open');
-    menuBtn.classList.remove('active');
-    centerPanel.classList.remove('center-hidden');
-  }
+  if(menuPanel.classList.contains('show'))closeMobileMenu();
   if(selectedIdx!==null){selectedIdx=null;document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));}
   if(galleryOpen)closeGallery();
   buildMobileHome();
@@ -1003,11 +1005,7 @@ function selectProject(i){
 
   if(cvOpen)toggleCV(false);
 
-  if(document.body.classList.contains('mobile-menu-open')){
-    document.body.classList.remove('mobile-menu-open');
-    menuBtn.classList.remove('active');
-    centerPanel.classList.remove('center-hidden');
-  }
+  if(menuPanel.classList.contains('show'))closeMobileMenu();
 
   const center=document.getElementById('center');
   center.innerHTML='';
@@ -1184,10 +1182,7 @@ async function toggleGallery(){
   if(cvOpen)toggleCV(false);
   if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
 
-  if(document.body.classList.contains('mobile-menu-open')){
-    document.body.classList.remove('mobile-menu-open');
-    menuBtn.classList.remove('active');
-  }
+  if(menuPanel.classList.contains('show'))closeMobileMenu();
 
   galleryOpen=true;
   document.querySelectorAll('.menu-cat[data-cat="scraps"]').forEach(el=>el.classList.add('open'));
