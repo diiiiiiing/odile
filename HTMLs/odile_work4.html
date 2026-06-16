@@ -211,6 +211,7 @@
     display:none;flex-direction:column;gap:24px;
     color:var(--fg);
   }
+  #cvThemeBtn{display:none;}
   #cv.show{display:flex;}
   #cv::-webkit-scrollbar{width:0;}
   #cv .cv-section{display:flex;flex-direction:column;gap:2px;}
@@ -277,22 +278,29 @@
     #loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}
 
     /* mobile home — project grid replacing the empty center */
-    #mobileHome{display:flex;flex-direction:column;gap:28px;}
-    .mh-cat-label{font-weight:700;margin-bottom:10px;}
+    #mobileHome{display:flex;flex-direction:column;gap:3px;}
     .mh-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
-    .mh-item{display:flex;flex-direction:column;gap:5px;cursor:pointer;}
+    .mh-item{cursor:pointer;}
     .mh-thumb{width:100%;aspect-ratio:1/1;background:var(--dim2);background-size:cover;background-position:center;}
-    .mh-name{font-size:var(--fs);}
 
-    /* back button on mobile when a project is open */
-    #mobileBack{
-      display:none;
-      position:fixed;bottom:30px;left:var(--pad);z-index:60;
+    /* "ding" logo centered in the mobile nav bar */
+    #mobileLogo{
+      display:block;
+      position:fixed;top:30px;left:50%;transform:translateX(-50%);
+      z-index:70;
       background:none;border:none;color:var(--fg);
       font:inherit;text-transform:uppercase;letter-spacing:.02em;
       padding:0;cursor:pointer;
     }
-    #mobileBack.show{display:block;}
+
+    /* dark/light toggle inside the + panel */
+    #cvThemeBtn{
+      display:block;
+      margin-top:auto;padding-top:24px;
+      background:none;border:none;color:var(--dim1);
+      font:inherit;text-transform:uppercase;letter-spacing:.02em;
+      padding:0;cursor:pointer;text-align:left;
+    }
   }
 
   /* no custom cursor on touch devices */
@@ -360,7 +368,8 @@
 <div id="ringStage"><div id="ring"></div></div>
 
 <button id="menuBtn" class="nav-btn">index</button>
-<button id="infoBtn" class="nav-btn">info</button>
+<button id="mobileLogo">ding</button>
+<button id="infoBtn" class="nav-btn">+</button>
 
 <div id="info">
   <div id="infoInner">
@@ -376,7 +385,6 @@
 <div id="center"></div>
 
 <a href="#" id="nextProject" class="ext-link next-link">next project</a>
-<button id="mobileBack">← back</button>
 
 <div id="cv">
   <div class="cv-section">
@@ -401,6 +409,8 @@
     <div class="cv-head">Skills</div>
     <div>Art direction, graphic design, image, video, AI</div>
   </div>
+
+  <button id="cvThemeBtn">dark mode</button>
 
 </div>
 
@@ -567,14 +577,18 @@ function setInfoOpen(open){
   infoPanel.style.maxHeight=open?infoInnerEl.scrollHeight+'px':'0px';
 }
 
-/* light/dark toggle — clicking "Thomas Ding" switches theme, remembered across visits */
+/* light/dark toggle */
 function setLightMode(on){
   document.body.classList.toggle('light',on);
   localStorage.setItem('odile-theme',on?'light':'dark');
   if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
+  const tb=document.getElementById('cvThemeBtn');
+  if(tb)tb.textContent=on?'dark mode':'light mode';
 }
 setLightMode(localStorage.getItem('odile-theme')==='light');
 document.getElementById('siteTitle').addEventListener('click',()=>setLightMode(!document.body.classList.contains('light')));
+const cvThemeBtn=document.getElementById('cvThemeBtn');
+if(cvThemeBtn)cvThemeBtn.addEventListener('click',()=>setLightMode(!document.body.classList.contains('light')));
 window.addEventListener('resize',()=>{
   if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
   document.querySelectorAll('.menu-items.open').forEach(el=>{
@@ -590,7 +604,7 @@ function toggleCV(force){
   centerPanel.classList.toggle('center-hidden',cvOpen);
   if(!isDesktop()){
     infoBtn.classList.toggle('active',cvOpen);
-    infoBtn.textContent=cvOpen?'close':'info';
+    infoBtn.textContent=cvOpen?'×':'+';
   }
   updateRingVisibility();
 }
@@ -804,8 +818,19 @@ function buildMenu(){
 }
 
 /* ── MOBILE HOME — grid of thumbnails per category shown on landing ── */
-const mobileBackBtn=document.getElementById('mobileBack');
-mobileBackBtn.addEventListener('click',()=>closeProject());
+const mobileLogoBtn=document.getElementById('mobileLogo');
+mobileLogoBtn.addEventListener('click',()=>{
+  if(cvOpen)toggleCV(false);
+  if(document.body.classList.contains('mobile-menu-open')){
+    document.body.classList.remove('mobile-menu-open');
+    menuBtn.classList.remove('active');
+    menuBtn.textContent='index';
+    centerPanel.classList.remove('center-hidden');
+  }
+  if(selectedIdx!==null){selectedIdx=null;document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));}
+  if(galleryOpen)closeGallery();
+  buildMobileHome();
+});
 
 function buildMobileHome(){
   if(!isMobile())return;
@@ -825,12 +850,6 @@ function buildMobileHome(){
 
   groups.forEach((idxs,cat)=>{
     const section=document.createElement('div');
-
-    const label=document.createElement('div');
-    label.className='mh-cat-label';
-    label.textContent=cat;
-    section.appendChild(label);
-
     const grid=document.createElement('div');
     grid.className='mh-grid';
 
@@ -843,12 +862,7 @@ function buildMobileHome(){
       thumb.className='mh-thumb';
       if(p.thumb)thumb.style.backgroundImage=`url(${p.thumb})`;
 
-      const name=document.createElement('div');
-      name.className='mh-name';
-      name.textContent=p.client||p.title;
-
       item.appendChild(thumb);
-      item.appendChild(name);
       item.addEventListener('click',()=>selectProject(i));
       grid.appendChild(item);
     });
@@ -932,7 +946,6 @@ function closeProject(){
   if(cvOpen)toggleCV(false);
   nextLinkTarget=null;
   updateNextLinkVisibility();
-  mobileBackBtn.classList.remove('show');
   if(isMobile()){
     const center=document.getElementById('center');
     center.classList.add('center-hidden');
@@ -1020,7 +1033,6 @@ function selectProject(i){
   nextLinkEl.classList.toggle('show',false);
   updateNextLinkVisibility();
 
-  if(isMobile())mobileBackBtn.classList.add('show');
 }
 
 /* resolve once an image/video has enough data to report its size,
