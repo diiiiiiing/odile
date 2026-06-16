@@ -585,7 +585,7 @@ function setLightMode(on){
   const tb=document.getElementById('cvThemeBtn');
   if(tb)tb.textContent=on?'dark mode':'light mode';
 }
-setLightMode(localStorage.getItem('odile-theme')==='light');
+setLightMode(localStorage.getItem('odile-theme')!=='dark');
 document.getElementById('siteTitle').addEventListener('click',()=>setLightMode(!document.body.classList.contains('light')));
 const cvThemeBtn=document.getElementById('cvThemeBtn');
 if(cvThemeBtn)cvThemeBtn.addEventListener('click',()=>setLightMode(!document.body.classList.contains('light')));
