@@ -287,19 +287,15 @@
     position:fixed;inset:0;z-index:900;
     display:flex;align-items:center;justify-content:center;
     background:var(--bg);
-    opacity:1;transition:opacity 1s ease;
+    opacity:1;transition:opacity 1.4s cubic-bezier(0.4,0,0.2,1);
     pointer-events:auto;
   }
   #loader.loaded{opacity:0;pointer-events:none;}
-  @keyframes loader-in {from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
-  @keyframes loader-out{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(1.12)}}
+  @keyframes loader-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
   #loader svg{
     width:min(74vw,74vh);height:min(74vw,74vh);
     overflow:visible;
-    animation:loader-in 1.4s cubic-bezier(0.22,1,0.36,1) both;
-  }
-  #loader svg.leaving{
-    animation:loader-out 1s cubic-bezier(0.4,0,0.2,1) both;
+    animation:loader-in 1.2s cubic-bezier(0.22,1,0.36,1) both;
   }
   /* content hidden until loader reveals it */
   #menu,#siteTitle,#menuBtn,#infoBtn{opacity:0;transition:opacity .5s ease;}
@@ -442,18 +438,16 @@ function hideLoader(){
   const elapsed=Date.now()-loaderStart;
   const wait=Math.max(0,2200-elapsed);
   setTimeout(()=>{
-    const svgEl=loaderEl.querySelector('svg');
-    if(svgEl)svgEl.classList.add('leaving');        // SVG exits first (scale+fade 1s)
-    setTimeout(()=>{loaderEl.classList.add('loaded');},400); // overlay fades 400ms later (1s)
-    setTimeout(()=>{                                 // reveal content while overlay still fading
+    loaderEl.classList.add('loaded');               // whole loader fades as one (1.4s)
+    setTimeout(()=>{                                // reveal content halfway through
       suppressRingShow=false;
       updateRingVisibility();
       ['menu','siteTitle','menuBtn','infoBtn'].forEach(id=>{
         const el=document.getElementById(id);
         if(el)el.style.opacity='1';
       });
-    },900);
-    setTimeout(()=>{loaderEl.remove();},1400);      // remove once fully faded
+    },700);
+    setTimeout(()=>{loaderEl.remove();},1500);
   },wait);
 }
 
