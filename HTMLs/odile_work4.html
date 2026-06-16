@@ -439,6 +439,7 @@ function hideLoader(){
   const wait=Math.max(0,2200-elapsed);
   setTimeout(()=>{
     loaderEl.classList.add('loaded');               // whole loader fades as one (1.4s)
+    loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
     setTimeout(()=>{                                // reveal content halfway through
       suppressRingShow=false;
       updateRingVisibility();
@@ -447,7 +448,6 @@ function hideLoader(){
         if(el)el.style.opacity='1';
       });
     },700);
-    setTimeout(()=>{loaderEl.remove();},1500);
   },wait);
 }
 
