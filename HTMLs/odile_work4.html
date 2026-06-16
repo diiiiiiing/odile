@@ -369,7 +369,7 @@
 
 <button id="menuBtn" class="nav-btn">index</button>
 <button id="mobileLogo">ding</button>
-<button id="infoBtn" class="nav-btn">+</button>
+<button id="infoBtn" class="nav-btn">info</button>
 
 <div id="info">
   <div id="infoInner">
@@ -604,7 +604,7 @@ function toggleCV(force){
   centerPanel.classList.toggle('center-hidden',cvOpen);
   if(!isDesktop()){
     infoBtn.classList.toggle('active',cvOpen);
-    infoBtn.textContent=cvOpen?'×':'+';
+    infoBtn.textContent=cvOpen?'×':'info';
   }
   updateRingVisibility();
 }
@@ -618,7 +618,7 @@ menuBtn.addEventListener('click',e=>{
   if(cvOpen)toggleCV(false);
   const open=document.body.classList.toggle('mobile-menu-open');
   menuBtn.classList.toggle('active',open);
-  menuBtn.textContent=open?'close':'index';
+  menuBtn.textContent=open?'×':'index';
   centerPanel.classList.toggle('center-hidden',open);
 });
 infoBtn.addEventListener('click',e=>{
