@@ -653,6 +653,8 @@ siteTitle.addEventListener('click',()=>{
       const open=!infoPanel.classList.contains('show');
       setInfoOpen(open);
       siteTitle.classList.toggle('active',open);
+    } else {
+      toggleCV();
     }
     return;
   }
