@@ -16,6 +16,7 @@
     --bg:#fff; --fg:#0a0a0a;
     --dim1:rgba(0,0,0,.55); --dim2:rgba(0,0,0,.3);
   }
+
 body.yellow-mode{
     --bg:#808080; --fg:#E5FF00;
     --dim1:rgba(229,255,0,.55); --dim2:rgba(229,255,0,.3);
@@ -25,18 +26,19 @@ body.yellow-mode{
     width:100%;height:100%;
     background:var(--bg);color:var(--fg);
     font-family:var(--font);font-weight:400;
-    font-size:var(--fs);line-height:1.7;
+    font-size:var(--fs);line-height:1;
     letter-spacing:.02em;text-transform:uppercase;
     overflow:hidden;cursor:none;
-    transition:background-color .3s ease,color .3s ease;
+    transition:background-color .55s ease,color .55s ease;
   }
   body{animation:fadeIn .6s ease both;}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
   /* reactive iridescent background, same as the hub */
-  .bg-iri{position:fixed;inset:0;z-index:0;background-color:var(--bg);transition:background-color .3s ease;}
+  .bg-iri{position:fixed;inset:0;z-index:0;background-color:var(--bg);transition:background-color .55s ease;}
 
-  #cur{position:fixed;width:5px;height:5px;background:var(--fg);
+  #cur{position:fixed;width:5px;height:5px;background:#fff;
+    mix-blend-mode:difference;
     pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
 
   #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
@@ -46,14 +48,14 @@ body.yellow-mode{
   /* TOP-RIGHT INFO — hidden behind the "info" button on desktop,
      unfolds with the same grid/opacity animation as the menu categories */
   #info{
-    position:fixed;top:47px;right:var(--pad);
+    position:fixed;top:47px;left:var(--pad);
     max-height:0;margin-top:0;overflow:hidden;
-    text-align:right;max-width:240px;
+    max-width:240px;
     transition:max-height .4s ease,margin-top .4s ease;
   }
   #info.show{margin-top:28px;}
   #infoInner{
-    display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+    display:flex;flex-direction:column;align-items:flex-start;gap:3px;
     opacity:0;transition:opacity .25s ease;
   }
   #info.show #infoInner{opacity:1;transition-delay:.1s;}
@@ -70,10 +72,11 @@ body.yellow-mode{
      center columns, shown only on the "home" state (no project open, no CV) */
   #ringStage{
     position:fixed;overflow:visible;pointer-events:none;
-    opacity:0;transform:scale(.94);
-    transition:opacity .7s ease,transform .7s cubic-bezier(0.22,1,0.36,1);
+    opacity:0;transform:scale(.9) rotate(-6deg);
+    transition:opacity 1s ease,transform 1.4s cubic-bezier(0.16,1,0.3,1);
   }
-  #ringStage.show{opacity:1;transform:scale(1);pointer-events:auto;}
+  #ringStage.show{opacity:1;transform:none;pointer-events:auto;}
+  #ringStage.leaving{opacity:0;transform:scale(.96);pointer-events:none;transition:opacity 1s ease,transform 1s ease;}
   /* #center is empty (no project open) whenever the ring is shown, but it still
      sits on top of it and would otherwise eat the clicks meant for the ring */
   #ringStage.show~#center{pointer-events:none;}
@@ -94,6 +97,7 @@ body.yellow-mode{
   /* TOP-LEFT SITE TITLE — same size/format as the rest of the text,
      hidden on mobile where the "index" nav button sits in the same spot */
   #siteTitle{position:fixed;top:30px;left:var(--pad);z-index:70;color:var(--fg);cursor:none;}
+  #siteTitle:hover,#siteTitle.active{font-weight:700;}
   @media (max-width:640px){#siteTitle{display:none;}}
 
   /* MOBILE NAV BUTTONS — hidden on desktop, shown <=640px */
@@ -109,11 +113,6 @@ body.yellow-mode{
   #infoBtn{right:var(--pad);}
   .nav-btn:hover,.nav-btn.active{font-weight:700;}
 
-  /* on desktop, the "info" button is always available (it reveals #info),
-     in the top-right corner */
-  @media (min-width:1321px){
-    #infoBtn{display:block;}
-  }
 
   /* bio/email shown inside the CV panel on mobile only */
   .mobile-info-header{display:none;flex-direction:column;gap:3px;}
@@ -125,12 +124,12 @@ body.yellow-mode{
     position:fixed;top:50%;left:var(--pad);
     transform:translateY(-50%);
     max-height:calc(100vh - 60px);width:300px;
-    display:flex;flex-direction:column;gap:6px;
+    display:flex;flex-direction:column;gap:0;
     overflow-y:auto;
   }
   #menu::-webkit-scrollbar{width:0;}
   .menu-group{display:flex;flex-direction:column;gap:0;}
-  .menu-group-scraps{margin-top:28px;}
+  .menu-group-archives{margin-top:28px;}
   .menu-items{
     max-height:0;
     margin-top:0;margin-bottom:0;overflow:hidden;
@@ -142,6 +141,11 @@ body.yellow-mode{
     opacity:0;transition:opacity .25s ease;
   }
   .menu-items.open .menu-items-inner{opacity:1;transition-delay:.1s;}
+  /* archive accordion — separate class so toggleCategory() doesn't collapse it */
+  .archive-items{max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;}
+  .archive-items.open{margin-top:28px;margin-bottom:28px;}
+  .archive-inner{display:flex;flex-direction:column;min-height:0;overflow:hidden;opacity:0;transition:opacity .25s ease;}
+  .archive-items.open .archive-inner{opacity:1;transition-delay:.1s;}
   .menu-cat{
     color:var(--fg);cursor:none;
     width:fit-content;
@@ -155,9 +159,8 @@ body.yellow-mode{
 
   /* CENTER — info, then media stacked top to bottom */
   #center{
-    position:fixed;top:0;bottom:0;left:50%;
-    transform:translateX(-50%);
-    width:min(58vw,780px);
+    position:fixed;top:0;bottom:0;
+    left:calc(var(--pad) + 300px);right:0;
     overflow-y:auto;overflow-x:hidden;
     padding:30px 0 0;
     display:flex;flex-direction:column;gap:0;
@@ -176,6 +179,7 @@ body.yellow-mode{
   .next-link{
     position:fixed;bottom:30px;right:var(--pad);z-index:60;
     opacity:0;pointer-events:none;transition:opacity .3s ease;
+    color:#fff;mix-blend-mode:difference;
   }
   .next-link.show{opacity:1;pointer-events:auto;}
 
@@ -196,18 +200,44 @@ body.yellow-mode{
 
   /* PROJECT INFO — revealed first, before media */
   .proj-info{
-    display:flex;flex-direction:column;gap:6px;
+    display:flex;flex-direction:column;gap:0;
     padding-bottom:18px;color:var(--fg);
     opacity:0;animation:phIn .4s ease forwards;
+    width:50%;
   }
   .proj-info .proj-title{font-weight:700;}
   .proj-info .proj-tags{opacity:.5;}
   .proj-info .proj-link{width:fit-content;}
+  .proj-body{
+    max-height:0;margin-top:0;overflow:hidden;
+    transition:max-height .55s cubic-bezier(0.16,1,0.3,1),margin-top .55s cubic-bezier(0.16,1,0.3,1);
+  }
+  .proj-body.open{max-height:600px;margin-top:28px;}
+  .proj-body-inner{
+    display:flex;flex-direction:column;gap:28px;
+    min-height:0;overflow:hidden;
+    opacity:0;transition:opacity .25s ease;
+  }
+  .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
+  .proj-desc{display:flex;flex-direction:column;gap:6px;}
+  #hoverInfo{
+    position:fixed;top:30px;
+    left:calc(var(--pad) + 300px);
+    display:flex;flex-direction:column;gap:6px;
+    color:var(--fg);
+    pointer-events:none;z-index:55;
+    opacity:0;transition:opacity .15s ease;
+  }
+  #hoverInfo.show{opacity:1;}
+  #hoverInfo .hover-title{font-weight:700;}
+  #hoverInfo .hover-tags{opacity:.5;}
+  @media (max-width:1320px){#hoverInfo{left:calc(var(--pad) + 200px);}}
+  @media (max-width:640px){#hoverInfo{display:none;}}
 
   /* CV PANEL */
   #cv{
-    position:fixed;top:0;bottom:0;left:50%;
-    transform:translateX(-50%);
+    position:fixed;top:0;bottom:0;
+    left:calc(var(--pad) + 300px);
     width:min(38vw,480px);
     overflow-y:hidden;
     padding:30px 0 60px;
@@ -231,15 +261,9 @@ body.yellow-mode{
      the menu ("commercial" list) and the top-right info ("currently
      designer at unveil®") — narrow everything down before that happens */
   @media (max-width:1320px){
-    #info{display:none!important;}
     #menu{width:200px;}
-    #center,#cv{width:min(60vw,420px);}
-
-    /* the desktop #info panel is hidden below this width, so bring back
-       the "info" nav button (opens the CV drawer instead) right here —
-       same breakpoint where "commercial"/#menu goes tight — and show the
-       contact links inside the CV drawer since #info itself is gone */
-    #infoBtn{display:block;}
+    #center{left:calc(var(--pad) + 200px);right:0;width:auto;}
+    #cv{left:calc(var(--pad) + 200px);width:min(60vw,420px);}
     .mobile-info-header{display:flex;}
   }
 
@@ -256,7 +280,7 @@ body.yellow-mode{
       width:100%;max-height:none;
       padding:70px var(--pad) 30px;
       transform:translateX(100%);
-      transition:transform .35s cubic-bezier(.22,1,.36,1);
+      transition:transform .5s cubic-bezier(0.16,1,0.3,1);
       z-index:60;background:var(--bg);
     }
     #menu.show{transform:translateX(0);}
@@ -300,14 +324,17 @@ body.yellow-mode{
       padding:0;cursor:pointer;
     }
 
-    /* dark/light toggle inside the + panel */
+    /* theme egg SVG inside info panel */
     #cvThemeBtn{
       display:block;
       margin-top:auto;padding-top:24px;
-      background:none;border:none;color:var(--dim1);
-      font:inherit;text-transform:uppercase;letter-spacing:.02em;
-      padding:0;cursor:pointer;text-align:left;
+      background:none;border:none;padding:0;cursor:pointer;
+      opacity:0.1;transition:opacity .2s ease;
     }
+    #cvThemeBtn:active{opacity:0.45;}
+    #cvThemeBtn svg{width:36px;height:auto;display:block;}
+    #cvThemeBtn svg path{fill:var(--fg);transition:fill .55s ease;}
+    #themeEgg{display:none;}
   }
 
   /* no custom cursor on touch devices */
@@ -372,7 +399,7 @@ body.yellow-mode{
   }
   #themeEgg:hover{opacity:0.45;}
   #themeEgg svg{width:40px;height:auto;}
-#themeEgg svg path{fill:var(--fg);}
+#themeEgg svg path{fill:var(--fg);transition:fill .55s ease;}
   @media(hover:none){#themeEgg{cursor:auto;}}
 </style>
 </head>
@@ -404,12 +431,14 @@ body.yellow-mode{
 <div id="menu"></div>
 
 <div id="center"></div>
+<div id="hoverInfo"></div>
 
 <a href="#" id="nextProject" class="ext-link next-link">next project</a>
 
 <div id="cv">
   <div class="cv-section">
     <div class="cv-head">Thomas Ding</div>
+    <div class="cv-loc">(b.2004)</div>
     <div class="cv-loc">Paris based</div>
   </div>
   <div class="mobile-info-header">
@@ -427,11 +456,11 @@ body.yellow-mode{
   </div>
 
   <div class="cv-section">
-    <div class="cv-head">Skills</div>
+    <div class="cv-head">Services</div>
     <div>Art direction, graphic design, image, video, AI</div>
   </div>
 
-  <button id="cvThemeBtn">dark mode</button>
+  <button id="cvThemeBtn"></button>
 
 </div>
 
@@ -571,6 +600,7 @@ let cvOpen=false;
 const cvBtn=document.getElementById('cvBtn');
 const cvPanel=document.getElementById('cv');
 const centerPanel=document.getElementById('center');
+const hoverInfo=document.getElementById('hoverInfo');
 
 /* "next project" link — fixed bottom-right, only appears once the current
    project's media has been scrolled to the end */
@@ -606,8 +636,6 @@ function setTheme(name){
 else if(name==='yellow')document.body.classList.add('yellow-mode');
   localStorage.setItem('odile-theme',name);
   if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
-  const tb=document.getElementById('cvThemeBtn');
-  if(tb)tb.textContent=name==='dark'?'light mode':'dark mode';
 }
 function cycleTheme(){
   const cur=localStorage.getItem('odile-theme')||'light';
@@ -616,16 +644,39 @@ function cycleTheme(){
 /* default: light mode unless explicitly saved */
 setTheme(['dark','light','red','yellow'].includes(localStorage.getItem('odile-theme'))?localStorage.getItem('odile-theme'):'light');
 
-/* ding on desktop → return to ring */
-document.getElementById('siteTitle').addEventListener('click',()=>{
+/* ding: at home → toggle info; otherwise → close whatever is open + show info */
+const siteTitle=document.getElementById('siteTitle');
+siteTitle.addEventListener('click',()=>{
+  const atHome=selectedIdx===null&&!cvOpen&&!galleryOpen;
+  if(atHome){
+    if(isDesktop()){
+      const open=!infoPanel.classList.contains('show');
+      setInfoOpen(open);
+      siteTitle.classList.toggle('active',open);
+    }
+    return;
+  }
+  const wasProject=selectedIdx!==null;
+  const wasGallery=galleryOpen;
+  const wasCV=cvOpen;
   if(selectedIdx!==null)closeProject();
   if(cvOpen)toggleCV(false);
   if(openCat!==null)toggleCategory(openCat);
   if(galleryOpen){closeGallery();clearCenter();}
+  if(isDesktop()){
+    if(wasProject||wasGallery){setInfoOpen(true);siteTitle.classList.add('active');}
+    else if(wasCV){setInfoOpen(false);siteTitle.classList.remove('active');}
+  }
 });
 
 /* ⛨ easter egg */
 document.getElementById('themeEgg').addEventListener('click',cycleTheme);
+/* mobile — clone the SVG from themeEgg into the info panel button */
+(function(){
+  const mb=document.getElementById('cvThemeBtn');
+  const svg=document.querySelector('#themeEgg svg');
+  if(mb&&svg)mb.appendChild(svg.cloneNode(true));
+})();
 
 /* mobile theme toggle in + panel */
 const cvThemeBtn=document.getElementById('cvThemeBtn');
@@ -635,6 +686,7 @@ window.addEventListener('resize',()=>{
   document.querySelectorAll('.menu-items.open').forEach(el=>{
     el.style.maxHeight=el.querySelector('.menu-items-inner').scrollHeight+'px';
   });
+  if(archiveAccOpen){const ai=document.querySelector('.archive-items');if(ai)ai.style.maxHeight=ai.querySelector('.archive-inner').scrollHeight+'px';}
 },{passive:true});
 function isDesktop(){return window.matchMedia('(min-width:1321px)').matches;}
 function isMobile(){return window.matchMedia('(max-width:640px)').matches;}
@@ -668,17 +720,6 @@ menuBtn.addEventListener('click',e=>{
 });
 infoBtn.addEventListener('click',e=>{
   e.preventDefault();
-
-  /* desktop — the button just reveals/hides the #info panel, label stays "info" */
-  if(isDesktop()){
-    const open=!infoPanel.classList.contains('show');
-    setInfoOpen(open);
-    infoBtn.classList.toggle('active',open);
-    if(!open&&cvOpen)toggleCV(false);
-    return;
-  }
-
-  /* mobile/tablet — the button opens the CV drawer (which holds the info too) */
   if(menuPanel.classList.contains('show'))closeMobileMenu();
   toggleCV();
 });
@@ -714,7 +755,9 @@ let projects=[];
 let openCat=null;
 let selectedIdx=null;
 let galleryOpen=false;
-let galleryItems=null;
+let archiveData=null;
+let openArchiveId=null;
+let archiveAccOpen=false;
 let menuOrder=[];
 
 /* ── SANITY ── */
@@ -845,17 +888,36 @@ function buildMenu(){
     menu.appendChild(group);
   });
 
-  /* "scraps" — a standalone entry at the end of the menu that opens
-     the feed images from the CMS in #center, no sub-list of its own */
+  /* archives — accordion with one sub-item per gallery document */
   const gGroup=document.createElement('div');
-  gGroup.className='menu-group menu-group-scraps';
+  gGroup.className='menu-group menu-group-archives';
   const gHead=document.createElement('div');
-  gHead.className='menu-cat'+(galleryOpen?' open':'');
-  gHead.dataset.cat='scraps';
-  gHead.textContent='scraps';
-  gHead.addEventListener('click',()=>toggleGallery());
+  gHead.className='menu-cat'+(archiveAccOpen?' open':'');
+  gHead.dataset.cat='archives';
+  gHead.textContent='archives';
+  gHead.addEventListener('click',toggleArchiveAccordion);
   gGroup.appendChild(gHead);
+  const gItems=document.createElement('div');
+  gItems.className='archive-items'+(archiveAccOpen?' open':'');
+  const gInner=document.createElement('div');
+  gInner.className='archive-inner';
+  gItems.appendChild(gInner);
+  gGroup.appendChild(gItems);
   menu.appendChild(gGroup);
+  /* populate sub-items once archive data is ready */
+  loadArchiveData().then(data=>{
+    gInner.innerHTML='';
+    data.forEach(g=>{
+      const a=document.createElement('a');
+      a.href='#';
+      a.className='archive-link'+(openArchiveId===g.id?' active':'');
+      a.dataset.archiveId=g.id;
+      a.textContent=g.title;
+      a.addEventListener('click',e=>{e.preventDefault();openArchiveGallery(g.id);});
+      gInner.appendChild(a);
+    });
+    if(archiveAccOpen)gItems.style.maxHeight=gInner.scrollHeight+'px';
+  });
 }
 
 /* ── MOBILE HOME — grid of thumbnails per category shown on landing ── */
@@ -929,6 +991,7 @@ function toggleCategory(cat){
   if(!closing){
     if(prevCat)clearCategoryFocus(prevCat);
     if(galleryOpen){closeGallery();clearCenter();}
+    if(archiveAccOpen)closeArchiveAccordion();
   }
 
   openCat=closing?null:cat;
@@ -1006,6 +1069,10 @@ function selectProject(i){
   if(newActive)newActive.classList.add('active');
   updateRingVisibility();
 
+  /* auto-open the category for this project if not already open */
+  const pCat=getProjectCategory(projects[i]);
+  if(pCat&&openCat!==pCat)toggleCategory(pCat);
+
   if(cvOpen)toggleCV(false);
 
   if(menuPanel.classList.contains('show'))closeMobileMenu();
@@ -1022,30 +1089,35 @@ function selectProject(i){
   title.className='proj-title';
   title.textContent=[proj.client,proj.title].filter(Boolean).join(' — ');
   info.appendChild(title);
-  if(proj.year){
-    const m=document.createElement('div');
-    m.textContent=proj.year;
-    info.appendChild(m);
+
+  const body=document.createElement('div');
+  body.className='proj-body';
+  const bodyInner=document.createElement('div');
+  bodyInner.className='proj-body-inner';
+  if(proj.year||proj.description?.length){
+    const desc=document.createElement('div');
+    desc.className='proj-desc';
+    if(proj.year){const m=document.createElement('div');m.textContent=proj.year;desc.appendChild(m);}
+    proj.description?.forEach(line=>{const p=document.createElement('div');p.textContent=line;desc.appendChild(p);});
+    bodyInner.appendChild(desc);
   }
-  proj.description?.forEach(line=>{
-    const p=document.createElement('div');
-    p.textContent=line;
-    info.appendChild(p);
-  });
   if(proj.tags?.length){
     const t=document.createElement('div');
     t.className='proj-tags';
     t.textContent=proj.tags.join(', ');
-    info.appendChild(t);
+    bodyInner.appendChild(t);
   }
   if(proj.link){
     const a=document.createElement('a');
     a.href=proj.link;a.target='_blank';a.rel='noopener';
     a.className='ext-link proj-link';
     a.textContent='visit project';
-    info.appendChild(a);
+    bodyInner.appendChild(a);
   }
+  body.appendChild(bodyInner);
+  info.appendChild(body);
   center.appendChild(info);
+  requestAnimationFrame(()=>{body.classList.add('open');});
 
   /* then reveal media, stacked top to bottom, after the info */
   if(!proj.media?.length){
@@ -1145,71 +1217,87 @@ function createMediaEl(m){
   return ph;
 }
 
-/* ── SCRAPS — a standalone menu entry showing images from the
-   "scrap" documents in Sanity, reusing the #center media stack ── */
-const SCRAP_GROQ=`*[_type=="scrap"]|order(order asc,_createdAt desc){
-  "url":image.asset->url,
-  "ar":image.asset->metadata.dimensions.aspectRatio
+/* ── ARCHIVES — per-gallery sub-categories under the "archives" menu entry ── */
+const ARCHIVE_GROQ=`*[_type=="gallery"]|order(_createdAt asc){
+  _id,
+  "title":coalesce(title,"(sans titre)"),
+  "items":media[_type=="image"]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio}
 }`;
 
-async function loadGalleryItems(){
-  if(galleryItems)return galleryItems;
+async function loadArchiveData(){
+  if(archiveData)return archiveData;
   try{
-    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(SCRAP_GROQ)}`);
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(ARCHIVE_GROQ)}`);
     const{result}=await res.json();
-    galleryItems=(result||[]).filter(r=>r.url).map(r=>({type:'image',url:r.url,ar:r.ar||1}));
-  }catch(e){console.warn('[Scraps]',e.message);galleryItems=[];}
-  return galleryItems;
+    archiveData=(result||[]).map(doc=>({
+      id:doc._id,
+      title:doc.title||'(sans titre)',
+      items:(doc.items||[]).filter(r=>r.url).map(r=>({type:'image',url:r.url,ar:r.ar||1}))
+    }));
+  }catch(e){console.warn('[Archive]',e.message);archiveData=[];}
+  return archiveData;
 }
 
-/* reset gallery state — the caller is responsible for #center */
+/* deselect the active sub-gallery from #center; accordion stays open */
 function closeGallery(){
   if(!galleryOpen)return;
   galleryOpen=false;
-  document.querySelectorAll('.menu-cat[data-cat="scraps"]').forEach(el=>el.classList.remove('open'));
+  openArchiveId=null;
+  document.querySelectorAll('.archive-link.active').forEach(el=>el.classList.remove('active'));
 }
 
-/* open/close the gallery — shows approved feed images stacked in #center,
-   exactly like a project's media, with the same fade in/out as closeProject.
-   opening the gallery forces any open category to close */
-async function toggleGallery(){
-  if(galleryOpen){
-    closeGallery();
-    clearCenter();
-    updateRingVisibility();
-    return;
-  }
+/* collapse the archives accordion (and close any open sub-gallery) */
+function closeArchiveAccordion(){
+  archiveAccOpen=false;
+  document.querySelectorAll('.menu-cat[data-cat="archives"]').forEach(el=>el.classList.remove('open'));
+  const itemsEl=document.querySelector('.archive-items');
+  if(itemsEl){itemsEl.classList.remove('open');itemsEl.style.maxHeight='0px';}
+  if(galleryOpen){closeGallery();clearCenter();}
+}
 
+/* toggle the archives accordion — mirrors toggleCategory() for project cats */
+function toggleArchiveAccordion(){
+  if(archiveAccOpen){closeArchiveAccordion();updateRingVisibility();return;}
   if(openCat!==null)toggleCategory(openCat);
   if(selectedIdx!==null)closeProject();
   if(cvOpen)toggleCV(false);
   if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
-
   if(menuPanel.classList.contains('show'))closeMobileMenu();
+  archiveAccOpen=true;
+  document.querySelectorAll('.menu-cat[data-cat="archives"]').forEach(el=>el.classList.add('open'));
+  const itemsEl=document.querySelector('.archive-items');
+  if(itemsEl){
+    const inner=itemsEl.querySelector('.archive-inner');
+    itemsEl.classList.add('open');
+    itemsEl.style.maxHeight=(inner.scrollHeight||200)+'px';
+  }
+  updateRingVisibility();
+}
 
+/* open a specific sub-gallery in #center */
+async function openArchiveGallery(id){
+  if(openArchiveId===id){closeGallery();clearCenter();updateRingVisibility();return;}
+  if(!archiveAccOpen)toggleArchiveAccordion();
+  openArchiveId=id;
   galleryOpen=true;
-  document.querySelectorAll('.menu-cat[data-cat="scraps"]').forEach(el=>el.classList.add('open'));
+  document.querySelectorAll('.archive-link').forEach(el=>el.classList.toggle('active',el.dataset.archiveId===id));
   centerPanel.classList.remove('center-hidden');
   updateRingVisibility();
-
   const center=document.getElementById('center');
   center.innerHTML='';
   const loading=document.createElement('div');
-  loading.id='centerEmpty';
-  loading.textContent='loading…';
+  loading.id='centerEmpty';loading.textContent='loading…';
   center.appendChild(loading);
-
-  const items=await loadGalleryItems();
-  if(!galleryOpen)return; // closed again while loading
-
+  const data=await loadArchiveData();
+  if(openArchiveId!==id)return;
+  const gallery=data.find(g=>g.id===id);
   center.innerHTML='';
-  if(!items.length){
+  if(!gallery||!gallery.items.length){
     const empty=document.createElement('div');
-    empty.id='centerEmpty';
-    empty.textContent='no images yet';
+    empty.id='centerEmpty';empty.textContent='no images yet';
     center.appendChild(empty);
   }else{
-    renderMediaStack(center,items);
+    renderMediaStack(center,gallery.items);
   }
 }
 
@@ -1257,11 +1345,24 @@ function buildRing(){
       ringHover=true;ringTiles[i].hovered=true;
       const a=document.querySelector(`.menu-items a[data-idx="${i}"]`);
       if(a)a.classList.add('hl');
+      hoverInfo.innerHTML='';
+      const ht=document.createElement('span');
+      ht.className='hover-title';
+      ht.textContent=[p.client,p.title].filter(Boolean).join(' — ');
+      hoverInfo.appendChild(ht);
+      if(p.tags&&p.tags.length){
+        const htags=document.createElement('span');
+        htags.className='hover-tags';
+        htags.textContent=p.tags.join(', ');
+        hoverInfo.appendChild(htags);
+      }
+      hoverInfo.classList.add('show');
     });
     tile.addEventListener('mouseleave',()=>{
       ringHover=false;ringTiles[i].hovered=false;
       const a=document.querySelector(`.menu-items a[data-idx="${i}"]`);
       if(a)a.classList.remove('hl');
+      hoverInfo.classList.remove('show');
     });
     tile.addEventListener('click',()=>selectProject(i));
     ringEl.appendChild(tile);
@@ -1274,8 +1375,17 @@ function buildRing(){
 /* the ring is shown on the desktop "home" state for any category — no project open, no CV, no scrap */
 function updateRingVisibility(){
   if(suppressRingShow){ringStage.classList.remove('show');return;}
-  const visible=!isMobile()&&selectedIdx===null&&!cvOpen&&!galleryOpen&&ringTiles.length>0;
-  ringStage.classList.toggle('show',visible);
+  const home=selectedIdx===null&&!cvOpen&&!galleryOpen;
+  const visible=!isMobile()&&home&&ringTiles.length>0;
+  if(visible){
+    ringStage.classList.remove('leaving');
+    ringStage.classList.add('show');
+  } else if(ringStage.classList.contains('show')){
+    ringStage.classList.add('leaving');
+    ringStage.classList.remove('show');
+    setTimeout(()=>ringStage.classList.remove('leaving'),1100);
+  }
+  if(isDesktop()&&(selectedIdx!==null||galleryOpen)){setInfoOpen(false);document.getElementById('siteTitle').classList.remove('active');}
 }
 
 let ringWasMobile=isMobile();
@@ -1322,6 +1432,7 @@ window.addEventListener('resize',()=>{
 })();
 
 loadFromSanity();
+loadArchiveData(); /* pre-fetch in parallel so sub-items are ready when user clicks archives */
 </script>
 </body>
 </html>
