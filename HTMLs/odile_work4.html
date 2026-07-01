@@ -312,7 +312,9 @@ body.yellow-mode{
     #mobileHome{display:flex;flex-direction:column;gap:3px;}
     .mh-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
     .mh-item{cursor:pointer;}
+    .mh-item.wide{grid-column:1/-1;}
     .mh-thumb{width:100%;aspect-ratio:1/1;background:var(--dim2);background-size:cover;background-position:center;}
+    .mh-item.wide .mh-thumb{aspect-ratio:16/9;}
 
     /* "ding" logo centered in the mobile nav bar */
     #mobileLogo{
@@ -955,7 +957,7 @@ function buildMobileHome(){
     idxs.forEach(i=>{
       const p=projects[i];
       const item=document.createElement('div');
-      item.className='mh-item';
+      item.className='mh-item'+(p.thumbAR>1.2?' wide':'');
 
       const thumb=document.createElement('div');
       thumb.className='mh-thumb';
