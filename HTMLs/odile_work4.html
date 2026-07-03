@@ -868,11 +868,15 @@ function buildMenu(){
     items.dataset.cat=cat;
     const inner=document.createElement('div');
     inner.className='menu-items-inner';
+    /* count occurrences of each client label within this category */
+    const clientCount={};
+    idxs.forEach(i=>{const k=projects[i].client||projects[i].title;clientCount[k]=(clientCount[k]||0)+1;});
     idxs.forEach(i=>{
       const a=document.createElement('a');
       a.href='#';
       const proj=projects[i];
-      a.textContent=proj.client||proj.title;
+      const base=proj.client||proj.title;
+      a.textContent=clientCount[base]>1&&proj.year?`${base} ${proj.year}`:base;
       a.dataset.idx=i;
       if(selectedIdx===i)a.classList.add('active');
       a.addEventListener('click',e=>{
