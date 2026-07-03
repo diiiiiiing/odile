@@ -868,7 +868,7 @@ function buildMenu(){
     items.dataset.cat=cat;
     const inner=document.createElement('div');
     inner.className='menu-items-inner';
-    /* count occurrences of each client label within this category */
+    /* if a client appears more than once in this category, show project title instead */
     const clientCount={};
     idxs.forEach(i=>{const k=projects[i].client||projects[i].title;clientCount[k]=(clientCount[k]||0)+1;});
     idxs.forEach(i=>{
@@ -876,7 +876,7 @@ function buildMenu(){
       a.href='#';
       const proj=projects[i];
       const base=proj.client||proj.title;
-      a.textContent=clientCount[base]>1&&proj.year?`${base} ${proj.year}`:base;
+      a.textContent=clientCount[base]>1?proj.title||base:base;
       a.dataset.idx=i;
       if(selectedIdx===i)a.classList.add('active');
       a.addEventListener('click',e=>{
