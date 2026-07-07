@@ -941,45 +941,64 @@ mobileLogoBtn.addEventListener('click',()=>{
 function buildMobileHome(){
   if(!isMobile())return;
   const center=document.getElementById('center');
+  if(center._infiniteScroll){
+    center.removeEventListener('scroll',center._infiniteScroll);
+    center._infiniteScroll=null;
+  }
   center.innerHTML='';
   center.scrollTop=0;
 
   const wrap=document.createElement('div');
   wrap.id='mobileHome';
 
-  const groups=new Map();
-  menuOrder.forEach(i=>{
-    const cat=getProjectCategory(projects[i]);
-    if(!groups.has(cat))groups.set(cat,[]);
-    groups.get(cat).push(i);
-  });
-
-  groups.forEach((idxs,cat)=>{
-    const section=document.createElement('div');
-    const grid=document.createElement('div');
-    grid.className='mh-grid';
-
-    idxs.forEach(i=>{
-      const p=projects[i];
-      const item=document.createElement('div');
-      item.className='mh-item';
-
-      const thumb=document.createElement('div');
-      thumb.className='mh-thumb';
-      thumb.style.setProperty('--thumb-ar', p.thumbAR||1);
-      if(p.thumb)thumb.style.backgroundImage=`url(${p.thumb})`;
-
-      item.appendChild(thumb);
-      item.addEventListener('click',()=>selectProject(i));
-      grid.appendChild(item);
+  /* build one copy of the grid — called 3x for seamless loop */
+  function buildCopy(){
+    const groups=new Map();
+    menuOrder.forEach(i=>{
+      const cat=getProjectCategory(projects[i]);
+      if(!groups.has(cat))groups.set(cat,[]);
+      groups.get(cat).push(i);
     });
+    groups.forEach((idxs)=>{
+      const section=document.createElement('div');
+      const grid=document.createElement('div');
+      grid.className='mh-grid';
+      idxs.forEach(i=>{
+        const p=projects[i];
+        const item=document.createElement('div');
+        item.className='mh-item';
+        const thumb=document.createElement('div');
+        thumb.className='mh-thumb';
+        thumb.style.setProperty('--thumb-ar',p.thumbAR||1);
+        if(p.thumb)thumb.style.backgroundImage=`url(${p.thumb})`;
+        item.appendChild(thumb);
+        item.addEventListener('click',()=>selectProject(i));
+        grid.appendChild(item);
+      });
+      section.appendChild(grid);
+      wrap.appendChild(section);
+    });
+  }
 
-    section.appendChild(grid);
-    wrap.appendChild(section);
-  });
+  buildCopy();
+  buildCopy();
+  buildCopy();
 
   center.appendChild(wrap);
   mobileBackBtn.classList.remove('show');
+
+  /* jump to middle copy once layout is measured */
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    const h=Math.round(wrap.scrollHeight/3);
+    center.scrollTop=h;
+    const handler=()=>{
+      const st=center.scrollTop;
+      if(st<h*0.4)center.scrollTop=st+h;
+      else if(st>h*1.6)center.scrollTop=st-h;
+    };
+    center.addEventListener('scroll',handler,{passive:true});
+    center._infiniteScroll=handler;
+  }));
 }
 
 /* remove the ring highlight for every project in a given category */
