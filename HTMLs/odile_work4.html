@@ -194,6 +194,7 @@ body.yellow-mode{
     opacity:0;transition:opacity .4s ease;
   }
   .media-item.wide{grid-column:1/-1;}
+  .media-grid.compact .media-item.wide{grid-column:span 1;}
   .media-item.show{opacity:1;}
   video.media-item{cursor:auto;}
   .media-item.ph{aspect-ratio:4/5;background:#d9d9d9;opacity:1;}
@@ -310,11 +311,14 @@ body.yellow-mode{
 
     /* mobile home — project grid replacing the empty center */
     #mobileHome{display:flex;flex-direction:column;gap:3px;}
-    .mh-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+    .mh-grid{display:flex;flex-direction:column;align-items:center;gap:3px;}
     .mh-item{cursor:pointer;}
-    .mh-item.wide{grid-column:1/-1;}
-    .mh-thumb{width:100%;aspect-ratio:1/1;background:var(--dim2);background-size:cover;background-position:center;}
-    .mh-item.wide .mh-thumb{aspect-ratio:16/9;}
+    .mh-thumb{
+      height:55vw;
+      width:calc(55vw * var(--thumb-ar, 1));
+      max-width:100%;
+      background:var(--dim2);background-size:cover;background-position:center;
+    }
 
     /* "ding" logo centered in the mobile nav bar */
     #mobileLogo{
@@ -766,7 +770,7 @@ let menuOrder=[];
 /* ── SANITY ── */
 const PID='zgrgr7sj',DS='production';
 const GROQ=`*[_type=="project"]|order(year desc){
-  _id,title,client,"year":string(year),"favorite":favorite==true,description,link,
+  _id,title,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
   "tags":tags[]->{title},
   "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
   "media":media[]{
@@ -791,6 +795,7 @@ async function loadFromSanity(){
       projects=result.map(p=>({
         title:p.title||'(untitled)',
         client:p.client||'',
+        displayTitle:p.displayTitle||'',
         year:p.year||'',
         favorite:!!p.favorite,
         link:p.link||'',
@@ -868,15 +873,11 @@ function buildMenu(){
     items.dataset.cat=cat;
     const inner=document.createElement('div');
     inner.className='menu-items-inner';
-    /* if a client appears more than once in this category, show project title instead */
-    const clientCount={};
-    idxs.forEach(i=>{const k=projects[i].client||projects[i].title;clientCount[k]=(clientCount[k]||0)+1;});
     idxs.forEach(i=>{
       const a=document.createElement('a');
       a.href='#';
       const proj=projects[i];
-      const base=proj.client||proj.title;
-      a.textContent=clientCount[base]>1?proj.title||base:base;
+      a.textContent=proj.displayTitle||proj.client||proj.title;
       a.dataset.idx=i;
       if(selectedIdx===i)a.classList.add('active');
       a.addEventListener('click',e=>{
@@ -961,10 +962,11 @@ function buildMobileHome(){
     idxs.forEach(i=>{
       const p=projects[i];
       const item=document.createElement('div');
-      item.className='mh-item'+(p.thumbAR>1.2?' wide':'');
+      item.className='mh-item';
 
       const thumb=document.createElement('div');
       thumb.className='mh-thumb';
+      thumb.style.setProperty('--thumb-ar', p.thumbAR||1);
       if(p.thumb)thumb.style.backgroundImage=`url(${p.thumb})`;
 
       item.appendChild(thumb);
@@ -1094,7 +1096,7 @@ function selectProject(i){
   info.className='proj-info';
   const title=document.createElement('div');
   title.className='proj-title';
-  title.textContent=[proj.client,proj.title].filter(Boolean).join(' — ');
+  title.textContent=proj.displayTitle||[proj.client,proj.title].filter(Boolean).join(' — ');
   info.appendChild(title);
 
   const body=document.createElement('div');
@@ -1170,6 +1172,7 @@ function waitForMedia(els){
 function renderMediaStack(center,media){
   const grid=document.createElement('div');
   grid.className='media-grid';
+  if(media.filter(m=>m.type==='video').length>15)grid.classList.add('compact');
 
   const widenSet=new Set();
   let blockStart=-1,blockCount=0;
@@ -1355,7 +1358,7 @@ function buildRing(){
       hoverInfo.innerHTML='';
       const ht=document.createElement('span');
       ht.className='hover-title';
-      ht.textContent=[p.client,p.title].filter(Boolean).join(' — ');
+      ht.textContent=p.displayTitle||[p.client,p.title].filter(Boolean).join(' — ');
       hoverInfo.appendChild(ht);
       if(p.tags&&p.tags.length){
         const htags=document.createElement('span');
