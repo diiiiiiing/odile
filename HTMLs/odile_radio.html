@@ -10,9 +10,18 @@
   body {
     background:#0b0e14; cursor:none;
     font-family:-apple-system,'Helvetica Neue',sans-serif; font-weight:300; font-size:12.5px;
-    animation:fadeIn 1.2s ease both;
   }
-  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  /* ── Arrival ──
+     The cabin resolves first, then the night outside comes up slowly, the
+     way eyes take a moment to find anything through the glass. Plain CSS
+     animations rather than JS-triggered transitions: they run on their own,
+     so a tab opened in the background cannot strand the page dark. */
+  @keyframes rise { from{opacity:0} to{opacity:1} }
+  #frame  { animation:rise 1.2s ease .15s both; }
+  #view   { animation:rise 3.0s ease .55s both; }
+  #topNav { animation:rise 1.4s ease 2.2s both; }
+  #cur    { animation:rise .8s ease 2.4s both; }
 
   #cur{position:fixed;width:5px;height:5px;background:#FFD5F8;
     box-shadow:0 0 5px 0px #FFD5F866;
@@ -95,10 +104,29 @@
   /* distance sets the pace: the ridge barely creeps, the near wisps race.
      Vertical placement is set in JS, anchored to the window opening rather
      than to #view, which may be cropped by a narrow screen. */
-  #sRidge{animation:drift 210s linear infinite;opacity:.62;}
-  #sFar  {animation:drift 150s linear infinite;opacity:.78;}
-  #sDeck {animation:drift  84s linear infinite;}
-  #sNear {animation:drift  27s linear infinite;opacity:.30;}
+  @keyframes bob { 0%,100%{translate:0 0} 50%{translate:0 var(--bob)} }
+  #sRidge{--bob:3px; opacity:.62; animation:drift 210s linear infinite, bob 41s ease-in-out infinite;}
+  #sFar  {--bob:5px; opacity:.78; animation:drift 150s linear infinite, bob 33s ease-in-out infinite;}
+  #sDeck {--bob:9px;              animation:drift  84s linear infinite, bob 26s ease-in-out infinite;}
+  #sNear {--bob:13px;opacity:.30; animation:drift  27s linear infinite, bob 19s ease-in-out infinite;}
+
+
+  /* ── signs of life in the sky ──
+     Tiny elements, animated only on opacity and translate. They sit inside
+     #view, so the glass still occludes them like everything else out there. */
+  @keyframes twinkle { 0%,100%{opacity:var(--lo)} 50%{opacity:var(--hi)} }
+  .tw{position:absolute;width:2px;height:2px;border-radius:50%;
+      background:#fff;will-change:opacity;
+      animation:twinkle var(--dur) ease-in-out infinite var(--del);}
+
+  /* mostly waiting, then a quick streak — each has its own keyframes
+     below, since custom properties cannot be step selectors */
+  .shoot{position:absolute;width:60px;height:1.5px;border-radius:1px;
+         background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.9));
+         opacity:0;will-change:opacity,translate;transform-origin:100% 50%;}
+  @keyframes shoot0{0%{opacity:0;translate:0 0}0.00%{opacity:0;translate:0 0}0.90%{opacity:.85}3.40%{opacity:0;translate:260px 150px}100%{opacity:0;translate:260px 150px}}
+  @keyframes shoot1{0%{opacity:0;translate:0 0}0.00%{opacity:0;translate:0 0}0.90%{opacity:.85}3.40%{opacity:0;translate:200px 118px}100%{opacity:0;translate:200px 118px}}
+  @keyframes shoot2{0%{opacity:0;translate:0 0}0.00%{opacity:0;translate:0 0}0.90%{opacity:.85}3.40%{opacity:0;translate:170px 96px}100%{opacity:0;translate:170px 96px}}
 
   /* ── the cabin: image with a transparent window, laid over the view ── */
   picture{display:contents;}
@@ -197,6 +225,8 @@
       </svg>
     </div>
 
+    <i class="tw" style="left:27.0%;top:44.5%;--lo:0.14;--hi:0.85;--dur:3.7s;--del:1.5s"></i><i class="tw" style="left:91.9%;top:14.4%;--lo:0.24;--hi:0.76;--dur:5.1s;--del:3.0s"></i><i class="tw" style="left:24.1%;top:39.2%;--lo:0.14;--hi:0.68;--dur:3.5s;--del:1.6s"></i><i class="tw" style="left:42.2%;top:42.1%;--lo:0.19;--hi:0.64;--dur:4.4s;--del:5.9s"></i><i class="tw" style="left:13.3%;top:30.8%;--lo:0.19;--hi:0.83;--dur:4.7s;--del:4.1s"></i>
+    <i class="shoot s0" style="left:14%;top:12%;rotate:30deg;animation:shoot0 47s linear infinite 6s"></i><i class="shoot s1" style="left:62%;top:6%;rotate:30deg;animation:shoot1 71s linear infinite 29s"></i><i class="shoot s2" style="left:34%;top:26%;rotate:29deg;animation:shoot2 93s linear infinite 55s"></i>
   </div>
   <img id="frame" src="plane-window.png" alt="" decoding="async" fetchpriority="high">
 </div>
@@ -280,17 +310,26 @@ document.getElementById('homeBtn').addEventListener('click', e => {
   const view  = document.getElementById('view');
   const t0 = performance.now();
 
+  let settle = 1;              /* rougher air on arrival, easing to cruise */
+
   (function shake(now){
     const t = (now - t0) / 1000;
+    settle += (0 - settle) * 0.0035;
     /* incommensurable frequencies so the motion never visibly repeats,
        under a slow envelope that breathes between calm and bumpy air */
-    const env = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(t * 0.13 + 1.1));
+    const env = (0.62 + 0.38 * (0.5 + 0.5 * Math.sin(t * 0.13 + 1.1))) * (1 + settle * 1.4);
     const x = (Math.sin(t*0.71)*2.3 + Math.sin(t*1.93+1.3)*0.85 + Math.sin(t*3.71+2.1)*0.3) * env;
     const y = (Math.cos(t*0.89+0.5)*1.9 + Math.sin(t*2.31+0.7)*0.7 + Math.cos(t*4.13)*0.26) * env;
     const r = (Math.sin(t*0.47)*0.15 + Math.sin(t*1.71+0.9)*0.055) * env;
     scene.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) rotate(${r.toFixed(3)}deg) scale(1.012)`;
+    /* A long, shallow bank. It goes on the world rather than the cabin: a
+       passenger banks with the aircraft, so what they see tilt is the
+       horizon. Amplitude is kept under a degree — the view is the window's
+       bounding box plus 2.5% of slack, and more rotation than this would
+       swing a corner out from behind the glass. */
+    const bank = Math.sin(t*0.083 + 0.4) * 0.40 + Math.sin(t*0.037 + 2.2) * 0.20;
     /* the view lags the glass a touch — parallax between window and world */
-    view.style.transform  = `translate3d(${(-x*0.42).toFixed(2)}px,${(-y*0.5).toFixed(2)}px,0)`;
+    view.style.transform  = `translate3d(${(-x*0.42).toFixed(2)}px,${(-y*0.5).toFixed(2)}px,0) rotate(${bank.toFixed(3)}deg)`;
     requestAnimationFrame(shake);
   })(t0);
 })();
