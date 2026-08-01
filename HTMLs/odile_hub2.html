@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GUIGNOL.XYZ</title>
+<style>
+@font-face {
+  font-family: 'HW Pano';
+  src: url('hwpano-light.ttf') format('truetype');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; }
+body {
+  background:#b8b8bc;
+  font-family:'HW Pano', -apple-system, 'Helvetica Neue', sans-serif;
+  font-weight:300;
+  animation: pageIn 1.4s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes pageIn { from { opacity:0 } to { opacity:1 } }
+
+/* ── Iridescent ground ──
+   Four fixed gradient plates nudged by transform alone. The original hub
+   rebuilt a four-stop background-image string every frame, which repaints
+   the whole viewport each time; these are composited instead. */
+#bg { position:fixed; inset:0; z-index:0; overflow:hidden; }
+.blob { position:absolute; will-change:transform; }
+.b1 { left:-20%; top: 40%; width:140%; height:100%;
+      background:radial-gradient(ellipse 45% 35% at 50% 50%, rgba(220,180,60,.70), transparent 55%); }
+.b2 { left:-45%; top:  0%; width:140%; height:100%;
+      background:radial-gradient(ellipse 35% 30% at 50% 50%, rgba(200,160,210,.50), transparent 55%); }
+.b3 { left: 15%; top:-20%; width:140%; height:100%;
+      background:radial-gradient(ellipse 30% 25% at 50% 50%, rgba(160,210,200,.40), transparent 55%); }
+.b4 { left:-20%; top:-10%; width:140%; height:100%;
+      background:radial-gradient(ellipse 40% 40% at 50% 50%, rgba(210,200,190,.30), transparent 55%); }
+
+/* ── Stage ── */
+.stage {
+  position:fixed; inset:0; z-index:20;
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ── Crest ── */
+#crest {
+  position:absolute; left:50%; top:50%;
+  width:min(44vw, 78vh);
+  transform:translate(-50%,-50%);
+  will-change:transform;
+  opacity:0; transition:opacity 1.6s ease;
+  pointer-events:none;
+}
+#crest.in { opacity:1; }
+#crest svg { width:100%; height:auto; display:block; overflow:visible; }
+#crest path {
+  fill:none;
+  stroke:rgba(255,255,255,.78);
+  stroke-width:1;
+  /* hairline at any size, exactly as in the reference */
+  vector-effect:non-scaling-stroke;
+}
+
+/* ── Wordmark, dead centre ── */
+.wordmark {
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  font-size:clamp(11px, .95vw, 15px);
+  letter-spacing:.34em; text-indent:.34em;
+  color:rgba(255,255,255,.92);
+  white-space:nowrap; z-index:30;
+  text-decoration:none;
+  will-change:transform;
+}
+
+/* ── The wheel of labels ── */
+#ring {
+  position:absolute; left:50%; top:50%;
+  width:0; height:0;
+  will-change:transform;
+}
+.spoke {
+  --r: min(43vh, 32vw);
+  position:absolute; left:0; top:0;
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-1 * var(--r)));
+  font-size:clamp(10px, .78vw, 13px);
+  letter-spacing:.30em; text-indent:.30em;
+  white-space:nowrap;
+  /* brightness is carried entirely by opacity, eased in the loop — a CSS
+     colour transition on top of it would fight the same value */
+  color:#fff;
+  opacity:.62;          /* readable before the loop takes over, and without JS */
+  text-decoration:none;
+}
+.spoke.off { cursor:default; }
+
+/* ── Page-exit veil ── */
+#veil {
+  position:fixed; inset:0; background:#b8b8bc; z-index:900;
+  opacity:0; pointer-events:none; transition:opacity .7s ease;
+}
+#veil.on { opacity:1; pointer-events:auto; }
+
+@media (max-width:640px) {
+  /* the circle's radius is capped by the narrow side here, so the crest has
+     to give way or the labels sit on its arms */
+  #crest { width:70vw; }
+  .spoke { --r: min(35vh, 47vw); letter-spacing:.18em; text-indent:.18em; }
+  .wordmark { letter-spacing:.26em; text-indent:.26em; }
+}
+@media (prefers-reduced-motion:reduce) {
+  body { animation:none; }
+  #crest { transition:none; opacity:1; }
+}
+</style>
+</head>
+<body>
+
+<div id="veil"></div>
+<script>window.addEventListener('pageshow',()=>document.getElementById('veil').classList.remove('on'));</script>
+
+<div id="bg" aria-hidden="true">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+  <span class="blob b4"></span>
+</div>
+
+<main class="stage">
+  <div id="crest" aria-hidden="true"></div>
+
+  <div id="ring">
+    <a class="spoke" style="--a:0deg"   href="odile_work4.html" data-nav>SELECTED WORKS</a>
+    <a class="spoke" style="--a:60deg"  href="odile_explorer.html" data-nav>EXPLORER</a>
+    <a class="spoke" style="--a:120deg" href="odile_radio.html" data-nav>RADIO</a>
+    <span class="spoke off" style="--a:180deg">SHOP</span>
+    <a class="spoke" style="--a:240deg" href="odile_feed.html" data-nav>FEED</a>
+    <a class="spoke" style="--a:300deg" href="odile_workshop.html" data-nav>WORKSHOP</a>
+  </div>
+
+  <a class="wordmark" href="https://guignol.xyz" target="_blank" rel="noopener">GUIGNOL.XYZ</a>
+</main>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   CREST — fetched rather than inlined: 81 KB of path data
+   would otherwise sit in the document on every load
+══════════════════════════════════════════════════════ */
+const crest = document.getElementById('crest');
+fetch('crest.svg')
+  .then(r => r.ok ? r.text() : Promise.reject(r.status))
+  .then(svg => { crest.innerHTML = svg; requestAnimationFrame(() => crest.classList.add('in')); })
+  .catch(() => {});
+
+/* ══════════════════════════════════════════════════════
+   MOTION — one loop, transforms only
+══════════════════════════════════════════════════════ */
+const ring = document.getElementById('ring');
+const wordmark = document.querySelector('.wordmark');
+const blobs = [...document.querySelectorAll('.blob')];
+const spokes = [...document.querySelectorAll('.spoke')];
+const lit = spokes.map(() => 0);
+let primed = false;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* wheel and drag both feed one target angle; the drawn angle chases it, so
+   a flick coasts to a stop instead of snapping */
+let target = 0, angle = 0;
+let mx = .5, my = .5, px = .5, py = .5;
+
+addEventListener('wheel', e => { target += e.deltaY * 0.12; }, { passive:true });
+
+let dragging = false, lastY = 0;
+addEventListener('touchstart', e => { dragging = true; lastY = e.touches[0].clientY; }, { passive:true });
+addEventListener('touchmove',  e => {
+  if (!dragging) return;
+  const y = e.touches[0].clientY;
+  target += (lastY - y) * 0.35; lastY = y;
+}, { passive:true });
+addEventListener('touchend', () => { dragging = false; }, { passive:true });
+
+addEventListener('mousemove', e => {
+  mx = e.clientX / innerWidth;
+  my = e.clientY / innerHeight;
+}, { passive:true });
+
+/* how far each plate drifts, and how lazily */
+const drift = [
+  { ax:  38, ay:  30, ease:.05 },
+  { ax: -42, ay:  34, ease:.04 },
+  { ax:  36, ay: -38, ease:.045 },
+  { ax:  18, ay:  16, ease:.03 },
+];
+const at = blobs.map(() => ({ x:0, y:0 }));
+
+function frame(){
+  /* a hair of idle rotation so the wheel is never quite still */
+  if (!reduced) target += 0.012;
+  angle += (target - angle) * 0.075;
+  ring.style.transform = `rotate(${angle.toFixed(3)}deg)`;
+
+  px += (mx - px) * .06;
+  py += (my - py) * .06;
+
+  for (let i = 0; i < blobs.length; i++){
+    const d = drift[i], a = at[i];
+    a.x += ((px - .5) * d.ax - a.x) * d.ease;
+    a.y += ((py - .5) * d.ay - a.y) * d.ease;
+    blobs[i].style.transform = `translate3d(${a.x.toFixed(2)}%,${a.y.toFixed(2)}%,0)`;
+  }
+
+  /* crest and wordmark lean against the drift, a shallower parallax */
+  const cx = (px - .5) * -14, cy = (py - .5) * -10;
+  crest.style.transform = `translate(-50%,-50%) translate3d(${cx.toFixed(2)}px,${cy.toFixed(2)}px,0)`;
+  wordmark.style.transform = `translate(-50%,-50%) translate3d(${(cx*.5).toFixed(2)}px,${(cy*.5).toFixed(2)}px,0)`;
+
+  /* whichever label is nearest twelve o'clock reads brightest, and hover
+     is eased in the same value so nothing snaps */
+  for (let i = 0; i < spokes.length; i++){
+    const s = spokes[i];
+    const a = ((parseFloat(s.style.getPropertyValue('--a')) + angle) % 360 + 360) % 360;
+    const d = Math.min(a, 360 - a);          /* 0° at the top, 180° at the bottom */
+    const top = 1 - d / 180;
+    const dead = s.classList.contains('off');
+    let want = dead ? .18 + top * .12        /* the inactive one stays quiet */
+                    : .40 + top * .55;
+    if (!dead && s.matches(':hover')) want = 1;
+    /* land on the right value the very first frame rather than fading up
+       from nothing — a tab opened in the background would otherwise sit
+       blank until it is looked at */
+    lit[i] = primed ? lit[i] + (want - lit[i]) * .12 : want;
+    s.style.opacity = lit[i].toFixed(3);
+  }
+  primed = true;
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ══════════════════════════════════════════════════════
+   NAV — veil, then go
+══════════════════════════════════════════════════════ */
+const veil = document.getElementById('veil');
+document.querySelectorAll('a[data-nav]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    veil.classList.add('on');
+    setTimeout(() => { location.href = a.getAttribute('href'); }, 700);
+  });
+});
+</script>
+</body>
+</html>
