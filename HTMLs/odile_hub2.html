@@ -17,9 +17,27 @@ body {
   background:#b8b8bc;
   font-family:'HW Pano', -apple-system, 'Helvetica Neue', sans-serif;
   font-weight:300;
-  animation: pageIn 1.4s cubic-bezier(.22,1,.36,1) both;
 }
-@keyframes pageIn { from { opacity:0 } to { opacity:1 } }
+
+/* ── Overture ──
+   Nothing arrives at once. Each piece is a child of whatever the loop
+   writes transforms to, so the entrance and the parallax never contend
+   for the same property. */
+.blob     { opacity:0; transition:opacity 2.1s ease .1s; }
+#crestArt { opacity:0; transform:scale(1.06);
+            transition:opacity 2.2s ease .45s,
+                       transform 2.6s cubic-bezier(.22,1,.36,1) .45s; }
+.wordmark span { display:block; opacity:0; transform:translateY(8px);
+            transition:opacity 1.3s ease 1.45s,
+                       transform 1.5s cubic-bezier(.22,1,.36,1) 1.45s; }
+.spoke span    { display:block; opacity:0; transform:translateY(7px);
+            transition:opacity 1.2s ease var(--d),
+                       transform 1.4s cubic-bezier(.22,1,.36,1) var(--d); }
+
+body.ready .blob,
+body.ready #crestArt,
+body.ready .wordmark span,
+body.ready .spoke span { opacity:1; transform:none; }
 
 /* ── Iridescent ground ──
    Four fixed gradient plates nudged by transform alone. The original hub
@@ -46,12 +64,11 @@ body {
 #crest {
   position:absolute; left:50%; top:50%;
   width:min(44vw, 78vh);
-  transform:translate(-50%,-50%);
-  will-change:transform;
-  opacity:0; transition:opacity 1.6s ease;
+  transform:translate(-50%,-50%);      /* static centring */
   pointer-events:none;
 }
-#crest.in { opacity:1; }
+#crestPar { will-change:transform; }   /* the loop writes the parallax here */
+#crestArt { will-change:opacity, transform; }
 #crest svg { width:100%; height:auto; display:block; overflow:visible; }
 #crest path {
   fill:none;
@@ -109,10 +126,15 @@ body {
   .wordmark { letter-spacing:.26em; text-indent:.26em; }
 }
 @media (prefers-reduced-motion:reduce) {
-  body { animation:none; }
-  #crest { transition:none; opacity:1; }
+  .blob, #crestArt, .wordmark span, .spoke span {
+    transition:none; opacity:1; transform:none;
+  }
 }
 </style>
+<noscript><style>
+  /* the overture is raised from script; without it, show everything */
+  .blob, #crestArt, .wordmark span, .spoke span { opacity:1 !important; transform:none !important; }
+</style></noscript>
 </head>
 <body>
 
@@ -127,18 +149,19 @@ body {
 </div>
 
 <main class="stage">
-  <div id="crest" aria-hidden="true"></div>
+  <div id="crest" aria-hidden="true"><div id="crestPar"><div id="crestArt"></div></div></div>
 
+  <!-- --d lands the labels in symmetric pairs, echoing the crest -->
   <div id="ring">
-    <a class="spoke" style="--a:0deg"   href="odile_work4.html" data-nav>SELECTED WORKS</a>
-    <a class="spoke" style="--a:60deg"  href="odile_explorer.html" data-nav>EXPLORER</a>
-    <a class="spoke" style="--a:120deg" href="odile_radio.html" data-nav>RADIO</a>
-    <span class="spoke off" style="--a:180deg">SHOP</span>
-    <a class="spoke" style="--a:240deg" href="odile_feed.html" data-nav>FEED</a>
-    <a class="spoke" style="--a:300deg" href="odile_workshop.html" data-nav>WORKSHOP</a>
+    <a class="spoke" style="--a:0deg;--d:1.85s"   href="odile_work4.html" data-nav><span>SELECTED WORKS</span></a>
+    <a class="spoke" style="--a:300deg;--d:2.0s"  href="odile_workshop.html" data-nav><span>WORKSHOP</span></a>
+    <a class="spoke" style="--a:60deg;--d:2.0s"   href="odile_explorer.html" data-nav><span>EXPLORER</span></a>
+    <a class="spoke" style="--a:240deg;--d:2.15s" href="odile_feed.html" data-nav><span>FEED</span></a>
+    <a class="spoke" style="--a:120deg;--d:2.15s" href="odile_radio.html" data-nav><span>RADIO</span></a>
+    <span class="spoke off" style="--a:180deg;--d:2.3s"><span>SHOP</span></span>
   </div>
 
-  <a class="wordmark" href="https://guignol.xyz" target="_blank" rel="noopener">GUIGNOL.XYZ</a>
+  <a class="wordmark" href="https://guignol.xyz" target="_blank" rel="noopener"><span>GUIGNOL.XYZ</span></a>
 </main>
 
 <script>
@@ -146,11 +169,29 @@ body {
    CREST — fetched rather than inlined: 81 KB of path data
    would otherwise sit in the document on every load
 ══════════════════════════════════════════════════════ */
-const crest = document.getElementById('crest');
+const crestArt = document.getElementById('crestArt');
+const crestPar = document.getElementById('crestPar');
+
+/* The curtain goes up on the crest's arrival, but must go up regardless —
+   a failed or slow fetch cannot be allowed to leave the page blank. Not
+   gated on rAF either: a tab opened in the background freezes it, and the
+   overture would never start. */
+let raised = false;
+const raise = () => { if (!raised) { raised = true; document.body.classList.add('ready'); } };
+setTimeout(raise, 2200);
+
 fetch('crest.svg')
   .then(r => r.ok ? r.text() : Promise.reject(r.status))
-  .then(svg => { crest.innerHTML = svg; requestAnimationFrame(() => crest.classList.add('in')); })
-  .catch(() => {});
+  .then(svg => { crestArt.innerHTML = svg; raise(); })
+  .catch(raise);
+
+/* once the overture is over these never move again — hand the layers back
+   rather than hold a promoted surface for the life of the page */
+setTimeout(() => {
+  crestArt.style.willChange = 'auto';
+  document.querySelectorAll('.wordmark span, .spoke span')
+          .forEach(s => s.style.willChange = 'auto');
+}, 5200);
 
 /* ══════════════════════════════════════════════════════
    MOTION — one loop, transforms only
@@ -166,6 +207,7 @@ const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 /* wheel and drag both feed one target angle; the drawn angle chases it, so
    a flick coasts to a stop instead of snapping */
 let target = 0, angle = 0;
+let spin = reduced ? 0 : -14;   /* the wheel's opening lean */
 let mx = .5, my = .5, px = .5, py = .5;
 
 addEventListener('wheel', e => { target += e.deltaY * 0.12; }, { passive:true });
@@ -197,7 +239,10 @@ function frame(){
   /* a hair of idle rotation so the wheel is never quite still */
   if (!reduced) target += 0.012;
   angle += (target - angle) * 0.075;
-  ring.style.transform = `rotate(${angle.toFixed(3)}deg)`;
+  /* the wheel arrives turned and eases square over several seconds, so it
+     is still settling as the labels land on it */
+  spin += (0 - spin) * 0.011;
+  ring.style.transform = `rotate(${(angle + spin).toFixed(3)}deg)`;
 
   px += (mx - px) * .06;
   py += (my - py) * .06;
@@ -211,7 +256,7 @@ function frame(){
 
   /* crest and wordmark lean against the drift, a shallower parallax */
   const cx = (px - .5) * -14, cy = (py - .5) * -10;
-  crest.style.transform = `translate(-50%,-50%) translate3d(${cx.toFixed(2)}px,${cy.toFixed(2)}px,0)`;
+  crestPar.style.transform = `translate3d(${cx.toFixed(2)}px,${cy.toFixed(2)}px,0)`;
   wordmark.style.transform = `translate(-50%,-50%) translate3d(${(cx*.5).toFixed(2)}px,${(cy*.5).toFixed(2)}px,0)`;
 
   /* whichever label is nearest twelve o'clock reads brightest, and hover
