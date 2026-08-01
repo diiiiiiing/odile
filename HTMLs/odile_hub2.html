@@ -83,32 +83,53 @@ body.ready .spoke span { opacity:1; transform:none; }
 /* ── Crest ── */
 #crest {
   position:absolute; left:50%; top:50%;
-  width:min(44vw, 78vh);
+  width:min(38vw, 66vh);
   transform:translate(-50%,-50%);      /* static centring */
   pointer-events:none;
 }
 #crestPar { will-change:transform; }   /* the loop writes the parallax here */
-#crestArt { will-change:opacity, transform; }
-#crest svg { width:100%; height:auto; display:block; overflow:visible; }
-#crest path {
+/* A square field. The two emblems have opposite proportions — one wide, one
+   tall — so each is fitted inside the same box and centred there; swapping
+   then never shifts the composition around it. */
+#crestArt {
+  position:relative; width:100%; aspect-ratio:1/1;
+  will-change:opacity, transform;
+}
+.crest-layer {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .75s ease;
+}
+.crest-layer.on { opacity:1; }
+.crest-layer svg {
+  max-width:100%; max-height:100%; width:auto; height:auto;
+  display:block; overflow:visible;
+}
+/* Both are drawn as hairline outlines. The second arrived as a filled shape
+   behind a cut-out mask — 2.4 MB — and ships as that mask's own path
+   stroked instead, which renders identically at 100 KB. */
+.crest-layer > svg > path {
   fill:none;
   stroke:rgba(255,255,255,.78);
   stroke-width:1;
-  /* hairline at any size, exactly as in the reference */
-  vector-effect:non-scaling-stroke;
+  vector-effect:non-scaling-stroke;   /* hairline at any size */
 }
 
 /* ── Wordmark, dead centre ── */
 .wordmark {
   position:absolute; left:50%; top:50%;
   transform:translate(-50%,-50%);
-  font-size:clamp(11px, .95vw, 15px);
+  font-family:inherit; font-weight:inherit;
+  font-size:clamp(10px, .85vw, 14px);
   letter-spacing:.34em; text-indent:.34em;
   color:rgba(255,255,255,.92);
   white-space:nowrap; z-index:30;
-  text-decoration:none;
+  background:none; border:0; cursor:pointer;
+  padding:14px 16px;                 /* it is the swap control: give it a target */
   will-change:transform;
+  -webkit-appearance:none; appearance:none;
 }
+@media (hover:none) { .wordmark { padding:17px 18px; } }
 
 /* ── The wheel of labels ── */
 #ring {
@@ -117,11 +138,13 @@ body.ready .spoke span { opacity:1; transform:none; }
   will-change:transform;
 }
 .spoke {
-  --r: min(43vh, 32vw);
+  --r: min(38vh, 28vw);
   position:absolute; left:0; top:0;
   transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-1 * var(--r)));
-  font-size:clamp(10px, .78vw, 13px);
-  letter-spacing:.30em; text-indent:.30em;
+  font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;
+  text-transform:lowercase;
+  font-size:clamp(9.5px, .72vw, 12px);
+  letter-spacing:.24em; text-indent:.24em;
   white-space:nowrap;
   /* brightness is carried entirely by opacity, eased in the loop — a CSS
      colour transition on top of it would fight the same value */
@@ -147,11 +170,11 @@ body.ready .spoke span { opacity:1; transform:none; }
 @media (max-width:640px) {
   /* the circle's radius is capped by the narrow side here, so the crest has
      to give way or the labels sit on its arms */
-  #crest { width:62vw; }
+  #crest { width:56vw; }
   /* the radius is set by the widest label at 45°, where its tilted box is
      broadest — not by the circle itself. Tighter tracking and a smaller
      crest buy back the room the tilt costs. */
-  .spoke { --r: min(35vh, 38vw); font-size:9.5px;
+  .spoke { --r: min(31vh, 34vw); font-size:9px;
            letter-spacing:.12em; text-indent:.12em; }
   .wordmark { letter-spacing:.26em; text-indent:.26em; }
 }
@@ -160,9 +183,9 @@ body.ready .spoke span { opacity:1; transform:none; }
    reach at 13° — which runs off the top of a 393px screen. Everything
    tightens rather than the wheel being allowed to overflow. */
 @media (orientation:landscape) and (max-height:460px) {
-  #crest { width:min(30vw, 58vh); }
+  #crest { width:min(26vw, 50vh); }
   .spoke {
-    --r: min(34vh, 27vw);
+    --r: min(30vh, 24vw);
     font-size:9.5px; letter-spacing:.14em; text-indent:.14em;
     padding:9px 10px;
   }
@@ -173,11 +196,11 @@ body.ready .spoke span { opacity:1; transform:none; }
    the toolbar-less viewport — overshoots what is actually on screen and
    would push the bottom label underneath it. svh is the honest unit here. */
 @supports (height:1svh) {
-  .spoke { --r: min(43svh, 32vw); }
-  @media (max-width:640px) { .spoke { --r: min(35svh, 38vw); } }
+  .spoke { --r: min(38svh, 28vw); }
+  @media (max-width:640px) { .spoke { --r: min(31svh, 34vw); } }
   @media (orientation:landscape) and (max-height:460px) {
-    #crest { width:min(30vw, 58svh); }
-    .spoke { --r: min(34svh, 27vw); }
+    #crest { width:min(26vw, 50svh); }
+    .spoke { --r: min(30svh, 24vw); }
   }
 }
 
@@ -205,7 +228,10 @@ body.ready .spoke span { opacity:1; transform:none; }
 </div>
 
 <main class="stage">
-  <div id="crest" aria-hidden="true"><div id="crestPar"><div id="crestArt"></div></div></div>
+  <div id="crest" aria-hidden="true"><div id="crestPar"><div id="crestArt">
+    <div class="crest-layer on" id="crestA"></div>
+    <div class="crest-layer"    id="crestB"></div>
+  </div></div></div>
 
   <!-- --d lands the labels in symmetric pairs, echoing the crest -->
   <div id="ring">
@@ -217,7 +243,8 @@ body.ready .spoke span { opacity:1; transform:none; }
     <span class="spoke off" style="--a:180deg;--d:2.3s"><span>SHOP</span></span>
   </div>
 
-  <a class="wordmark" href="https://guignol.xyz" target="_blank" rel="noopener"><span>GUIGNOL.XYZ</span></a>
+  <!-- no longer a link: it swaps the emblem, so it is a button -->
+  <button class="wordmark" id="wordmark" type="button" aria-label="Changer l'emblème"><span>GUIGNOL.XYZ</span></button>
 </main>
 
 <script>
@@ -228,18 +255,47 @@ body.ready .spoke span { opacity:1; transform:none; }
 const crestArt = document.getElementById('crestArt');
 const crestPar = document.getElementById('crestPar');
 
-/* The curtain goes up on the crest's arrival, but must go up regardless —
-   a failed or slow fetch cannot be allowed to leave the page blank. Not
-   gated on rAF either: a tab opened in the background freezes it, and the
-   overture would never start. */
+/* The curtain goes up on the first emblem's arrival, but must go up
+   regardless — a failed or slow fetch cannot be allowed to leave the page
+   blank. Not gated on rAF either: a tab opened in the background freezes
+   it, and the overture would never start. */
 let raised = false;
 const raise = () => { if (!raised) { raised = true; document.body.classList.add('ready'); } };
 setTimeout(raise, 2200);
 
-fetch('crest.svg')
-  .then(r => r.ok ? r.text() : Promise.reject(r.status))
-  .then(svg => { crestArt.innerHTML = svg; raise(); })
-  .catch(raise);
+/* ── The two emblems ── */
+const layers = [document.getElementById('crestA'), document.getElementById('crestB')];
+const SRC    = ['crest.svg', 'crest2.svg'];
+const held   = [null, null];
+let shown = 0;
+
+function load(i){
+  if (held[i]) return held[i];
+  held[i] = fetch(SRC[i])
+    .then(r => r.ok ? r.text() : Promise.reject(r.status))
+    .then(svg => { layers[i].innerHTML = svg; })
+    .catch(() => { held[i] = null; return Promise.reject(); });
+  return held[i];
+}
+
+load(0).then(raise, raise);
+/* the alternate is only wanted on a click, so it is fetched once the
+   opening has played out rather than competing with it */
+setTimeout(() => load(1).catch(() => {}), 3600);
+
+const wordmarkBtn = document.getElementById('wordmark');
+let swapping = false;
+wordmarkBtn.addEventListener('click', () => {
+  if (swapping) return;
+  const next = 1 - shown;
+  swapping = true;
+  load(next).then(() => {
+    layers[shown].classList.remove('on');
+    layers[next].classList.add('on');
+    shown = next;
+    setTimeout(() => { swapping = false; }, 800);   /* the crossfade's length */
+  }, () => { swapping = false; });
+});
 
 /* once the overture is over these never move again — hand the layers back
    rather than hold a promoted surface for the life of the page */
