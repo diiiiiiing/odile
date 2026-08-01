@@ -30,10 +30,15 @@
   /* ── outside the window ──
      Everything out here is flat polygons moved with transform only: no
      filters, no background-position, nothing that forces a repaint per
-     frame. Each strip is two viewport-wide copies of one tile, so sliding
-     it by exactly half its width loops seamlessly. */
+     frame. Each strip is two copies of one tile, so sliding it by exactly
+     half its width loops seamlessly.
+
+     #view is sized by JS to hug the window opening rather than the whole
+     viewport. The sky is only ever visible through that hole, and every
+     strip is 200% of this box — painting it full-bleed meant rasterising
+     textures more than twice the area actually seen. */
   #view{
-    position:absolute;inset:-3%;
+    position:absolute;inset:0;
     overflow:hidden;
     background:linear-gradient(180deg,
       #fcfcfd 0%, #f3f3f7 30%, #e8e8ef 54%, #dcdce5 76%, #d0d0db 100%);
@@ -49,12 +54,15 @@
     to  {transform:translate3d(0,0,0);}
   }
 
-  /* distance sets the pace: the ridge barely creeps, the near wisps race */
-  #sRidge{bottom:24%;height:14%;animation:drift 210s linear infinite;opacity:.55;}
-  #sDeck {bottom:0;  height:40%;animation:drift  84s linear infinite;}
-  #sNear {top:24%;   height:24%;animation:drift  27s linear infinite;opacity:.55;}
+  /* distance sets the pace: the ridge barely creeps, the near wisps race.
+     Vertical placement is set in JS, anchored to the window opening rather
+     than to #view, which may be cropped by a narrow screen. */
+  #sRidge{animation:drift 210s linear infinite;opacity:.55;}
+  #sDeck {animation:drift  84s linear infinite;}
+  #sNear {animation:drift  27s linear infinite;opacity:.55;}
 
-  /* ── the cabin: PNG with a transparent window, laid over the view ── */
+  /* ── the cabin: image with a transparent window, laid over the view ── */
+  picture{display:contents;}
   #frame{
     position:absolute;inset:0;
     width:100%;height:100%;
@@ -133,7 +141,7 @@
     </div>
 
   </div>
-  <img id="frame" src="plane-window.png" alt="">
+  <img id="frame" src="plane-window.png" alt="" decoding="async" fetchpriority="high">
 </div>
 
 <nav id="topNav">
@@ -154,6 +162,57 @@ document.getElementById('homeBtn').addEventListener('click', e => {
   document.getElementById('overlay').classList.add('on');
   setTimeout(() => window.location.href = 'odile_hub.html', 700);
 });
+
+/* ══════════════════════════════════════════════════════
+   THE WINDOW OPENING
+   Measured off the cabin image's alpha channel: the glass spans 17.8%→81.1%
+   of its width and 13.5%→87.2% of its height. Sizing the sky to that hole
+   instead of the viewport cuts the parallax textures to roughly 40% of what
+   they were, which is most of what made this page stutter.
+══════════════════════════════════════════════════════ */
+(function(){
+  const view = document.getElementById('view');
+  const IW = 2000, IH = 1129;                      /* cabin image, natural px */
+  const X0 = 0.178, X1 = 0.811, Y0 = 0.1346, Y1 = 0.8716;
+  const PAD = 0.025;             /* slack for the shake and the 1.012 scale */
+
+  /* each band as a fraction of the opening: [top, height] */
+  const BANDS = { sRidge:[0.50,0.16], sDeck:[0.55,0.45], sNear:[0.10,0.30] };
+
+  function fitView(){
+    const vw = innerWidth, vh = innerHeight;
+    /* mirror object-fit: cover so the box tracks the glass at any aspect */
+    const s = Math.max(vw / IW, vh / IH);
+    const dw = IW * s, dh = IH * s;
+    const ox = (vw - dw) / 2, oy = (vh - dh) / 2;
+
+    /* the opening, in viewport coordinates */
+    const wl = ox + (X0 - PAD) * dw, wt = oy + (Y0 - PAD) * dh;
+    const ww = (X1 - X0 + PAD * 2) * dw, wh = (Y1 - Y0 + PAD * 2) * dh;
+
+    /* On a screen whose shape differs from the image, cover crops hard and
+       the opening runs well past the edges. Clip to what can actually be
+       seen — off-screen sky still costs a full texture. */
+    const M = 8;
+    const cl = Math.max(wl, -M), ct = Math.max(wt, -M);
+    const cr = Math.min(wl + ww, vw + M), cb = Math.min(wt + wh, vh + M);
+    view.style.left   = cl + 'px';
+    view.style.top    = ct + 'px';
+    view.style.width  = Math.max(0, cr - cl) + 'px';
+    view.style.height = Math.max(0, cb - ct) + 'px';
+
+    /* keep the horizon tied to the glass, not to the clipped box */
+    const dy = wt - ct;
+    for (const id in BANDS){
+      const [t, h] = BANDS[id], el = document.getElementById(id);
+      el.style.top    = (dy + t * wh) + 'px';
+      el.style.height = (h * wh) + 'px';
+    }
+  }
+  fitView();
+  addEventListener('resize', fitView, { passive:true });
+  addEventListener('orientationchange', fitView, { passive:true });
+})();
 
 /* ══════════════════════════════════════════════════════
    TURBULENCE — the cabin never sits perfectly still
@@ -190,10 +249,29 @@ const AMB_URL = 'plane-cabin.m4a';
 const AMB_VOL = 0.42;      /* sits under the music */
 const XFADE   = 4;         /* seconds of overlap at the seam */
 const beds = [new Audio(AMB_URL), new Audio(AMB_URL)];
-beds.forEach(a => { a.preload = 'auto'; a.volume = 0; });
-let bed = 0, ambGain = 0, ambPrev = performance.now();
+beds[0].preload = 'auto';
+/* the second bed is not needed until the first is nearly through, and
+   fetching both up front doubled the bytes competing with the artwork
+   during the opening seconds */
+beds[1].preload = 'none';
+beds.forEach(a => { a.volume = 0; });
+let bed = 0, ambGain = 0, ambPrev = performance.now(), armed = false;
 
 function playBeds(){ beds[bed].play().catch(()=>{}); }
+
+/* The crossfade below is driven by rAF, which a background tab throttles to
+   a crawl — it can sail straight past the 4s seam and leave the room tone
+   stopped for good. If a bed ever reaches its end, hand over by force. */
+beds.forEach((a, i) => a.addEventListener('ended', () => {
+  if (bed !== i) return;
+  a.currentTime = 0;
+  const nxt = beds[1 - bed];
+  nxt.preload = 'auto';
+  nxt.currentTime = 0;
+  nxt.volume = ambGain * ambGain * AMB_VOL;
+  nxt.play().catch(()=>{});
+  bed = 1 - bed; armed = false;
+}));
 
 function tickAmbience(now){
   /* advanced by frame delta so a backgrounded tab resumes the swell
@@ -204,12 +282,17 @@ function tickAmbience(now){
 
   const cur = beds[bed], nxt = beds[1-bed];
   const d = cur.duration;
+  /* arm the standby bed a little before the seam so it is buffered in time
+     without costing anything at page load */
+  if (!armed && d && cur.currentTime > d - XFADE - 15) {
+    armed = true; nxt.preload = 'auto'; nxt.load();
+  }
   if (d && cur.currentTime > d - XFADE) {
     if (nxt.paused) { nxt.currentTime = 0; nxt.play().catch(()=>{}); }
     const k = Math.max(0, Math.min((d - cur.currentTime) / XFADE, 1));
     cur.volume = base * k;
     nxt.volume = base * (1 - k);
-    if (k <= 0.001) { cur.pause(); cur.currentTime = 0; bed = 1 - bed; }
+    if (k <= 0.001) { cur.pause(); cur.currentTime = 0; bed = 1 - bed; armed = false; }
   } else {
     cur.volume = base;
     if (!nxt.paused) nxt.volume = 0;
