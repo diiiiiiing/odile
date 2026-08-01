@@ -114,6 +114,14 @@ body.ready .spoke span { opacity:1; transform:none; }
   stroke-width:1;
   vector-effect:non-scaling-stroke;   /* hairline at any size */
 }
+/* the third emblem carries a dozen small solid marks among its linework;
+   stroking those would hollow them out */
+.crest-layer > svg > path.solid {
+  fill:rgba(255,255,255,.78);
+  stroke:none;
+}
+/* the second sits a little low in its field */
+#crestB { transform:translateY(3%); }
 
 /* ── Wordmark, dead centre ── */
 .wordmark {
@@ -231,6 +239,7 @@ body.ready .spoke span { opacity:1; transform:none; }
   <div id="crest" aria-hidden="true"><div id="crestPar"><div id="crestArt">
     <div class="crest-layer on" id="crestA"></div>
     <div class="crest-layer"    id="crestB"></div>
+    <div class="crest-layer"    id="crestC"></div>
   </div></div></div>
 
   <!-- --d lands the labels in symmetric pairs, echoing the crest -->
@@ -263,10 +272,10 @@ let raised = false;
 const raise = () => { if (!raised) { raised = true; document.body.classList.add('ready'); } };
 setTimeout(raise, 2200);
 
-/* ── The two emblems ── */
-const layers = [document.getElementById('crestA'), document.getElementById('crestB')];
-const SRC    = ['crest.svg', 'crest2.svg'];
-const held   = [null, null];
+/* ── The emblems, cycled by the wordmark ── */
+const layers = ['crestA', 'crestB', 'crestC'].map(id => document.getElementById(id));
+const SRC    = ['crest.svg', 'crest2.svg', 'crest3.svg'];
+const held   = SRC.map(() => null);
 let shown = 0;
 
 function load(i){
@@ -279,15 +288,15 @@ function load(i){
 }
 
 load(0).then(raise, raise);
-/* the alternate is only wanted on a click, so it is fetched once the
+/* the others are only wanted on a click, so they are fetched once the
    opening has played out rather than competing with it */
-setTimeout(() => load(1).catch(() => {}), 3600);
+setTimeout(() => { load(1).catch(() => {}); load(2).catch(() => {}); }, 3600);
 
 const wordmarkBtn = document.getElementById('wordmark');
 let swapping = false;
 wordmarkBtn.addEventListener('click', () => {
   if (swapping) return;
-  const next = 1 - shown;
+  const next = (shown + 1) % layers.length;
   swapping = true;
   load(next).then(() => {
     layers[shown].classList.remove('on');
