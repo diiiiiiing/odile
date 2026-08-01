@@ -2,7 +2,14 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- viewport-fit=cover lets the ground run under the notch and the home
+     indicator; the safe-area insets below keep the content clear of them -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#b8b8bc">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GUIGNOL">
+<meta name="format-detection" content="telephone=no">
 <title>GUIGNOL.XYZ</title>
 <style>
 @font-face {
@@ -17,6 +24,15 @@ body {
   background:#b8b8bc;
   font-family:'HW Pano', -apple-system, 'Helvetica Neue', sans-serif;
   font-weight:300;
+  /* iOS housekeeping: no blue tap flash, no long-press callout or selection
+     on what are effectively controls, no rubber-band on a page that does not
+     scroll, and no 300ms wait for a second tap that never comes */
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  -webkit-user-select:none; user-select:none;
+  -webkit-text-size-adjust:100%; text-size-adjust:100%;
+  overscroll-behavior:none;
+  touch-action:manipulation;
 }
 
 /* ── Overture ──
@@ -55,8 +71,12 @@ body.ready .spoke span { opacity:1; transform:none; }
       background:radial-gradient(ellipse 40% 40% at 50% 50%, rgba(210,200,190,.30), transparent 55%); }
 
 /* ── Stage ── */
+/* the composition centres inside the safe area, not the raw screen, so the
+   Dynamic Island never sits on the top label nor the home indicator on SHOP */
 .stage {
-  position:fixed; inset:0; z-index:20;
+  position:fixed; z-index:20;
+  top:env(safe-area-inset-top,0px);    bottom:env(safe-area-inset-bottom,0px);
+  left:env(safe-area-inset-left,0px);  right:env(safe-area-inset-right,0px);
   display:flex; align-items:center; justify-content:center;
 }
 
@@ -108,8 +128,14 @@ body.ready .spoke span { opacity:1; transform:none; }
   color:#fff;
   opacity:.62;          /* readable before the loop takes over, and without JS */
   text-decoration:none;
+  padding:6px 8px;      /* the box is the target, not the glyphs */
 }
 .spoke.off { cursor:default; }
+@media (hover:none) {
+  /* Apple asks for 44pt of tappable area. The type is hairline by design,
+     so the box grows around it rather than the letters getting bigger. */
+  .spoke { padding:17px 12px; }   /* 12px of type + 34 = 46, clear of the 44 floor */
+}
 
 /* ── Page-exit veil ── */
 #veil {
@@ -121,10 +147,40 @@ body.ready .spoke span { opacity:1; transform:none; }
 @media (max-width:640px) {
   /* the circle's radius is capped by the narrow side here, so the crest has
      to give way or the labels sit on its arms */
-  #crest { width:70vw; }
-  .spoke { --r: min(35vh, 47vw); letter-spacing:.18em; text-indent:.18em; }
+  #crest { width:62vw; }
+  /* the radius is set by the widest label at 45°, where its tilted box is
+     broadest — not by the circle itself. Tighter tracking and a smaller
+     crest buy back the room the tilt costs. */
+  .spoke { --r: min(35vh, 38vw); font-size:9.5px;
+           letter-spacing:.12em; text-indent:.12em; }
   .wordmark { letter-spacing:.26em; text-indent:.26em; }
 }
+/* Phone held sideways. The wheel turns, so a wide label tilts and its box
+   grows taller than the type — SELECTED WORKS gains some 50px of vertical
+   reach at 13° — which runs off the top of a 393px screen. Everything
+   tightens rather than the wheel being allowed to overflow. */
+@media (orientation:landscape) and (max-height:460px) {
+  #crest { width:min(30vw, 58vh); }
+  .spoke {
+    --r: min(34vh, 27vw);
+    font-size:9.5px; letter-spacing:.14em; text-indent:.14em;
+    padding:9px 10px;
+  }
+  .wordmark { font-size:10px; letter-spacing:.2em; text-indent:.2em; }
+}
+
+/* On a fixed page iOS keeps the Safari toolbar out, so vh — which measures
+   the toolbar-less viewport — overshoots what is actually on screen and
+   would push the bottom label underneath it. svh is the honest unit here. */
+@supports (height:1svh) {
+  .spoke { --r: min(43svh, 32vw); }
+  @media (max-width:640px) { .spoke { --r: min(35svh, 38vw); } }
+  @media (orientation:landscape) and (max-height:460px) {
+    #crest { width:min(30vw, 58svh); }
+    .spoke { --r: min(34svh, 27vw); }
+  }
+}
+
 @media (prefers-reduced-motion:reduce) {
   .blob, #crestArt, .wordmark span, .spoke span {
     transition:none; opacity:1; transform:none;
@@ -212,14 +268,24 @@ let mx = .5, my = .5, px = .5, py = .5;
 
 addEventListener('wheel', e => { target += e.deltaY * 0.12; }, { passive:true });
 
-let dragging = false, lastY = 0;
-addEventListener('touchstart', e => { dragging = true; lastY = e.touches[0].clientY; }, { passive:true });
-addEventListener('touchmove',  e => {
+/* Flick physics. A finger lifted mid-gesture should hand its speed to the
+   wheel and let it run down, the way every iOS scroller behaves; stopping
+   dead on touchend is the tell that something is not native. */
+let dragging = false, lastY = 0, fling = 0;
+addEventListener('touchstart', e => {
+  dragging = true; fling = 0; lastY = e.touches[0].clientY;
+}, { passive:true });
+addEventListener('touchmove', e => {
   if (!dragging) return;
   const y = e.touches[0].clientY;
-  target += (lastY - y) * 0.35; lastY = y;
+  const step = (lastY - y) * 0.35;
+  target += step;
+  /* smooth the sampled speed so one jittery frame cannot throw the release */
+  fling += (step - fling) * 0.45;
+  lastY = y;
 }, { passive:true });
 addEventListener('touchend', () => { dragging = false; }, { passive:true });
+addEventListener('touchcancel', () => { dragging = false; fling = 0; }, { passive:true });
 
 addEventListener('mousemove', e => {
   mx = e.clientX / innerWidth;
@@ -238,6 +304,15 @@ const at = blobs.map(() => ({ x:0, y:0 }));
 function frame(){
   /* a hair of idle rotation so the wheel is never quite still */
   if (!reduced) target += 0.012;
+  /* let a released flick run down rather than stop under the finger */
+  if (!dragging && fling) {
+    target += fling;
+    /* 0.90 hands a flick about ten times its last step — roughly one or two
+       of the six positions. 0.94 gave it sixteen, near a whole revolution,
+       which reads as the wheel getting away from you */
+    fling *= 0.90;
+    if (Math.abs(fling) < 0.01) fling = 0;
+  }
   angle += (target - angle) * 0.075;
   /* the wheel arrives turned and eases square over several seconds, so it
      is still settling as the labels land on it */
