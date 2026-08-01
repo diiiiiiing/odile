@@ -8,9 +8,9 @@
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
   html, body { width:100%; height:100%; overflow:hidden; }
   body {
-    background:#b8b8bc; cursor:none;
+    background:#6b6b6d; cursor:none;
     font-family:-apple-system,'Helvetica Neue',sans-serif; font-weight:300; font-size:12.5px;
-    animation:fadeIn .7s ease both;
+    animation:fadeIn 1.4s ease both;
   }
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
@@ -21,14 +21,99 @@
     opacity:0;pointer-events:none;transition:opacity .7s ease;}
   #overlay.on{opacity:1;pointer-events:auto;}
 
-  /* full-screen placeholder */
-  #placeholder{
+  /* ── the whole POV: shakes as one, as if the head were in the cabin ── */
+  #scene{
     position:fixed;inset:0;z-index:1;
-    background:rgba(255,255,255,0.14);
-    display:flex;align-items:center;justify-content:center;
-    color:rgba(255,255,255,0.4);
-    letter-spacing:.18em;text-transform:uppercase;
-    user-select:none;
+    will-change:transform;
+  }
+
+  /* ── outside the window: parallax sky, land and clouds ── */
+  #view{
+    position:absolute;inset:-3%;
+    background:linear-gradient(180deg,
+      #fcfcfd 0%, #f4f4f7 26%, #e9e9ef 46%,
+      #dedee5 62%, #d2d2db 78%, #c6c6d0 100%);
+    will-change:transform;
+  }
+  .layer{
+    position:absolute;inset:0;
+    background-repeat:repeat-x;
+    will-change:background-position;
+  }
+
+  /* distant terrain far below the cloud deck — slowest, so it barely creeps */
+  #land{
+    top:auto;bottom:0;height:30%;
+    background-image:
+      radial-gradient(52% 120% at 9%  142%, rgba(108,108,124,.62), rgba(108,108,124,0) 68%),
+      radial-gradient(40% 96%  at 26% 150%, rgba(96,96,112,.58),   rgba(96,96,112,0) 66%),
+      radial-gradient(62% 132% at 47% 146%, rgba(116,116,132,.55), rgba(116,116,132,0) 70%),
+      radial-gradient(34% 88%  at 66% 154%, rgba(100,100,116,.52), rgba(100,100,116,0) 66%),
+      radial-gradient(54% 118% at 86% 144%, rgba(110,110,126,.56), rgba(110,110,126,0) 68%);
+    background-size:2400px 100%;
+    animation:driftLand 240s linear infinite;
+    filter:blur(2px);
+    opacity:.5;
+  }
+  @keyframes driftLand{to{background-position-x:2400px;}}
+
+  /* the cloud deck the plane rides above: grey shadowed bellies under
+     white crowns, so the mass reads as volume rather than a flat wash */
+  #cloudsFar{
+    top:34%;
+    background-image:
+      radial-gradient(170px 40px at 7%  56%, rgba(255,255,255,1),   rgba(255,255,255,0) 70%),
+      radial-gradient(190px 44px at 7%  70%, rgba(150,150,168,.34), rgba(150,150,168,0) 72%),
+      radial-gradient(115px 30px at 16% 66%, rgba(255,255,255,.96), rgba(255,255,255,0) 68%),
+      radial-gradient(225px 50px at 30% 52%, rgba(255,255,255,1),   rgba(255,255,255,0) 72%),
+      radial-gradient(245px 54px at 30% 67%, rgba(146,146,164,.32), rgba(146,146,164,0) 74%),
+      radial-gradient(145px 34px at 44% 70%, rgba(255,255,255,.94), rgba(255,255,255,0) 68%),
+      radial-gradient(160px 38px at 44% 82%, rgba(150,150,168,.26), rgba(150,150,168,0) 72%),
+      radial-gradient(195px 46px at 58% 58%, rgba(255,255,255,1),   rgba(255,255,255,0) 71%),
+      radial-gradient(215px 50px at 58% 72%, rgba(148,148,166,.3),  rgba(148,148,166,0) 74%),
+      radial-gradient(125px 32px at 72% 74%, rgba(255,255,255,.95), rgba(255,255,255,0) 68%),
+      radial-gradient(205px 48px at 85% 55%, rgba(255,255,255,1),   rgba(255,255,255,0) 71%),
+      radial-gradient(225px 52px at 85% 69%, rgba(146,146,164,.3),  rgba(146,146,164,0) 74%),
+      radial-gradient(135px 36px at 96% 68%, rgba(255,255,255,.94), rgba(255,255,255,0) 68%),
+      /* solid bed underneath, so the puffs crest a continuous sea of cloud */
+      linear-gradient(180deg,
+        rgba(255,255,255,0) 54%, rgba(255,255,255,.55) 66%,
+        rgba(255,255,255,.88) 78%, rgba(255,255,255,.96) 100%);
+    background-size:1700px 100%;
+    animation:driftFar 96s linear infinite;
+    filter:blur(3px);
+  }
+  @keyframes driftFar{to{background-position-x:1700px;}}
+
+  /* near wisps streaking past the glass — fastest, softest */
+  #cloudsNear{
+    top:20%;height:70%;
+    background-image:
+      radial-gradient(300px 40px at 10% 34%, rgba(255,255,255,.55), rgba(255,255,255,0) 76%),
+      radial-gradient(220px 30px at 34% 61%, rgba(255,255,255,.45), rgba(255,255,255,0) 74%),
+      radial-gradient(340px 46px at 61% 28%, rgba(255,255,255,.5),  rgba(255,255,255,0) 76%),
+      radial-gradient(260px 34px at 85% 68%, rgba(255,255,255,.42), rgba(255,255,255,0) 74%);
+    background-size:1050px 100%;
+    animation:driftNear 34s linear infinite;
+    filter:blur(7px);
+    opacity:.8;
+  }
+  @keyframes driftNear{to{background-position-x:1050px;}}
+
+  /* haze where sky meets the cloud deck, so nothing ends on a hard edge */
+  #haze{
+    position:absolute;left:0;right:0;top:30%;height:40%;
+    background:linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.5) 45%, rgba(255,255,255,0));
+    filter:blur(10px);
+  }
+
+  /* ── the cabin: PNG with a transparent window, laid over the view ── */
+  #frame{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    object-fit:cover;
+    display:block;
+    will-change:transform;
   }
 
   /* back to hub */
@@ -38,16 +123,20 @@
     z-index:400;
   }
   #homeBtn{
-    color:rgba(255,255,255,0.55);text-decoration:none;cursor:none;
+    color:rgba(255,255,255,0.62);text-decoration:none;cursor:none;
     transition:color .4s ease;
   }
-  #homeBtn:hover{color:rgba(255,255,255,0.9);}
-  #navSep{color:rgba(255,255,255,0.3);margin:0 2px;}
-  #navSection{color:rgba(255,255,255,0.7);}
+  #homeBtn:hover{color:rgba(255,255,255,0.95);}
+  #navSep{color:rgba(255,255,255,0.34);margin:0 2px;}
+  #navSection{color:rgba(255,255,255,0.78);}
 
   @media (hover:none){
     #cur{display:none;}
     *,*::before,*::after{cursor:auto!important;}
+  }
+  /* respect users who don't want motion: hold the view still */
+  @media (prefers-reduced-motion:reduce){
+    .layer{animation:none;}
   }
 </style>
 </head>
@@ -62,7 +151,15 @@
   style="position:absolute;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;"
   allow="autoplay" tabindex="-1" aria-hidden="true"></iframe>
 
-<div id="placeholder">placeholder</div>
+<div id="scene">
+  <div id="view">
+    <div class="layer" id="cloudsFar"></div>
+    <div class="layer" id="land"></div>
+    <div id="haze"></div>
+    <div class="layer" id="cloudsNear"></div>
+  </div>
+  <img id="frame" src="plane-window.png" alt="">
+</div>
 
 <nav id="topNav">
   <a id="homeBtn" href="odile_hub.html">odile.xyz</a><span id="navSep"> / </span><span id="navSection">radio</span>
@@ -83,21 +180,73 @@ document.getElementById('homeBtn').addEventListener('click', e => {
   setTimeout(() => window.location.href = 'odile_hub.html', 700);
 });
 
-/* ── SoundCloud — background playback only ──
-   Starts muted on a random track, autoplays, then fades the volume up so the
-   music swells in as the page settles. Loops the playlist forever. */
-const widget = SC.Widget(document.getElementById('sc-widget'));
-const FADE_MS = 4500;
-let started = false, fading = false;
+/* ══════════════════════════════════════════════════════
+   TURBULENCE — the cabin never sits perfectly still
+══════════════════════════════════════════════════════ */
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const scene = document.getElementById('scene');
+  const view  = document.getElementById('view');
+  const t0 = performance.now();
 
-function startPlayback(){
-  widget.play();
+  (function shake(now){
+    const t = (now - t0) / 1000;
+    /* incommensurable frequencies so the motion never visibly repeats,
+       under a slow envelope that breathes between calm and bumpy air */
+    const env = 0.62 + 0.38 * (0.5 + 0.5 * Math.sin(t * 0.13 + 1.1));
+    const x = (Math.sin(t*0.71)*2.3 + Math.sin(t*1.93+1.3)*0.85 + Math.sin(t*3.71+2.1)*0.3) * env;
+    const y = (Math.cos(t*0.89+0.5)*1.9 + Math.sin(t*2.31+0.7)*0.7 + Math.cos(t*4.13)*0.26) * env;
+    const r = (Math.sin(t*0.47)*0.15 + Math.sin(t*1.71+0.9)*0.055) * env;
+    scene.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) rotate(${r.toFixed(3)}deg) scale(1.012)`;
+    /* the view lags the frame a touch — parallax between glass and world */
+    view.style.transform  = `translate3d(${(-x*0.42).toFixed(2)}px,${(-y*0.5).toFixed(2)}px,0)`;
+    requestAnimationFrame(shake);
+  })(t0);
+})();
+
+/* ══════════════════════════════════════════════════════
+   SOUND — music and cabin ambience, both swelling in
+══════════════════════════════════════════════════════ */
+const FADE_MS = 5000;
+
+/* ── cabin ambience: two elements crossfaded so the loop has no seam ── */
+const AMB_URL  = 'plane-cabin.m4a';
+const AMB_VOL  = 0.42;   /* sits under the music */
+const XFADE    = 4;      /* seconds of overlap at the seam */
+const beds = [new Audio(AMB_URL), new Audio(AMB_URL)];
+beds.forEach(a => { a.preload = 'auto'; a.volume = 0; });
+let bed = 0, ambGain = 0, ambPrev = 0;
+
+function playBeds(){ beds[bed].play().catch(()=>{}); }
+
+function tickAmbience(now){
+  /* same quadratic swell as the music, advanced by frame delta so a
+     backgrounded tab resumes smoothly instead of snapping to full */
+  ambGain = Math.min(ambGain + Math.min(now - ambPrev, 100) / FADE_MS, 1);
+  ambPrev = now;
+  const base = ambGain * ambGain * AMB_VOL;
+
+  const cur = beds[bed], nxt = beds[1-bed];
+  const d = cur.duration;
+  if (d && cur.currentTime > d - XFADE) {
+    if (nxt.paused) { nxt.currentTime = 0; nxt.play().catch(()=>{}); }
+    const k = Math.max(0, Math.min((d - cur.currentTime) / XFADE, 1));
+    cur.volume = base * k;
+    nxt.volume = base * (1 - k);
+    if (k <= 0.001) { cur.pause(); cur.currentTime = 0; bed = 1 - bed; }
+  } else {
+    cur.volume = base;
+    if (!nxt.paused) nxt.volume = 0;
+  }
+  requestAnimationFrame(tickAmbience);
 }
 
-/* ramp 0 → full; quadratic curve so the swell feels natural to the ear.
-   Advances by frame delta rather than wall clock: rAF is paused while the tab
-   is in the background, and elapsed time would otherwise jump the volume
-   straight to full the moment the visitor comes back. */
+/* ── SoundCloud playlist: random start, endless, fading up on load ── */
+const widget = SC.Widget(document.getElementById('sc-widget'));
+let started = false, fading = false;
+
+function startPlayback(){ widget.play(); }
+
 function fadeIn(){
   if (fading) return;
   fading = true;
@@ -117,16 +266,20 @@ widget.bind(SC.Widget.Events.READY, () => {
     setTimeout(startPlayback, 150);
   });
 });
-
-/* fade begins only once audio is actually rolling */
-widget.bind(SC.Widget.Events.PLAY, () => { started = true; fadeIn(); });
-/* keep the playlist rolling when the last track ends */
+widget.bind(SC.Widget.Events.PLAY,   () => { started = true; fadeIn(); });
 widget.bind(SC.Widget.Events.FINISH, () => { widget.next(); setTimeout(startPlayback, 200); });
 
-/* silent safety net: if the browser refused unprompted autoplay, the next
-   stray gesture starts it — nothing is asked of the visitor */
+/* everything starts on its own; the listener is only a safety net for
+   browsers that refuse unprompted autoplay — nothing is asked of the visitor */
+ambPrev = performance.now();
+playBeds();
+requestAnimationFrame(tickAmbience);
+
 ['pointerdown','keydown','touchstart','scroll'].forEach(ev => {
-  document.addEventListener(ev, () => { if (!started) startPlayback(); }, { passive:true });
+  document.addEventListener(ev, () => {
+    if (!started) startPlayback();
+    if (beds[bed].paused) playBeds();
+  }, { passive:true });
 });
 </script>
 </body>
