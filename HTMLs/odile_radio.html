@@ -8,7 +8,7 @@
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
   html, body { width:100%; height:100%; overflow:hidden; }
   body {
-    background:#6b6b6d; cursor:none;
+    background:#0b0e14; cursor:none;
     font-family:-apple-system,'Helvetica Neue',sans-serif; font-weight:300; font-size:12.5px;
     animation:fadeIn 1.2s ease both;
   }
@@ -40,8 +40,21 @@
   #view{
     position:absolute;inset:0;
     overflow:hidden;
-    background:linear-gradient(180deg,
-      #fcfcfd 0%, #f3f3f7 30%, #e8e8ef 54%, #dcdce5 76%, #d0d0db 100%);
+    /* night: a handful of stars painted straight into the layer — they are
+       static, so they cost one rasterisation and never a frame */
+    background:
+      radial-gradient(1.3px 1.3px at 11% 8%,  rgba(255,255,255,.80), rgba(255,255,255,0) 100%),
+      radial-gradient(1px 1px     at 24% 19%, rgba(255,255,255,.45), rgba(255,255,255,0) 100%),
+      radial-gradient(1.1px 1.1px at 37% 6%,  rgba(255,255,255,.62), rgba(255,255,255,0) 100%),
+      radial-gradient(1px 1px     at 46% 24%, rgba(255,255,255,.34), rgba(255,255,255,0) 100%),
+      radial-gradient(1.4px 1.4px at 58% 12%, rgba(255,255,255,.72), rgba(255,255,255,0) 100%),
+      radial-gradient(1px 1px     at 67% 31%, rgba(255,255,255,.30), rgba(255,255,255,0) 100%),
+      radial-gradient(1.2px 1.2px at 78% 9%,  rgba(255,255,255,.58), rgba(255,255,255,0) 100%),
+      radial-gradient(1px 1px     at 88% 22%, rgba(255,255,255,.40), rgba(255,255,255,0) 100%),
+      radial-gradient(1.1px 1.1px at 16% 33%, rgba(255,255,255,.36), rgba(255,255,255,0) 100%),
+      radial-gradient(1px 1px     at 93% 38%, rgba(255,255,255,.26), rgba(255,255,255,0) 100%),
+      linear-gradient(180deg,
+        #05070f 0%, #070c18 25%, #0b1425 50%, #101c31 72%, #16253f 100%);
     will-change:transform;
   }
   .strip{
@@ -59,7 +72,7 @@
      than to #view, which may be cropped by a narrow screen. */
   #sRidge{animation:drift 210s linear infinite;opacity:.55;}
   #sDeck {animation:drift  84s linear infinite;}
-  #sNear {animation:drift  27s linear infinite;opacity:.55;}
+  #sNear {animation:drift  27s linear infinite;opacity:.32;}
 
   /* ── the cabin: image with a transparent window, laid over the view ── */
   picture{display:contents;}
@@ -98,11 +111,30 @@
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 <div id="cur"></div>
 
-<!-- SoundCloud — invisible, autoplaying, no controls exposed -->
-<iframe id="sc-widget"
-  src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/user-322526836/sets/heavens-gate&auto_play=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false"
-  style="position:absolute;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;"
-  allow="autoplay" tabindex="-1" aria-hidden="true"></iframe>
+<!-- SoundCloud — invisible, autoplaying, no controls exposed.
+     The opening track is picked in the URL rather than by skipping once the
+     player is up: a skip re-cues the deck and that reload is what used to
+     hold back the first note. start_track is read before anything loads, so
+     a random pick costs nothing. -->
+<script>
+(function(){
+  const TRACKS_KEY = 'odile.radio.tracks';
+  let len = 10;                 /* until the widget tells us the real count */
+  try { const n = parseInt(localStorage.getItem(TRACKS_KEY), 10); if (n > 0) len = n; } catch(e){}
+  const f = document.createElement('iframe');
+  f.id = 'sc-widget';
+  f.src = 'https://w.soundcloud.com/player/?url=' +
+    encodeURIComponent('https://soundcloud.com/user-322526836/sets/heavens-gate') +
+    '&auto_play=true&start_track=' + Math.floor(Math.random() * len) +
+    '&hide_related=true&show_comments=false&show_user=false' +
+    '&show_reposts=false&show_teaser=false&visual=false';
+  f.allow = 'autoplay';
+  f.tabIndex = -1;
+  f.setAttribute('aria-hidden', 'true');
+  f.style.cssText = 'position:absolute;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+  document.currentScript.parentNode.insertBefore(f, document.currentScript);
+})();
+</script>
 
 <div id="scene">
   <div id="view">
@@ -110,7 +142,7 @@
     <!-- distant ridge -->
     <div class="strip" id="sRidge">
       <svg viewBox="0 0 2400 200" preserveAspectRatio="none">
-        <g id="ridge" fill="#a9a9b6">
+        <g id="ridge" fill="#0a1221">
           <polygon points="0,140 85,96 165,130 275,60 360,118 455,88 570,134 690,70 795,124 900,100 1020,138 1115,108 1200,140 1200,200 0,200"/>
         </g>
         <use href="#ridge" x="1200"/>
@@ -121,8 +153,8 @@
     <div class="strip" id="sDeck">
       <svg viewBox="0 0 2400 300" preserveAspectRatio="none">
         <g id="deck">
-          <polygon fill="#e2e2ea" points="0,120 90,98 175,126 300,72 395,104 470,88 590,130 700,96 810,120 900,76 1010,112 1105,94 1200,120 1200,300 0,300"/>
-          <polygon fill="#ffffff" points="0,172 110,150 205,178 320,138 430,166 545,142 660,180 775,152 880,176 985,146 1100,170 1200,172 1200,300 0,300"/>
+          <polygon fill="#1c2c48" points="0,120 90,98 175,126 300,72 395,104 470,88 590,130 700,96 810,120 900,76 1010,112 1105,94 1200,120 1200,300 0,300"/>
+          <polygon fill="#2a3f63" points="0,172 110,150 205,178 320,138 430,166 545,142 660,180 775,152 880,176 985,146 1100,170 1200,172 1200,300 0,300"/>
         </g>
         <use href="#deck" x="1200"/>
       </svg>
@@ -131,7 +163,7 @@
     <!-- near wisps streaking past the glass -->
     <div class="strip" id="sNear">
       <svg viewBox="0 0 2400 260" preserveAspectRatio="none">
-        <g id="near" fill="#ffffff">
+        <g id="near" fill="#33456a">
           <polygon points="30,150 240,118 420,140 260,164"/>
           <polygon points="560,70 780,46 900,68 700,92"/>
           <polygon points="950,190 1150,164 1190,178 1030,206"/>
@@ -327,6 +359,13 @@ function fadeIn(){
 widget.bind(SC.Widget.Events.READY, () => {
   widget.setVolume(0);
   startPlayback();
+  /* learn how long the playlist really is so the next visit can draw from
+     all of it — asked once playback is under way, so it costs nothing */
+  widget.getSounds(list => {
+    if (list && list.length) {
+      try { localStorage.setItem('odile.radio.tracks', list.length); } catch(e){}
+    }
+  });
 });
 widget.bind(SC.Widget.Events.PLAY,   () => { started = true; fadeIn(); });
 widget.bind(SC.Widget.Events.FINISH, () => { widget.next(); setTimeout(startPlayback, 200); });
