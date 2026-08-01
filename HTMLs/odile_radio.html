@@ -10,7 +10,7 @@
   body {
     background:#6b6b6d; cursor:none;
     font-family:-apple-system,'Helvetica Neue',sans-serif; font-weight:300; font-size:12.5px;
-    animation:fadeIn 1.4s ease both;
+    animation:fadeIn 1.2s ease both;
   }
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
@@ -27,85 +27,32 @@
     will-change:transform;
   }
 
-  /* ── outside the window: parallax sky, land and clouds ── */
+  /* ── outside the window ──
+     Everything out here is flat polygons moved with transform only: no
+     filters, no background-position, nothing that forces a repaint per
+     frame. Each strip is two viewport-wide copies of one tile, so sliding
+     it by exactly half its width loops seamlessly. */
   #view{
     position:absolute;inset:-3%;
+    overflow:hidden;
     background:linear-gradient(180deg,
-      #fcfcfd 0%, #f4f4f7 26%, #e9e9ef 46%,
-      #dedee5 62%, #d2d2db 78%, #c6c6d0 100%);
+      #fcfcfd 0%, #f3f3f7 30%, #e8e8ef 54%, #dcdce5 76%, #d0d0db 100%);
     will-change:transform;
   }
-  .layer{
-    position:absolute;inset:0;
-    background-repeat:repeat-x;
-    will-change:background-position;
+  .strip{
+    position:absolute;left:0;width:200%;
+    will-change:transform;
+  }
+  .strip svg{width:100%;height:100%;display:block;}
+  @keyframes drift{
+    from{transform:translate3d(-50%,0,0);}
+    to  {transform:translate3d(0,0,0);}
   }
 
-  /* distant terrain far below the cloud deck — slowest, so it barely creeps */
-  #land{
-    top:auto;bottom:0;height:30%;
-    background-image:
-      radial-gradient(52% 120% at 9%  142%, rgba(108,108,124,.62), rgba(108,108,124,0) 68%),
-      radial-gradient(40% 96%  at 26% 150%, rgba(96,96,112,.58),   rgba(96,96,112,0) 66%),
-      radial-gradient(62% 132% at 47% 146%, rgba(116,116,132,.55), rgba(116,116,132,0) 70%),
-      radial-gradient(34% 88%  at 66% 154%, rgba(100,100,116,.52), rgba(100,100,116,0) 66%),
-      radial-gradient(54% 118% at 86% 144%, rgba(110,110,126,.56), rgba(110,110,126,0) 68%);
-    background-size:2400px 100%;
-    animation:driftLand 240s linear infinite;
-    filter:blur(2px);
-    opacity:.5;
-  }
-  @keyframes driftLand{to{background-position-x:2400px;}}
-
-  /* the cloud deck the plane rides above: grey shadowed bellies under
-     white crowns, so the mass reads as volume rather than a flat wash */
-  #cloudsFar{
-    top:34%;
-    background-image:
-      radial-gradient(170px 40px at 7%  56%, rgba(255,255,255,1),   rgba(255,255,255,0) 70%),
-      radial-gradient(190px 44px at 7%  70%, rgba(150,150,168,.34), rgba(150,150,168,0) 72%),
-      radial-gradient(115px 30px at 16% 66%, rgba(255,255,255,.96), rgba(255,255,255,0) 68%),
-      radial-gradient(225px 50px at 30% 52%, rgba(255,255,255,1),   rgba(255,255,255,0) 72%),
-      radial-gradient(245px 54px at 30% 67%, rgba(146,146,164,.32), rgba(146,146,164,0) 74%),
-      radial-gradient(145px 34px at 44% 70%, rgba(255,255,255,.94), rgba(255,255,255,0) 68%),
-      radial-gradient(160px 38px at 44% 82%, rgba(150,150,168,.26), rgba(150,150,168,0) 72%),
-      radial-gradient(195px 46px at 58% 58%, rgba(255,255,255,1),   rgba(255,255,255,0) 71%),
-      radial-gradient(215px 50px at 58% 72%, rgba(148,148,166,.3),  rgba(148,148,166,0) 74%),
-      radial-gradient(125px 32px at 72% 74%, rgba(255,255,255,.95), rgba(255,255,255,0) 68%),
-      radial-gradient(205px 48px at 85% 55%, rgba(255,255,255,1),   rgba(255,255,255,0) 71%),
-      radial-gradient(225px 52px at 85% 69%, rgba(146,146,164,.3),  rgba(146,146,164,0) 74%),
-      radial-gradient(135px 36px at 96% 68%, rgba(255,255,255,.94), rgba(255,255,255,0) 68%),
-      /* solid bed underneath, so the puffs crest a continuous sea of cloud */
-      linear-gradient(180deg,
-        rgba(255,255,255,0) 54%, rgba(255,255,255,.55) 66%,
-        rgba(255,255,255,.88) 78%, rgba(255,255,255,.96) 100%);
-    background-size:1700px 100%;
-    animation:driftFar 96s linear infinite;
-    filter:blur(3px);
-  }
-  @keyframes driftFar{to{background-position-x:1700px;}}
-
-  /* near wisps streaking past the glass — fastest, softest */
-  #cloudsNear{
-    top:20%;height:70%;
-    background-image:
-      radial-gradient(300px 40px at 10% 34%, rgba(255,255,255,.55), rgba(255,255,255,0) 76%),
-      radial-gradient(220px 30px at 34% 61%, rgba(255,255,255,.45), rgba(255,255,255,0) 74%),
-      radial-gradient(340px 46px at 61% 28%, rgba(255,255,255,.5),  rgba(255,255,255,0) 76%),
-      radial-gradient(260px 34px at 85% 68%, rgba(255,255,255,.42), rgba(255,255,255,0) 74%);
-    background-size:1050px 100%;
-    animation:driftNear 34s linear infinite;
-    filter:blur(7px);
-    opacity:.8;
-  }
-  @keyframes driftNear{to{background-position-x:1050px;}}
-
-  /* haze where sky meets the cloud deck, so nothing ends on a hard edge */
-  #haze{
-    position:absolute;left:0;right:0;top:30%;height:40%;
-    background:linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.5) 45%, rgba(255,255,255,0));
-    filter:blur(10px);
-  }
+  /* distance sets the pace: the ridge barely creeps, the near wisps race */
+  #sRidge{bottom:24%;height:14%;animation:drift 210s linear infinite;opacity:.55;}
+  #sDeck {bottom:0;  height:40%;animation:drift  84s linear infinite;}
+  #sNear {top:24%;   height:24%;animation:drift  27s linear infinite;opacity:.55;}
 
   /* ── the cabin: PNG with a transparent window, laid over the view ── */
   #frame{
@@ -113,7 +60,6 @@
     width:100%;height:100%;
     object-fit:cover;
     display:block;
-    will-change:transform;
   }
 
   /* back to hub */
@@ -134,9 +80,8 @@
     #cur{display:none;}
     *,*::before,*::after{cursor:auto!important;}
   }
-  /* respect users who don't want motion: hold the view still */
   @media (prefers-reduced-motion:reduce){
-    .layer{animation:none;}
+    .strip{animation:none;transform:translate3d(-50%,0,0);}
   }
 </style>
 </head>
@@ -153,10 +98,40 @@
 
 <div id="scene">
   <div id="view">
-    <div class="layer" id="cloudsFar"></div>
-    <div class="layer" id="land"></div>
-    <div id="haze"></div>
-    <div class="layer" id="cloudsNear"></div>
+
+    <!-- distant ridge -->
+    <div class="strip" id="sRidge">
+      <svg viewBox="0 0 2400 200" preserveAspectRatio="none">
+        <g id="ridge" fill="#a9a9b6">
+          <polygon points="0,140 85,96 165,130 275,60 360,118 455,88 570,134 690,70 795,124 900,100 1020,138 1115,108 1200,140 1200,200 0,200"/>
+        </g>
+        <use href="#ridge" x="1200"/>
+      </svg>
+    </div>
+
+    <!-- the cloud deck the plane rides above -->
+    <div class="strip" id="sDeck">
+      <svg viewBox="0 0 2400 300" preserveAspectRatio="none">
+        <g id="deck">
+          <polygon fill="#e2e2ea" points="0,120 90,98 175,126 300,72 395,104 470,88 590,130 700,96 810,120 900,76 1010,112 1105,94 1200,120 1200,300 0,300"/>
+          <polygon fill="#ffffff" points="0,172 110,150 205,178 320,138 430,166 545,142 660,180 775,152 880,176 985,146 1100,170 1200,172 1200,300 0,300"/>
+        </g>
+        <use href="#deck" x="1200"/>
+      </svg>
+    </div>
+
+    <!-- near wisps streaking past the glass -->
+    <div class="strip" id="sNear">
+      <svg viewBox="0 0 2400 260" preserveAspectRatio="none">
+        <g id="near" fill="#ffffff">
+          <polygon points="30,150 240,118 420,140 260,164"/>
+          <polygon points="560,70 780,46 900,68 700,92"/>
+          <polygon points="950,190 1150,164 1190,178 1030,206"/>
+        </g>
+        <use href="#near" x="1200"/>
+      </svg>
+    </div>
+
   </div>
   <img id="frame" src="plane-window.png" alt="">
 </div>
@@ -198,31 +173,32 @@ document.getElementById('homeBtn').addEventListener('click', e => {
     const y = (Math.cos(t*0.89+0.5)*1.9 + Math.sin(t*2.31+0.7)*0.7 + Math.cos(t*4.13)*0.26) * env;
     const r = (Math.sin(t*0.47)*0.15 + Math.sin(t*1.71+0.9)*0.055) * env;
     scene.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) rotate(${r.toFixed(3)}deg) scale(1.012)`;
-    /* the view lags the frame a touch — parallax between glass and world */
+    /* the view lags the glass a touch — parallax between window and world */
     view.style.transform  = `translate3d(${(-x*0.42).toFixed(2)}px,${(-y*0.5).toFixed(2)}px,0)`;
     requestAnimationFrame(shake);
   })(t0);
 })();
 
 /* ══════════════════════════════════════════════════════
-   SOUND — music and cabin ambience, both swelling in
+   SOUND — music up front, cabin ambience underneath
 ══════════════════════════════════════════════════════ */
-const FADE_MS = 5000;
+const MUSIC_FADE = 1800;   /* short: the music has to be audible at once */
+const AMB_FADE   = 4000;   /* the room tone can take its time */
 
 /* ── cabin ambience: two elements crossfaded so the loop has no seam ── */
-const AMB_URL  = 'plane-cabin.m4a';
-const AMB_VOL  = 0.42;   /* sits under the music */
-const XFADE    = 4;      /* seconds of overlap at the seam */
+const AMB_URL = 'plane-cabin.m4a';
+const AMB_VOL = 0.42;      /* sits under the music */
+const XFADE   = 4;         /* seconds of overlap at the seam */
 const beds = [new Audio(AMB_URL), new Audio(AMB_URL)];
 beds.forEach(a => { a.preload = 'auto'; a.volume = 0; });
-let bed = 0, ambGain = 0, ambPrev = 0;
+let bed = 0, ambGain = 0, ambPrev = performance.now();
 
 function playBeds(){ beds[bed].play().catch(()=>{}); }
 
 function tickAmbience(now){
-  /* same quadratic swell as the music, advanced by frame delta so a
-     backgrounded tab resumes smoothly instead of snapping to full */
-  ambGain = Math.min(ambGain + Math.min(now - ambPrev, 100) / FADE_MS, 1);
+  /* advanced by frame delta so a backgrounded tab resumes the swell
+     smoothly instead of snapping to full volume when focused */
+  ambGain = Math.min(ambGain + Math.min(now - ambPrev, 100) / AMB_FADE, 1);
   ambPrev = now;
   const base = ambGain * ambGain * AMB_VOL;
 
@@ -241,7 +217,11 @@ function tickAmbience(now){
   requestAnimationFrame(tickAmbience);
 }
 
-/* ── SoundCloud playlist: random start, endless, fading up on load ── */
+/* ── SoundCloud playlist ──
+   The iframe already carries auto_play, so the deck is rolling by the time
+   the API binds; we only take the volume down to zero and ride it back up.
+   Nothing is skipped or re-cued first — that reload was what delayed the
+   first note. */
 const widget = SC.Widget(document.getElementById('sc-widget'));
 let started = false, fading = false;
 
@@ -252,26 +232,36 @@ function fadeIn(){
   fading = true;
   let prev = performance.now(), t = 0;
   (function ramp(now){
-    t = Math.min(t + Math.min(now - prev, 100) / FADE_MS, 1);
+    t = Math.min(t + Math.min(now - prev, 100) / MUSIC_FADE, 1);
     prev = now;
-    widget.setVolume(Math.round(t * t * 100));
+    /* near-linear: a quadratic curve would keep the opening seconds
+       inaudible, which reads as the music failing to start */
+    widget.setVolume(Math.round(Math.pow(t, 1.25) * 100));
     if (t < 1) requestAnimationFrame(ramp);
   })(prev);
 }
 
 widget.bind(SC.Widget.Events.READY, () => {
   widget.setVolume(0);
-  widget.getSounds(sounds => {
-    if (sounds && sounds.length > 1) widget.skip(Math.floor(Math.random()*sounds.length));
-    setTimeout(startPlayback, 150);
-  });
+  startPlayback();
 });
 widget.bind(SC.Widget.Events.PLAY,   () => { started = true; fadeIn(); });
 widget.bind(SC.Widget.Events.FINISH, () => { widget.next(); setTimeout(startPlayback, 200); });
 
-/* everything starts on its own; the listener is only a safety net for
+/* keep nudging for a few seconds: the widget may not have been ready on the
+   first call, and some browsers only release audio once the tab is focused */
+let tries = 0;
+const nudge = setInterval(() => {
+  if (started || ++tries > 20) return clearInterval(nudge);
+  startPlayback();
+}, 400);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !started) startPlayback();
+});
+
+/* everything starts on its own; these listeners are only a safety net for
    browsers that refuse unprompted autoplay — nothing is asked of the visitor */
-ambPrev = performance.now();
 playBeds();
 requestAnimationFrame(tickAmbience);
 
