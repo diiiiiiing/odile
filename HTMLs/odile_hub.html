@@ -108,83 +108,27 @@ body.h1 .url,
 body.h2 .url { color: rgba(43,153,204,0.9); }
 body.h3 .url { color: rgba(255,213,248,0.9); }
 
-/* ── Pink laser cursor ── */
+/* ── Cursor — jet silhouette, nose sitting on the hotspot ── */
 @media (hover: hover) {
   body, body * { cursor: none !important; }
 }
-#laser {
-  position: fixed; inset: 0; z-index: 990;
-  pointer-events: none;
+#cur {
+  position: fixed; left: 0; top: 0; width: 20px; height: 20px;
+  z-index: 990; pointer-events: none;
   opacity: 0; transition: opacity .35s ease;
+  will-change: transform;
+  /* the artwork's nose is at 0,0 of its viewBox, so the element's own
+     top-left corner is the hotspot — no centring offset */
+  -webkit-mask: url('cursor.svg') no-repeat 0 0 / 100% 100%;
+          mask: url('cursor.svg') no-repeat 0 0 / 100% 100%;
+  /* plain white would vanish over the white silhouettes; difference keeps
+     it readable on the grey ground and on the figures alike */
+  background: #fff;
+  mix-blend-mode: difference;
 }
-#laser.on { opacity: 1; }
-.lz-beam { position: absolute; will-change: transform, opacity, filter; }
-/* beams — layered gradients, no box-shadow so the ends can truly
-   dissolve: core + glows are ellipses that fade out before the edges.
-   Colorless: pure white light, hairline core */
-.lz-h {
-  left: 0; right: 0; top: -5px; height: 10px;
-  background:
-    linear-gradient(90deg,
-      rgba(255,255,255,0) 0%, rgba(255,255,255,.1) 7%,
-      rgba(255,255,255,.34) 16%, rgba(255,255,255,.16) 26%,
-      rgba(255,255,255,.36) 37%, rgba(255,255,255,.2) 45%,
-      rgba(255,255,255,.46) 50%, rgba(255,255,255,.22) 56%,
-      rgba(255,255,255,.38) 66%, rgba(255,255,255,.16) 76%,
-      rgba(255,255,255,.32) 86%, rgba(255,255,255,.1) 94%,
-      rgba(255,255,255,0) 100%) 50% 50% / 100% 1px no-repeat,
-    radial-gradient(48% .8px at 50% 50%, rgba(255,255,255,.75), rgba(255,255,255,.35) 55%, rgba(255,255,255,0) 100%),
-    radial-gradient(50% 2.5px at 50% 50%, rgba(255,255,255,.16), rgba(255,255,255,0) 100%),
-    radial-gradient(52% 5px at 50% 50%, rgba(255,255,255,.07), rgba(255,255,255,0) 100%);
-}
-.lz-v {
-  top: 0; bottom: 0; left: -5px; width: 10px;
-  background:
-    linear-gradient(180deg,
-      rgba(255,255,255,0) 0%, rgba(255,255,255,.1) 7%,
-      rgba(255,255,255,.34) 16%, rgba(255,255,255,.16) 26%,
-      rgba(255,255,255,.36) 37%, rgba(255,255,255,.2) 45%,
-      rgba(255,255,255,.46) 50%, rgba(255,255,255,.22) 56%,
-      rgba(255,255,255,.38) 66%, rgba(255,255,255,.16) 76%,
-      rgba(255,255,255,.32) 86%, rgba(255,255,255,.1) 94%,
-      rgba(255,255,255,0) 100%) 50% 50% / 1px 100% no-repeat,
-    radial-gradient(.8px 48% at 50% 50%, rgba(255,255,255,.75), rgba(255,255,255,.35) 55%, rgba(255,255,255,0) 100%),
-    radial-gradient(2.5px 50% at 50% 50%, rgba(255,255,255,.16), rgba(255,255,255,0) 100%),
-    radial-gradient(5px 52% at 50% 50%, rgba(255,255,255,.07), rgba(255,255,255,0) 100%);
-}
-.lz-core {
-  position: absolute; left: -40px; top: -40px; width: 80px; height: 80px;
-  will-change: transform, opacity;
-  background:
-    radial-gradient(2.2px 2.2px at 50% 50%, rgba(255,255,255,.9), rgba(255,255,255,.6) 60%, rgba(255,255,255,0) 100%),
-    radial-gradient(13px 1px at 50% 50%, rgba(255,255,255,.38), rgba(255,255,255,.15) 45%, rgba(255,255,255,0) 75%),
-    radial-gradient(1px 13px at 50% 50%, rgba(255,255,255,.38), rgba(255,255,255,.15) 45%, rgba(255,255,255,0) 75%),
-    radial-gradient(9px 9px at 50% 50%, rgba(255,255,255,.14), rgba(255,255,255,.05) 55%, rgba(255,255,255,0) 80%),
-    radial-gradient(24px 24px at 50% 50%, rgba(255,255,255,.05), rgba(255,255,255,0) 100%);
-}
-/* refraction ghost — pale smudge that appears during deformations */
-.lz-ghost {
-  position: absolute; left: -16px; top: -12px; width: 32px; height: 24px;
-  will-change: transform, opacity; opacity: 0;
-  filter: blur(2.2px);
-  background:
-    radial-gradient(12px 8px at 62% 42%, rgba(255,255,255,.3), rgba(255,255,255,.16) 55%, rgba(255,255,255,0) 78%),
-    radial-gradient(closest-side, rgba(255,255,255,.2), rgba(255,255,255,.09) 62%, rgba(255,255,255,0) 100%);
-  border-radius: 46% 54% 58% 42% / 52% 44% 56% 48%;
-  animation: lzMorph 2.8s ease-in-out infinite alternate;
-}
-@keyframes lzMorph {
-  from { border-radius: 46% 54% 58% 42% / 52% 44% 56% 48%; }
-  to   { border-radius: 58% 42% 46% 54% / 44% 58% 46% 56%; }
-}
-/* specular glints — lit where the beams cross the silhouettes */
-.lz-spark {
-  position: absolute; left: -3px; top: -3px; width: 6px; height: 6px;
-  will-change: transform, opacity; opacity: 0;
-  filter: blur(.6px);
-  background: radial-gradient(circle closest-side, rgba(255,255,255,.95), rgba(255,255,255,.5) 32%, rgba(255,255,255,.2) 60%, rgba(255,255,255,0) 100%);
-}
-@media (hover: none) { #laser { display: none; } }
+#cur.on { opacity: 1; }
+@media (hover: none) { #cur { display: none; } }
+
 
 /* ── MOBILE — stack silhouettes top to bottom ── */
 @media (max-width: 700px) {
@@ -258,13 +202,8 @@ body { animation: hubFadeIn 0.7s ease both; }
 <div id="loader"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 
-<!-- Pink laser cursor -->
-<div id="laser" aria-hidden="true">
-  <div class="lz-beam lz-h"></div>
-  <div class="lz-beam lz-v"></div>
-  <div class="lz-ghost"></div>
-  <div class="lz-core"></div>
-</div>
+<!-- Cursor -->
+<div id="cur" aria-hidden="true"></div>
 
 <!-- Iridescent bg (JS driven) -->
 <div class="bg-iri" id="iri"></div>
@@ -690,112 +629,24 @@ document.addEventListener('touchend', e => {
   requestAnimationFrame(tick);
 })();
 
-/* ── Pink laser cursor — crosshair with flicker, bends + refraction ghost ── */
+/* ── Cursor — the jet follows the pointer, nose on the hotspot ── */
 (function(){
-  const laser=document.getElementById('laser');
-  if(!laser||matchMedia('(hover: none)').matches)return;
-  const bh=laser.querySelector('.lz-h'), bv=laser.querySelector('.lz-v');
-  const core=laser.querySelector('.lz-core'), ghost=laser.querySelector('.lz-ghost');
-  let tx=innerWidth/2, ty=innerHeight/2;   /* mouse target */
-  let vx=tx, hy=ty;                        /* beam positions — lag behind on purpose */
-  let ptx=tx, pty=ty, vel=0, wr=0, wr2=0;  /* speed + roaming wobble */
-  let fl=1, flT=1, nextFl=0;
-  let surge=0, surgeT=0, nextSurge=performance.now()+1400+Math.random()*2200;
-  let bendH=0, bendV=0, gx=26, gy=14;
-
-  /* glint pool — specular reflections where beams hit the silhouettes */
-  const SPARKS=12, sparks=[];
-  for(let i=0;i<SPARKS;i++){
-    const s=document.createElement('div');
-    s.className='lz-spark';
-    laser.appendChild(s);
-    sparks.push(s);
-  }
-  let rects=[], nextRects=0;
-  function refreshRects(){
-    rects=[];
-    if(document.getElementById('loader'))return; /* content hidden behind loader */
-    document.querySelectorAll('.fig svg, .logo-face svg').forEach(el=>{
-      const r=el.getBoundingClientRect();
-      if(r.width>4&&r.height>4)rects.push({
-        l:r.left,t:r.top,r:r.right,b:r.bottom,
-        cx:r.left+r.width/2,cy:r.top+r.height/2,
-        hw:r.width/2,hh:r.height/2
-      });
-    });
-  }
-
+  const cur=document.getElementById('cur');
+  if(!cur||matchMedia('(hover: none)').matches)return;
+  let x=0,y=0,queued=false;
   document.addEventListener('mousemove', e=>{
-    tx=e.clientX; ty=e.clientY;
-    laser.classList.add('on');
-  });
-  document.documentElement.addEventListener('mouseleave', ()=>laser.classList.remove('on'));
-
-  (function frame(t){
-    /* deformation events: beams bend, ghost blob appears */
-    if(t>nextSurge){
-      surgeT=.5+Math.random()*.4;
-      bendH=Math.random()*.6-.3; bendV=Math.random()*.6-.3;
-      gx=(12+Math.random()*30)*(Math.random()<.5?-1:1);
-      gy=(7+Math.random()*20)*(Math.random()<.5?-1:1);
-      setTimeout(()=>{surgeT=0;},450+Math.random()*950);
-      nextSurge=t+2200+Math.random()*4800;
-    }
-    surge+=(surgeT-surge)*.09;
-    /* laser speckle flicker — smoothed random intensity */
-    if(t>nextFl){flT=.62+Math.random()*.26;nextFl=t+45+Math.random()*95;}
-    fl+=(flT-fl)*.4;
-
-    /* imperfect tracking — each beam lags with its own ease, so the
-       cross drifts apart on fast moves and settles back; speed also
-       feeds a wandering wobble + motion smear */
-    hy+=(ty-hy)*.13;
-    vx+=(tx-vx)*.2;
-    vel+=((Math.abs(tx-ptx)+Math.abs(ty-pty))-vel)*.18; ptx=tx; pty=ty;
-    const wob=Math.min(vel*.012,1);
-    wr+=((Math.random()*2-1)*wob-wr)*.12;
-    wr2+=((Math.random()*2-1)*wob-wr2)*.12;
-
-    const dim=1-wob*.3;
-    const soft=`blur(${(.25+wob*.35).toFixed(2)}px) brightness(${(1+surge*.3).toFixed(3)})`;
-    bh.style.transformOrigin=vx.toFixed(1)+'px 50%';
-    bh.style.transform=`translate3d(0,${hy.toFixed(1)}px,0) rotate(${(bendH*surge+wr*.45).toFixed(3)}deg) scaleY(${(1+surge*.4+wob*.35).toFixed(3)})`;
-    bh.style.opacity=(fl*dim).toFixed(3); bh.style.filter=soft;
-    bv.style.transformOrigin='50% '+hy.toFixed(1)+'px';
-    bv.style.transform=`translate3d(${vx.toFixed(1)}px,0,0) rotate(${(bendV*surge+wr2*.45).toFixed(3)}deg) scaleX(${(1+surge*.4+wob*.35).toFixed(3)})`;
-    bv.style.opacity=(fl*dim).toFixed(3); bv.style.filter=soft;
-    core.style.transform=`translate3d(${vx.toFixed(1)}px,${hy.toFixed(1)}px,0) scale(${(1+surge*.18-wob*.12).toFixed(3)})`;
-    core.style.opacity=((.55+fl*.3)*dim).toFixed(3);
-    ghost.style.transform=`translate3d(${(vx+gx).toFixed(1)}px,${(hy+gy).toFixed(1)}px,0) rotate(${(gx*.8).toFixed(1)}deg)`;
-    ghost.style.opacity=(surge*.65).toFixed(3);
-
-    /* glints — where a beam crosses a silhouette, a streak lights up.
-       Intensity peaks at the object's centre, slides across it as the
-       beam sweeps, breathes per-object and follows beam flicker */
-    if(t>nextRects){refreshRects();nextRects=t+700;}
-    let si=0;
-    const glint=(x,y,inten,alongX)=>{
-      if(si>=SPARKS||inten<=.03)return;
-      const s=sparks[si++];
-      const a=.4+Math.min(inten,1.2)*.9, b=a*2.4;
-      s.style.transform=`translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0) scale(${(alongX?b:a).toFixed(2)},${(alongX?a:b).toFixed(2)})`;
-      s.style.opacity=(Math.min(inten,1)*.8*fl).toFixed(3);
-    };
-    for(let i=0;i<rects.length;i++){
-      const r=rects[i];
-      const sh=.85+Math.sin(t*.005+i*2.1)*.15;
-      if(hy>r.t&&hy<r.b){
-        const k=Math.pow(1-Math.abs(hy-r.cy)/r.hh,1.4)*sh*(1+surge*.6);
-        glint(r.cx+(hy-r.cy)*.25, hy, k, true);
-      }
-      if(vx>r.l&&vx<r.r){
-        const k=Math.pow(1-Math.abs(vx-r.cx)/r.hw,1.4)*sh*(1+surge*.6);
-        glint(vx, r.cy+(vx-r.cx)*.25, k, false);
-      }
-    }
-    for(let i=si;i<SPARKS;i++)sparks[i].style.opacity=0;
-    requestAnimationFrame(frame);
-  })(performance.now());
+    x=e.clientX; y=e.clientY;
+    cur.classList.add('on');
+    /* pointer events can outpace the display; fold a burst of them into
+       one write per frame rather than restyling on every event */
+    if(queued)return;
+    queued=true;
+    requestAnimationFrame(()=>{
+      queued=false;
+      cur.style.transform=`translate3d(${x}px,${y}px,0)`;
+    });
+  }, { passive:true });
+  document.documentElement.addEventListener('mouseleave', ()=>cur.classList.remove('on'));
 })();
 
 /* ── Loader — same as work4 ── */
