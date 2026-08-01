@@ -14,7 +14,6 @@
   }
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
-  #iri{position:fixed;inset:0;z-index:0;pointer-events:none;background-color:#b8b8bc;}
   #cur{position:fixed;width:5px;height:5px;background:#FFD5F8;
     box-shadow:0 0 5px 0px #FFD5F866;
     pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
@@ -22,58 +21,30 @@
     opacity:0;pointer-events:none;transition:opacity .7s ease;}
   #overlay.on{opacity:1;pointer-events:auto;}
 
-  #c{position:fixed;inset:0;z-index:1;width:100%;height:100%;}
-
-  /* play zone — invisible click area at center */
-  #play-area{
-    position:fixed;z-index:3;border-radius:50%;cursor:none;
+  /* full-screen placeholder */
+  #placeholder{
+    position:fixed;inset:0;z-index:1;
+    background:rgba(255,255,255,0.14);
+    display:flex;align-items:center;justify-content:center;
+    color:rgba(255,255,255,0.4);
+    letter-spacing:.18em;text-transform:uppercase;
+    user-select:none;
   }
 
-  /* track info */
-  #track-info{
-    position:fixed;bottom:38px;left:50%;transform:translateX(-50%);
-    text-align:center;z-index:3;pointer-events:none;
-    display:flex;flex-direction:column;gap:3px;
-  }
-  #track-title{color:rgba(255,255,255,0.72);font-size:12.5px;letter-spacing:.06em;white-space:nowrap;}
-  #track-artist{color:rgba(255,255,255,0.38);font-size:12px;letter-spacing:.06em;}
-
-  /* skip — pill button, same aspect as the rest of the site */
-  #skip-btn{
-    margin-top:8px;
-    padding:6px 16px;border:1px solid rgba(255,255,255,0.28);border-radius:14px;
-    background:none;color:rgba(255,255,255,0.55);
-    font-family:-apple-system,'Helvetica Neue',sans-serif;font-weight:300;font-size:12.5px;
-    letter-spacing:.06em;cursor:none;user-select:none;
-    pointer-events:auto;transition:color .15s,border-color .15s;
-  }
-  #skip-btn:hover{color:#fff;border-color:rgba(255,255,255,0.72);}
-
-  /* start hint */
-  #start-hint{
-    position:fixed;top:50%;left:50%;
-    transform:translate(-50%, 56px);
-    z-index:5;pointer-events:none;
-    color:rgba(255,255,255,0.28);
-    font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;
-    transition:opacity .6s ease;
-  }
-  #start-hint.hidden{opacity:0;}
-
-  /* home */
+  /* back to hub */
   #topNav{
     position:fixed;top:0;left:0;right:0;height:50px;
-    padding:0 28px;display:flex;align-items:center;z-index:400;
-    font-size:12.5px;
+    padding:0 20px;display:flex;align-items:center;
+    z-index:400;
   }
   #homeBtn{
-    color:rgba(255,255,255,0.38);text-decoration:none;cursor:none;transition:color .2s;
+    color:rgba(255,255,255,0.55);text-decoration:none;cursor:none;
+    transition:color .4s ease;
   }
-  #homeBtn:hover{color:rgba(255,255,255,0.80);}
-  #navSep{color:rgba(255,255,255,0.28);margin:0 2px;}
-  #navSection{color:rgba(255,255,255,0.62);}
+  #homeBtn:hover{color:rgba(255,255,255,0.9);}
+  #navSep{color:rgba(255,255,255,0.3);margin:0 2px;}
+  #navSection{color:rgba(255,255,255,0.7);}
 
-  /* no custom cursor on touch devices */
   @media (hover:none){
     #cur{display:none;}
     *,*::before,*::after{cursor:auto!important;}
@@ -81,25 +52,18 @@
 </style>
 </head>
 <body>
-<div id="iri"></div>
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 <div id="cur"></div>
-<div id="start-hint">click to play</div>
 
-<!-- SoundCloud hidden widget -->
+<!-- SoundCloud — invisible, autoplaying, no controls exposed -->
 <iframe id="sc-widget"
   src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/user-322526836/sets/heavens-gate&auto_play=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false"
   style="position:absolute;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;"
-  allow="autoplay"></iframe>
+  allow="autoplay" tabindex="-1" aria-hidden="true"></iframe>
 
-<canvas id="c"></canvas>
-<div id="play-area"></div>
-<div id="track-info">
-  <div id="track-title">heaven's gate</div>
-  <div id="track-artist"></div>
-  <div id="skip-btn">skip</div>
-</div>
+<div id="placeholder">placeholder</div>
+
 <nav id="topNav">
   <a id="homeBtn" href="odile_hub.html">odile.xyz</a><span id="navSep"> / </span><span id="navSection">radio</span>
 </nav>
@@ -112,214 +76,38 @@ document.addEventListener('mousemove', e => {
   cur.style.left = e.clientX+'px'; cur.style.top = e.clientY+'px';
 });
 
-/* home */
+/* back to hub */
 document.getElementById('homeBtn').addEventListener('click', e => {
   e.preventDefault();
   document.getElementById('overlay').classList.add('on');
   setTimeout(() => window.location.href = 'odile_hub.html', 700);
 });
 
-/* iridescent bg — identical to hub */
-let mx=.5, my=.5;
-const iri = document.getElementById('iri');
-const blobs   = [{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
-const bbase   = [{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
-const blobDef = [
-  {ax:.38, ay:.30,  ease:.05,  color:'220,180,60',  op:.70, ex:90, ey:70},
-  {ax:-.42,ay:.34,  ease:.04,  color:'200,160,210', op:.50, ex:70, ey:60},
-  {ax:.36, ay:-.38, ease:.045, color:'160,210,200', op:.40, ex:60, ey:50},
-  {ax:.18, ay:.16,  ease:.03,  color:'210,200,190', op:.30, ex:80, ey:80},
-];
-document.addEventListener('mousemove', e => { mx=e.clientX/innerWidth; my=e.clientY/innerHeight; });
-(function blobTick() {
-  let g='';
-  blobs.forEach((b,i) => {
-    const d=blobDef[i];
-    b.x+=(bbase[i].x+(mx-.5)*d.ax*100-b.x)*d.ease;
-    b.y+=(bbase[i].y+(my-.5)*d.ay*100-b.y)*d.ease;
-    g+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;
-  });
-  iri.style.backgroundImage=g.slice(0,-1);
-  requestAnimationFrame(blobTick);
-})();
-
-/* ── SoundCloud Widget ── */
+/* ── SoundCloud — background playback only ──
+   Starts on a random track and loops the playlist forever. Browsers block
+   autoplay with sound until the page has been interacted with, so retry the
+   play call on the first gesture. */
 const widget = SC.Widget(document.getElementById('sc-widget'));
-let playing  = false;
-let progress = 0;
-let duration = 0;
+let started = false;
 
-const hint = document.getElementById('start-hint');
-let ready = false;
-
-let firstPlay = true;
+function startPlayback(){
+  widget.play();
+}
 
 widget.bind(SC.Widget.Events.READY, () => {
-  ready = true;
-  hint.classList.add('hidden');
   widget.getSounds(sounds => {
-    const n = sounds?.length || 1;
-    const i = Math.floor(Math.random() * n);
-    widget.skip(i);
-    setTimeout(() => widget.play(), 150);
+    if (sounds && sounds.length > 1) widget.skip(Math.floor(Math.random()*sounds.length));
+    setTimeout(startPlayback, 150);
   });
 });
 
-widget.bind(SC.Widget.Events.PLAY, () => {
-  playing = true;
-  hint.classList.add('hidden');
-  widget.getCurrentSound(s => {
-    document.getElementById('track-title').textContent  = s?.title          || '—';
-    document.getElementById('track-artist').textContent = s?.user?.username || '';
-  });
-  widget.getDuration(d => {
-    duration = d;
-    // seek to 20s on the very first play only
-    if (firstPlay) {
-      firstPlay = false;
-      widget.seekTo(20000);
-    }
-  });
+widget.bind(SC.Widget.Events.PLAY,   () => { started = true; });
+/* keep the playlist rolling when the last track ends */
+widget.bind(SC.Widget.Events.FINISH, () => { widget.next(); setTimeout(startPlayback, 200); });
+
+['pointerdown','keydown','touchstart'].forEach(ev => {
+  document.addEventListener(ev, () => { if (!started) startPlayback(); }, { passive:true });
 });
-widget.bind(SC.Widget.Events.PAUSE,  () => { playing = false; });
-widget.bind(SC.Widget.Events.FINISH, () => { playing = false; progress = 0; });
-widget.bind(SC.Widget.Events.PLAY_PROGRESS, data => {
-  if (duration > 0) progress = data.currentPosition / duration;
-});
-
-/* controls */
-document.getElementById('play-area').addEventListener('click', () => {
-  if (playing) {
-    widget.pause();
-    playing = false;
-  } else {
-    widget.play();
-    playing = true;
-  }
-});
-document.getElementById('skip-btn').addEventListener('click', () => widget.next());
-
-/* ── DIAGRAM CANVAS ── */
-const canvas = document.getElementById('c');
-const ctx    = canvas.getContext('2d');
-let W, H, CX, CY, R;
-
-function resize() {
-  W = canvas.width  = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-  CX = W/2; CY = H/2;
-  R  = Math.min(W,H) * 0.30;
-  const pa = document.getElementById('play-area');
-  const pr = R * 0.16;
-  pa.style.cssText = `width:${pr*2}px;height:${pr*2}px;left:${CX-pr}px;top:${CY-pr}px;`;
-}
-resize();
-window.addEventListener('resize', resize);
-
-/* drawing helpers */
-function circ(x,y,r,a,lw=0.55) {
-  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=lw; ctx.stroke();
-}
-function arcDraw(x,y,r,a0,a1,a,lw=1.1) {
-  ctx.beginPath(); ctx.arc(x,y,r,a0,a1);
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=lw; ctx.stroke();
-}
-function ln(x1,y1,x2,y2,a,lw=0.5) {
-  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=lw; ctx.stroke();
-}
-function arrowHead(x,y,dx,dy,sz,a) {
-  const ang=Math.atan2(dy,dx);
-  ctx.beginPath();
-  ctx.moveTo(x,y);
-  ctx.lineTo(x-sz*Math.cos(ang-.42), y-sz*Math.sin(ang-.42));
-  ctx.moveTo(x,y);
-  ctx.lineTo(x-sz*Math.cos(ang+.42), y-sz*Math.sin(ang+.42));
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=0.5; ctx.stroke();
-}
-function aster(x,y,sz,a) {
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=0.6;
-  for(let i=0;i<3;i++){
-    const ang=i*Math.PI/3;
-    ctx.beginPath();
-    ctx.moveTo(x+Math.cos(ang)*sz, y+Math.sin(ang)*sz);
-    ctx.lineTo(x-Math.cos(ang)*sz, y-Math.sin(ang)*sz);
-    ctx.stroke();
-  }
-}
-function pt(x,y,r,a) {
-  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle=`rgba(255,255,255,${a})`; ctx.fill();
-}
-
-(function draw(now) {
-  ctx.clearRect(0,0,W,H);
-  const t = now * 0.0001;
-
-  /* outer circle */
-  circ(CX,CY,R,0.22);
-
-  /* cross axes */
-  const ext = R*1.38;
-  ln(CX-ext,CY, CX+ext,CY, 0.18);
-  ln(CX,CY-ext, CX,CY+ext, 0.18);
-  arrowHead(CX+ext,CY,  1, 0, 8,0.18);
-  arrowHead(CX-ext,CY, -1, 0, 8,0.18);
-  arrowHead(CX,CY+ext,  0, 1, 8,0.18);
-  arrowHead(CX,CY-ext,  0,-1, 8,0.18);
-
-  /* rotating circle cluster A — large, slow */
-  const a1 = t*0.55;
-  const c1x=CX+Math.cos(a1)*R*0.26, c1y=CY+Math.sin(a1)*R*0.26;
-  circ(c1x,c1y, R*0.55, 0.12);
-  circ(c1x+R*0.09,c1y-R*0.07, R*0.28, 0.09);
-
-  /* cluster B — medium, counter */
-  const a2 = -t*0.38+Math.PI*0.65;
-  const c2x=CX+Math.cos(a2)*R*0.20, c2y=CY+Math.sin(a2)*R*0.20;
-  circ(c2x,c2y, R*0.40, 0.11);
-
-  /* cluster C — small, fast */
-  const a3 = t*1.05+Math.PI*1.3;
-  const c3x=CX+Math.cos(a3)*R*0.32, c3y=CY+Math.sin(a3)*R*0.32;
-  circ(c3x,c3y, R*0.20, 0.09);
-
-  /* dotted outer ring */
-  const dotRing = R*1.16, nDots=72;
-  for(let i=0;i<nDots;i++){
-    const a=(i/nDots)*Math.PI*2;
-    pt(CX+Math.cos(a)*dotRing, CY+Math.sin(a)*dotRing, 1.3, 0.17);
-  }
-
-  /* asterisks at cardinals */
-  aster(CX+R, CY,   5, 0.30);
-  aster(CX-R, CY,   5, 0.30);
-  aster(CX, CY+R,   5, 0.30);
-  aster(CX, CY-R,   5, 0.30);
-
-  /* small orbiting dot */
-  const od = t*2.2;
-  pt(CX+Math.cos(od)*R, CY+Math.sin(od)*R, 2.5, 0.50);
-
-  /* secondary small orbit (opposite phase, inner) */
-  const od2 = -t*1.6+Math.PI;
-  pt(CX+Math.cos(od2)*R*0.68, CY+Math.sin(od2)*R*0.68, 1.8, 0.35);
-
-  /* progress arc */
-  if(progress > 0.001){
-    arcDraw(CX,CY, R*0.85, -Math.PI/2, -Math.PI/2+progress*Math.PI*2, 0.60);
-    const pa=-Math.PI/2+progress*Math.PI*2;
-    pt(CX+Math.cos(pa)*R*0.85, CY+Math.sin(pa)*R*0.85, 3, 0.85);
-  }
-
-  /* center — pulses when playing */
-  const pulse = playing ? 0.42+Math.sin(now*0.0024)*0.16 : 0.20;
-  circ(CX,CY, R*0.052, pulse, 0.8);
-  if(playing) pt(CX,CY, R*0.022, pulse*0.75);
-
-  requestAnimationFrame(draw);
-})();
 </script>
 </body>
 </html>
