@@ -84,28 +84,48 @@ document.getElementById('homeBtn').addEventListener('click', e => {
 });
 
 /* ── SoundCloud — background playback only ──
-   Starts on a random track and loops the playlist forever. Browsers block
-   autoplay with sound until the page has been interacted with, so retry the
-   play call on the first gesture. */
+   Starts muted on a random track, autoplays, then fades the volume up so the
+   music swells in as the page settles. Loops the playlist forever. */
 const widget = SC.Widget(document.getElementById('sc-widget'));
-let started = false;
+const FADE_MS = 4500;
+let started = false, fading = false;
 
 function startPlayback(){
   widget.play();
 }
 
+/* ramp 0 → full; quadratic curve so the swell feels natural to the ear.
+   Advances by frame delta rather than wall clock: rAF is paused while the tab
+   is in the background, and elapsed time would otherwise jump the volume
+   straight to full the moment the visitor comes back. */
+function fadeIn(){
+  if (fading) return;
+  fading = true;
+  let prev = performance.now(), t = 0;
+  (function ramp(now){
+    t = Math.min(t + Math.min(now - prev, 100) / FADE_MS, 1);
+    prev = now;
+    widget.setVolume(Math.round(t * t * 100));
+    if (t < 1) requestAnimationFrame(ramp);
+  })(prev);
+}
+
 widget.bind(SC.Widget.Events.READY, () => {
+  widget.setVolume(0);
   widget.getSounds(sounds => {
     if (sounds && sounds.length > 1) widget.skip(Math.floor(Math.random()*sounds.length));
     setTimeout(startPlayback, 150);
   });
 });
 
-widget.bind(SC.Widget.Events.PLAY,   () => { started = true; });
+/* fade begins only once audio is actually rolling */
+widget.bind(SC.Widget.Events.PLAY, () => { started = true; fadeIn(); });
 /* keep the playlist rolling when the last track ends */
 widget.bind(SC.Widget.Events.FINISH, () => { widget.next(); setTimeout(startPlayback, 200); });
 
-['pointerdown','keydown','touchstart'].forEach(ev => {
+/* silent safety net: if the browser refused unprompted autoplay, the next
+   stray gesture starts it — nothing is asked of the visitor */
+['pointerdown','keydown','touchstart','scroll'].forEach(ev => {
   document.addEventListener(ev, () => { if (!started) startPlayback(); }, { passive:true });
 });
 </script>
