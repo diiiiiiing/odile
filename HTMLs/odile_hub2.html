@@ -121,7 +121,8 @@ body.ready .spoke span { opacity:1; transform:none; }
   stroke:none;
 }
 /* the second sits a little low in its field */
-#crestB { transform:translateY(3%); }
+#crestB { transform:translateY(5%); }
+#crestC { transform:translateY(3%); }
 
 /* ── Wordmark, dead centre ── */
 .wordmark {
@@ -151,7 +152,7 @@ body.ready .spoke span { opacity:1; transform:none; }
   transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-1 * var(--r)));
   font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;
   text-transform:lowercase;
-  font-size:clamp(9.5px, .72vw, 12px);
+  font-size:clamp(11px, .92vw, 15px);
   letter-spacing:.24em; text-indent:.24em;
   white-space:nowrap;
   /* brightness is carried entirely by opacity, eased in the loop — a CSS
@@ -182,7 +183,7 @@ body.ready .spoke span { opacity:1; transform:none; }
   /* the radius is set by the widest label at 45°, where its tilted box is
      broadest — not by the circle itself. Tighter tracking and a smaller
      crest buy back the room the tilt costs. */
-  .spoke { --r: min(31vh, 34vw); font-size:9px;
+  .spoke { --r: min(31vh, 34vw); font-size:11px;
            letter-spacing:.12em; text-indent:.12em; }
   .wordmark { letter-spacing:.26em; text-indent:.26em; }
 }
@@ -194,7 +195,7 @@ body.ready .spoke span { opacity:1; transform:none; }
   #crest { width:min(26vw, 50vh); }
   .spoke {
     --r: min(30vh, 24vw);
-    font-size:9.5px; letter-spacing:.14em; text-indent:.14em;
+    font-size:10.5px; letter-spacing:.14em; text-indent:.14em;
     padding:9px 10px;
   }
   .wordmark { font-size:10px; letter-spacing:.2em; text-indent:.2em; }
