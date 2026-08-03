@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<!-- viewport-fit=cover lets the ground run under the notch and the home
+     indicator; the safe-area insets below keep the content clear of them -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#b8b8bc">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GUIGNOL">
+<meta name="format-detection" content="telephone=no">
+<title>GUIGNOL.XYZ</title>
+<style>
+@font-face {
+  font-family: 'HW Pano';
+  src: url('hwpano-light.ttf') format('truetype');
+  font-weight: 300; font-style: normal; font-display: swap;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; }
+body {
+  background:#7e93ab;
+  font-family:'HW Pano', -apple-system, 'Helvetica Neue', sans-serif;
+  font-weight:300;
+  /* iOS housekeeping: no blue tap flash, no long-press callout or selection
+     on what are effectively controls, no rubber-band on a page that does not
+     scroll, and no 300ms wait for a second tap that never comes */
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  -webkit-user-select:none; user-select:none;
+  -webkit-text-size-adjust:100%; text-size-adjust:100%;
+  overscroll-behavior:none;
+  touch-action:manipulation;
+}
+
+/* ── Overture ──
+   Nothing arrives at once. Each piece is a child of whatever the loop
+   writes transforms to, so the entrance and the parallax never contend
+   for the same property. */
+.blob     { opacity:0; transition:opacity 2.1s ease .1s; }
+#crestArt { opacity:0; transform:scale(1.06);
+            transition:opacity 2.2s ease .45s,
+                       transform 2.6s cubic-bezier(.22,1,.36,1) .45s; }
+.wordmark span { display:block; opacity:0; transform:translateY(8px);
+            transition:opacity 1.3s ease 1.45s,
+                       transform 1.5s cubic-bezier(.22,1,.36,1) 1.45s; }
+.spoke span    { display:block; opacity:0; transform:translateY(7px);
+            transition:opacity 1.2s ease var(--d),
+                       transform 1.4s cubic-bezier(.22,1,.36,1) var(--d); }
+
+body.ready .blob,
+body.ready #crestArt,
+body.ready .wordmark span,
+body.ready .spoke span { opacity:1; transform:none; }
+
+/* ── Iridescent ground ──
+   Four fixed gradient plates nudged by transform alone. The original hub
+   rebuilt a four-stop background-image string every frame, which repaints
+   the whole viewport each time; these are composited instead. */
+#bg { position:fixed; inset:0; z-index:0; overflow:hidden; }
+.blob { position:absolute; will-change:transform; }
+.b1 { left:-35%; top:-30%; width:150%; height:130%;
+      background:radial-gradient(ellipse 42% 38% at 50% 50%, rgba(232,240,246,.75), transparent 58%); }
+.b2 { left:-25%; top:-15%; width:150%; height:130%;
+      background:radial-gradient(ellipse 40% 36% at 50% 50%, rgba(18,58,128,.68), transparent 58%); }
+.b3 { left:  5%; top: 10%; width:150%; height:130%;
+      background:radial-gradient(ellipse 36% 32% at 50% 50%, rgba(45,190,205,.42), transparent 58%); }
+.b4 { left: 10%; top: 20%; width:150%; height:130%;
+      background:radial-gradient(ellipse 38% 36% at 50% 50%, rgba(198,168,222,.45), transparent 58%); }
+
+/* ── Stage ── */
+/* the composition centres inside the safe area, not the raw screen, so the
+   Dynamic Island never sits on the top label nor the home indicator on SHOP */
+.stage {
+  position:fixed; z-index:20;
+  top:env(safe-area-inset-top,0px);    bottom:env(safe-area-inset-bottom,0px);
+  left:env(safe-area-inset-left,0px);  right:env(safe-area-inset-right,0px);
+  display:flex; align-items:center; justify-content:center;
+}
+
+/* ── Crest ── */
+#crest {
+  position:absolute; left:50%; top:50%;
+  width:min(38vw, 66vh);
+  transform:translate(-50%,-50%);      /* static centring */
+  pointer-events:none;
+}
+#crestPar { will-change:transform; }   /* the loop writes the parallax here */
+/* A square field. The two emblems have opposite proportions — one wide, one
+   tall — so each is fitted inside the same box and centred there; swapping
+   then never shifts the composition around it. */
+#crestArt {
+  position:relative; width:100%; aspect-ratio:1/1;
+  will-change:opacity, transform;
+}
+.crest-layer {
+  position:absolute; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  opacity:0; transition:opacity .75s ease;
+}
+.crest-layer.on { opacity:1; }
+.crest-layer svg {
+  max-width:100%; max-height:100%; width:auto; height:auto;
+  display:block; overflow:visible;
+}
+/* Both are drawn as hairline outlines. The second arrived as a filled shape
+   behind a cut-out mask — 2.4 MB — and ships as that mask's own path
+   stroked instead, which renders identically at 100 KB. */
+.crest-layer > svg > path {
+  fill:none;
+  stroke:rgba(255,255,255,.78);
+  stroke-width:1;
+  vector-effect:non-scaling-stroke;   /* hairline at any size */
+}
+/* the third emblem carries a dozen small solid marks among its linework;
+   stroking those would hollow them out */
+.crest-layer > svg > path.solid {
+  fill:rgba(255,255,255,.78);
+  stroke:none;
+}
+/* the second sits a little low in its field */
+#crestB { transform:translateY(5%); }
+#crestC { transform:translateY(3%); }
+
+/* ── Wordmark, dead centre ── */
+.wordmark {
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  font-family:inherit; font-weight:inherit;
+  font-size:clamp(10px, .85vw, 14px);
+  letter-spacing:.34em; text-indent:.34em;
+  color:rgba(255,255,255,.92);
+  white-space:nowrap; z-index:30;
+  background:none; border:0; cursor:pointer;
+  padding:14px 16px;                 /* it is the swap control: give it a target */
+  will-change:transform;
+  -webkit-appearance:none; appearance:none;
+}
+@media (hover:none) { .wordmark { padding:17px 18px; } }
+
+/* ── The wheel of labels ── */
+#ring {
+  position:absolute; left:50%; top:50%;
+  width:0; height:0;
+  will-change:transform;
+}
+.spoke {
+  --r: min(38vh, 28vw);
+  position:absolute; left:0; top:0;
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-1 * var(--r)));
+  font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;
+  text-transform:lowercase;
+  font-size:clamp(11px, .92vw, 15px);
+  letter-spacing:.24em; text-indent:.24em;
+  white-space:nowrap;
+  /* brightness is carried entirely by opacity, eased in the loop — a CSS
+     colour transition on top of it would fight the same value */
+  color:#fff;
+  opacity:.62;          /* readable before the loop takes over, and without JS */
+  text-decoration:none;
+  padding:6px 8px;      /* the box is the target, not the glyphs */
+}
+.spoke.off { cursor:default; }
+@media (hover:none) {
+  /* Apple asks for 44pt of tappable area. The type is hairline by design,
+     so the box grows around it rather than the letters getting bigger. */
+  .spoke { padding:17px 12px; }   /* 12px of type + 34 = 46, clear of the 44 floor */
+}
+
+/* ── Page-exit veil ── */
+#veil {
+  position:fixed; inset:0; background:#b8b8bc; z-index:900;
+  opacity:0; pointer-events:none; transition:opacity .7s ease;
+}
+#veil.on { opacity:1; pointer-events:auto; }
+
+@media (max-width:640px) {
+  /* the circle's radius is capped by the narrow side here, so the crest has
+     to give way or the labels sit on its arms */
+  #crest { width:56vw; }
+  /* the radius is set by the widest label at 45°, where its tilted box is
+     broadest — not by the circle itself. Tighter tracking and a smaller
+     crest buy back the room the tilt costs. */
+  .spoke { --r: min(31vh, 34vw); font-size:11px;
+           letter-spacing:.12em; text-indent:.12em; }
+  .wordmark { letter-spacing:.26em; text-indent:.26em; }
+}
+/* Phone held sideways. The wheel turns, so a wide label tilts and its box
+   grows taller than the type — SELECTED WORKS gains some 50px of vertical
+   reach at 13° — which runs off the top of a 393px screen. Everything
+   tightens rather than the wheel being allowed to overflow. */
+@media (orientation:landscape) and (max-height:460px) {
+  #crest { width:min(26vw, 50vh); }
+  .spoke {
+    --r: min(30vh, 24vw);
+    font-size:10.5px; letter-spacing:.14em; text-indent:.14em;
+    padding:9px 10px;
+  }
+  .wordmark { font-size:10px; letter-spacing:.2em; text-indent:.2em; }
+}
+
+/* On a fixed page iOS keeps the Safari toolbar out, so vh — which measures
+   the toolbar-less viewport — overshoots what is actually on screen and
+   would push the bottom label underneath it. svh is the honest unit here. */
+@supports (height:1svh) {
+  .spoke { --r: min(38svh, 28vw); }
+  @media (max-width:640px) { .spoke { --r: min(31svh, 34vw); } }
+  @media (orientation:landscape) and (max-height:460px) {
+    #crest { width:min(26vw, 50svh); }
+    .spoke { --r: min(30svh, 24vw); }
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .blob, #crestArt, .wordmark span, .spoke span {
+    transition:none; opacity:1; transform:none;
+  }
+}
+</style>
+<noscript><style>
+  /* the overture is raised from script; without it, show everything */
+  .blob, #crestArt, .wordmark span, .spoke span { opacity:1 !important; transform:none !important; }
+</style></noscript>
+</head>
+<body>
+
+<div id="veil"></div>
+<script>window.addEventListener('pageshow',()=>document.getElementById('veil').classList.remove('on'));</script>
+
+<div id="bg" aria-hidden="true">
+  <span class="blob b1"></span>
+  <span class="blob b2"></span>
+  <span class="blob b3"></span>
+  <span class="blob b4"></span>
+</div>
+
+<main class="stage">
+  <div id="crest" aria-hidden="true"><div id="crestPar"><div id="crestArt">
+    <div class="crest-layer on" id="crestA"></div>
+    <div class="crest-layer"    id="crestB"></div>
+    <div class="crest-layer"    id="crestC"></div>
+  </div></div></div>
+
+  <!-- --d lands the labels in symmetric pairs, echoing the crest -->
+  <div id="ring">
+    <a class="spoke" style="--a:0deg;--d:1.85s"   href="odile_work4.html" data-nav><span>SELECTED WORKS</span></a>
+    <a class="spoke" style="--a:300deg;--d:2.0s"  href="odile_workshop.html" data-nav><span>WORKSHOP</span></a>
+    <a class="spoke" style="--a:60deg;--d:2.0s"   href="odile_explorer.html" data-nav><span>EXPLORER</span></a>
+    <a class="spoke" style="--a:240deg;--d:2.15s" href="odile_feed.html" data-nav><span>FEED</span></a>
+    <a class="spoke" style="--a:120deg;--d:2.15s" href="odile_radio.html" data-nav><span>RADIO</span></a>
+    <span class="spoke off" style="--a:180deg;--d:2.3s"><span>SHOP</span></span>
+  </div>
+
+  <!-- no longer a link: it swaps the emblem, so it is a button -->
+  <button class="wordmark" id="wordmark" type="button" aria-label="Changer l'emblème"><span>GUIGNOL.XYZ</span></button>
+</main>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   CREST — fetched rather than inlined: 81 KB of path data
+   would otherwise sit in the document on every load
+══════════════════════════════════════════════════════ */
+const crestArt = document.getElementById('crestArt');
+const crestPar = document.getElementById('crestPar');
+
+/* The curtain goes up on the first emblem's arrival, but must go up
+   regardless — a failed or slow fetch cannot be allowed to leave the page
+   blank. Not gated on rAF either: a tab opened in the background freezes
+   it, and the overture would never start. */
+let raised = false;
+const raise = () => { if (!raised) { raised = true; document.body.classList.add('ready'); } };
+setTimeout(raise, 2200);
+
+/* ── The emblems, cycled by the wordmark ── */
+const layers = ['crestA', 'crestB', 'crestC'].map(id => document.getElementById(id));
+const SRC    = ['crest.svg', 'crest2.svg', 'crest3.svg'];
+const held   = SRC.map(() => null);
+let shown = 0;
+
+function load(i){
+  if (held[i]) return held[i];
+  held[i] = fetch(SRC[i])
+    .then(r => r.ok ? r.text() : Promise.reject(r.status))
+    .then(svg => { layers[i].innerHTML = svg; })
+    .catch(() => { held[i] = null; return Promise.reject(); });
+  return held[i];
+}
+
+load(0).then(raise, raise);
+/* the others are only wanted on a click, so they are fetched once the
+   opening has played out rather than competing with it */
+setTimeout(() => { load(1).catch(() => {}); load(2).catch(() => {}); }, 3600);
+
+const wordmarkBtn = document.getElementById('wordmark');
+let swapping = false;
+wordmarkBtn.addEventListener('click', () => {
+  if (swapping) return;
+  const next = (shown + 1) % layers.length;
+  swapping = true;
+  load(next).then(() => {
+    layers[shown].classList.remove('on');
+    layers[next].classList.add('on');
+    shown = next;
+    setTimeout(() => { swapping = false; }, 800);   /* the crossfade's length */
+  }, () => { swapping = false; });
+});
+
+/* once the overture is over these never move again — hand the layers back
+   rather than hold a promoted surface for the life of the page */
+setTimeout(() => {
+  crestArt.style.willChange = 'auto';
+  document.querySelectorAll('.wordmark span, .spoke span')
+          .forEach(s => s.style.willChange = 'auto');
+}, 5200);
+
+/* ══════════════════════════════════════════════════════
+   MOTION — one loop, transforms only
+══════════════════════════════════════════════════════ */
+const ring = document.getElementById('ring');
+const wordmark = document.querySelector('.wordmark');
+const blobs = [...document.querySelectorAll('.blob')];
+const spokes = [...document.querySelectorAll('.spoke')];
+const lit = spokes.map(() => 0);
+let primed = false;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* wheel and drag both feed one target angle; the drawn angle chases it, so
+   a flick coasts to a stop instead of snapping */
+let target = 0, angle = 0;
+let spin = reduced ? 0 : -14;   /* the wheel's opening lean */
+let mx = .5, my = .5, px = .5, py = .5;
+
+addEventListener('wheel', e => { target += e.deltaY * 0.12; }, { passive:true });
+
+/* Flick physics. A finger lifted mid-gesture should hand its speed to the
+   wheel and let it run down, the way every iOS scroller behaves; stopping
+   dead on touchend is the tell that something is not native. */
+let dragging = false, lastY = 0, fling = 0;
+addEventListener('touchstart', e => {
+  dragging = true; fling = 0; lastY = e.touches[0].clientY;
+}, { passive:true });
+addEventListener('touchmove', e => {
+  if (!dragging) return;
+  const y = e.touches[0].clientY;
+  const step = (lastY - y) * 0.35;
+  target += step;
+  /* smooth the sampled speed so one jittery frame cannot throw the release */
+  fling += (step - fling) * 0.45;
+  lastY = y;
+}, { passive:true });
+addEventListener('touchend', () => { dragging = false; }, { passive:true });
+addEventListener('touchcancel', () => { dragging = false; fling = 0; }, { passive:true });
+
+addEventListener('mousemove', e => {
+  mx = e.clientX / innerWidth;
+  my = e.clientY / innerHeight;
+}, { passive:true });
+
+/* how far each plate drifts, and how lazily */
+const drift = [
+  { ax:  38, ay:  30, ease:.05 },
+  { ax: -42, ay:  34, ease:.04 },
+  { ax:  36, ay: -38, ease:.045 },
+  { ax:  18, ay:  16, ease:.03 },
+];
+const at = blobs.map(() => ({ x:0, y:0 }));
+
+function frame(){
+  /* a hair of idle rotation so the wheel is never quite still */
+  if (!reduced) target += 0.012;
+  /* let a released flick run down rather than stop under the finger */
+  if (!dragging && fling) {
+    target += fling;
+    /* 0.90 hands a flick about ten times its last step — roughly one or two
+       of the six positions. 0.94 gave it sixteen, near a whole revolution,
+       which reads as the wheel getting away from you */
+    fling *= 0.90;
+    if (Math.abs(fling) < 0.01) fling = 0;
+  }
+  angle += (target - angle) * 0.075;
+  /* the wheel arrives turned and eases square over several seconds, so it
+     is still settling as the labels land on it */
+  spin += (0 - spin) * 0.011;
+  ring.style.transform = `rotate(${(angle + spin).toFixed(3)}deg)`;
+
+  px += (mx - px) * .06;
+  py += (my - py) * .06;
+
+  for (let i = 0; i < blobs.length; i++){
+    const d = drift[i], a = at[i];
+    a.x += ((px - .5) * d.ax - a.x) * d.ease;
+    a.y += ((py - .5) * d.ay - a.y) * d.ease;
+    blobs[i].style.transform = `translate3d(${a.x.toFixed(2)}%,${a.y.toFixed(2)}%,0)`;
+  }
+
+  /* crest and wordmark lean against the drift, a shallower parallax */
+  const cx = (px - .5) * -14, cy = (py - .5) * -10;
+  crestPar.style.transform = `translate3d(${cx.toFixed(2)}px,${cy.toFixed(2)}px,0)`;
+  wordmark.style.transform = `translate(-50%,-50%) translate3d(${(cx*.5).toFixed(2)}px,${(cy*.5).toFixed(2)}px,0)`;
+
+  /* whichever label is nearest twelve o'clock reads brightest, and hover
+     is eased in the same value so nothing snaps */
+  for (let i = 0; i < spokes.length; i++){
+    const s = spokes[i];
+    const a = ((parseFloat(s.style.getPropertyValue('--a')) + angle) % 360 + 360) % 360;
+    const d = Math.min(a, 360 - a);          /* 0° at the top, 180° at the bottom */
+    const top = 1 - d / 180;
+    const dead = s.classList.contains('off');
+    let want = dead ? .18 + top * .12        /* the inactive one stays quiet */
+                    : .40 + top * .55;
+    if (!dead && s.matches(':hover')) want = 1;
+    /* land on the right value the very first frame rather than fading up
+       from nothing — a tab opened in the background would otherwise sit
+       blank until it is looked at */
+    lit[i] = primed ? lit[i] + (want - lit[i]) * .12 : want;
+    s.style.opacity = lit[i].toFixed(3);
+  }
+  primed = true;
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ══════════════════════════════════════════════════════
+   NAV — veil, then go
+══════════════════════════════════════════════════════ */
+const veil = document.getElementById('veil');
+document.querySelectorAll('a[data-nav]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    veil.classList.add('on');
+    setTimeout(() => { location.href = a.getAttribute('href'); }, 700);
+  });
+});
+</script>
+</body>
+</html>
