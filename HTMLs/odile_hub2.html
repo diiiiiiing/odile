@@ -124,20 +124,21 @@ body.ready .spoke span { opacity:1; transform:none; }
 #crestB { transform:translateY(5%); }
 #crestC { transform:translateY(3%); }
 
-/* ── Wordmark, dead centre — a scanned metal logotype, not type ── */
+/* ── Wordmark, dead centre ── */
 .wordmark {
   position:absolute; left:50%; top:50%;
   transform:translate(-50%,-50%);
-  width:min(40vw, 62vh);
-  z-index:30;
+  font-family:inherit; font-weight:inherit;
+  font-size:clamp(10px, .85vw, 14px);
+  letter-spacing:.34em; text-indent:.34em;
+  color:rgba(255,255,255,.92);
+  white-space:nowrap; z-index:30;
   background:none; border:0; cursor:pointer;
-  padding:0;
+  padding:14px 16px;                 /* it is the swap control: give it a target */
   will-change:transform;
   -webkit-appearance:none; appearance:none;
 }
-.wordmark span { display:block; }
-.wordmark img { display:block; width:100%; height:auto; pointer-events:none; }
-@media (hover:none) { .wordmark { padding:8px; } }
+@media (hover:none) { .wordmark { padding:17px 18px; } }
 
 /* ── The wheel of labels ── */
 #ring {
@@ -184,6 +185,7 @@ body.ready .spoke span { opacity:1; transform:none; }
      crest buy back the room the tilt costs. */
   .spoke { --r: min(31vh, 34vw); font-size:11px;
            letter-spacing:.12em; text-indent:.12em; }
+  .wordmark { letter-spacing:.26em; text-indent:.26em; }
 }
 /* Phone held sideways. The wheel turns, so a wide label tilts and its box
    grows taller than the type — SELECTED WORKS gains some 50px of vertical
@@ -196,6 +198,7 @@ body.ready .spoke span { opacity:1; transform:none; }
     font-size:10.5px; letter-spacing:.14em; text-indent:.14em;
     padding:9px 10px;
   }
+  .wordmark { font-size:10px; letter-spacing:.2em; text-indent:.2em; }
 }
 
 /* On a fixed page iOS keeps the Safari toolbar out, so vh — which measures
@@ -251,7 +254,7 @@ body.ready .spoke span { opacity:1; transform:none; }
   </div>
 
   <!-- no longer a link: it swaps the emblem, so it is a button -->
-  <button class="wordmark" id="wordmark" type="button" aria-label="Changer l'emblème"><span><img src="guignol-wordmark.png" alt="Guignol"></span></button>
+  <button class="wordmark" id="wordmark" type="button" aria-label="Changer l'emblème"><span>GUIGNOL.XYZ</span></button>
 </main>
 
 <script>
