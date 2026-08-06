@@ -8,13 +8,21 @@
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
   html, body { width:100%; height:100%; overflow:hidden; }
   body {
-    background:#b8b8bc; cursor:none;
+    background:#0b0e14; cursor:none;
     font-family:-apple-system,'Helvetica Neue',sans-serif; font-weight:300; font-size:12.5px;
-    animation:fadeIn .7s ease both;
   }
-  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
-  #iri{position:fixed;inset:0;z-index:0;pointer-events:none;background-color:#b8b8bc;}
+  /* ── Arrival ──
+     The cabin resolves first, then the night outside comes up slowly, the
+     way eyes take a moment to find anything through the glass. Plain CSS
+     animations rather than JS-triggered transitions: they run on their own,
+     so a tab opened in the background cannot strand the page dark. */
+  @keyframes rise { from{opacity:0} to{opacity:1} }
+  #frame  { animation:rise 1.2s ease .15s both; }
+  #view   { animation:rise 3.0s ease .55s both; }
+  #topNav { animation:rise 1.4s ease 2.2s both; }
+  #cur    { animation:rise .8s ease 2.4s both; }
+
   #cur{position:fixed;width:5px;height:5px;background:#FFD5F8;
     box-shadow:0 0 5px 0px #FFD5F866;
     pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
@@ -22,84 +30,199 @@
     opacity:0;pointer-events:none;transition:opacity .7s ease;}
   #overlay.on{opacity:1;pointer-events:auto;}
 
-  #c{position:fixed;inset:0;z-index:1;width:100%;height:100%;}
-
-  /* play zone — invisible click area at center */
-  #play-area{
-    position:fixed;z-index:3;border-radius:50%;cursor:none;
+  /* ── the whole POV: shakes as one, as if the head were in the cabin ── */
+  #scene{
+    position:fixed;inset:0;z-index:1;
+    will-change:transform;
   }
 
-  /* track info */
-  #track-info{
-    position:fixed;bottom:38px;left:50%;transform:translateX(-50%);
-    text-align:center;z-index:3;pointer-events:none;
-    display:flex;flex-direction:column;gap:3px;
-  }
-  #track-title{color:rgba(255,255,255,0.72);font-size:12.5px;letter-spacing:.06em;white-space:nowrap;}
-  #track-artist{color:rgba(255,255,255,0.38);font-size:12px;letter-spacing:.06em;}
+  /* ── outside the window ──
+     Everything out here is flat polygons moved with transform only: no
+     filters, no background-position, nothing that forces a repaint per
+     frame. Each strip is two copies of one tile, so sliding it by exactly
+     half its width loops seamlessly.
 
-  /* skip — pill button, same aspect as the rest of the site */
-  #skip-btn{
-    margin-top:8px;
-    padding:6px 16px;border:1px solid rgba(255,255,255,0.28);border-radius:14px;
-    background:none;color:rgba(255,255,255,0.55);
-    font-family:-apple-system,'Helvetica Neue',sans-serif;font-weight:300;font-size:12.5px;
-    letter-spacing:.06em;cursor:none;user-select:none;
-    pointer-events:auto;transition:color .15s,border-color .15s;
+     #view is sized by JS to hug the window opening rather than the whole
+     viewport. The sky is only ever visible through that hole, and every
+     strip is 200% of this box — painting it full-bleed meant rasterising
+     textures more than twice the area actually seen. */
+  #view{
+    position:absolute;inset:0;
+    overflow:hidden;
+    /* night: moon, a scattered field of stars and the sky itself, all
+       painted into this layer. Static, so they cost one rasterisation
+       and never a frame. */
+    background:
+      radial-gradient(circle 210px at 23% 14%, rgba(188,206,240,.09),  rgba(188,206,240,0) 70%),
+      radial-gradient(circle 74px  at 23% 14%, rgba(204,219,248,.14),  rgba(204,219,248,0) 72%),
+      radial-gradient(circle 16px  at 23% 14%, rgba(233,240,255,.94), rgba(233,240,255,.89) 74%, rgba(233,240,255,0) 100%),
+      radial-gradient(0.8px 0.8px at 11.2% 26.9%, rgba(255,255,255,0.44), rgba(255,255,255,0) 100%),
+      radial-gradient(1.0px 1.0px at 67.1% 8.6%, rgba(255,255,255,0.40), rgba(255,255,255,0) 100%),
+      radial-gradient(1.3px 1.3px at 12.4% 55.1%, rgba(255,255,255,0.28), rgba(255,255,255,0) 100%),
+      radial-gradient(1.0px 1.0px at 3.7% 41.9%, rgba(255,255,255,0.32), rgba(255,255,255,0) 100%),
+      radial-gradient(1.0px 1.0px at 89.2% 46.1%, rgba(255,255,255,0.40), rgba(255,255,255,0) 100%),
+      radial-gradient(1.1px 1.1px at 28.1% 5.7%, rgba(255,255,255,0.70), rgba(255,255,255,0) 100%),
+      radial-gradient(0.9px 0.9px at 86.7% 37.9%, rgba(255,255,255,0.25), rgba(255,255,255,0) 100%),
+      radial-gradient(1.2px 1.2px at 11.9% 61.4%, rgba(255,255,255,0.48), rgba(255,255,255,0) 100%),
+      radial-gradient(0.9px 0.9px at 54.4% 53.2%, rgba(255,255,255,0.44), rgba(255,255,255,0) 100%),
+      radial-gradient(0.8px 0.8px at 23.2% 44.5%, rgba(255,255,255,0.55), rgba(255,255,255,0) 100%),
+      radial-gradient(1.0px 1.0px at 33.1% 42.1%, rgba(255,255,255,0.52), rgba(255,255,255,0) 100%),
+      radial-gradient(1.3px 1.3px at 42.3% 50.7%, rgba(255,255,255,0.34), rgba(255,255,255,0) 100%),
+      radial-gradient(1.0px 1.0px at 27.3% 32.9%, rgba(255,255,255,0.45), rgba(255,255,255,0) 100%),
+      radial-gradient(1.2px 1.2px at 95.5% 31.5%, rgba(255,255,255,0.29), rgba(255,255,255,0) 100%),
+      radial-gradient(0.8px 0.8px at 51.3% 60.0%, rgba(255,255,255,0.71), rgba(255,255,255,0) 100%),
+      radial-gradient(1.2px 1.2px at 66.5% 35.5%, rgba(255,255,255,0.35), rgba(255,255,255,0) 100%),
+      radial-gradient(0.9px 0.9px at 69.9% 14.0%, rgba(255,255,255,0.49), rgba(255,255,255,0) 100%),
+      radial-gradient(0.9px 0.9px at 11.5% 18.5%, rgba(255,255,255,0.34), rgba(255,255,255,0) 100%),
+      radial-gradient(1.0px 1.0px at 41.4% 60.9%, rgba(255,255,255,0.31), rgba(255,255,255,0) 100%),
+      radial-gradient(1.3px 1.3px at 76.0% 14.7%, rgba(255,255,255,0.52), rgba(255,255,255,0) 100%),
+      radial-gradient(0.9px 0.9px at 42.0% 7.0%, rgba(255,255,255,0.30), rgba(255,255,255,0) 100%),
+      radial-gradient(1.2px 1.2px at 77.5% 57.9%, rgba(255,255,255,0.58), rgba(255,255,255,0) 100%),
+      radial-gradient(1.3px 1.3px at 45.9% 10.0%, rgba(255,255,255,0.52), rgba(255,255,255,0) 100%),
+      radial-gradient(1.0px 1.0px at 86.7% 54.0%, rgba(255,255,255,0.45), rgba(255,255,255,0) 100%),
+      radial-gradient(1.3px 1.3px at 88.9% 24.5%, rgba(255,255,255,0.38), rgba(255,255,255,0) 100%),
+      radial-gradient(1.1px 1.1px at 50.2% 5.7%, rgba(255,255,255,0.58), rgba(255,255,255,0) 100%),
+      radial-gradient(0.8px 0.8px at 6.3% 37.5%, rgba(255,255,255,0.53), rgba(255,255,255,0) 100%),
+      radial-gradient(0.8px 0.8px at 4.4% 21.0%, rgba(255,255,255,0.27), rgba(255,255,255,0) 100%),
+      radial-gradient(0.9px 0.9px at 62.1% 22.8%, rgba(255,255,255,0.49), rgba(255,255,255,0) 100%),
+      radial-gradient(0.8px 0.8px at 43.0% 32.1%, rgba(255,255,255,0.58), rgba(255,255,255,0) 100%),
+      radial-gradient(0.8px 0.8px at 3.4% 32.4%, rgba(255,255,255,0.42), rgba(255,255,255,0) 100%),
+      radial-gradient(1.3px 1.3px at 22.2% 56.7%, rgba(255,255,255,0.60), rgba(255,255,255,0) 100%),
+      linear-gradient(180deg, #04060e 0%, #060b17 22%, #0a1324 46%, #101c31 70%, #17273f 88%, #1d3049 100%);
+    will-change:transform;
   }
-  #skip-btn:hover{color:#fff;border-color:rgba(255,255,255,0.72);}
-
-  /* start hint */
-  #start-hint{
-    position:fixed;top:50%;left:50%;
-    transform:translate(-50%, 56px);
-    z-index:5;pointer-events:none;
-    color:rgba(255,255,255,0.28);
-    font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;
-    transition:opacity .6s ease;
+  .strip{
+    position:absolute;left:0;width:200%;
+    will-change:transform;
   }
-  #start-hint.hidden{opacity:0;}
+  .strip svg{width:100%;height:100%;display:block;}
+  @keyframes drift{
+    from{transform:translate3d(-50%,0,0);}
+    to  {transform:translate3d(0,0,0);}
+  }
 
-  /* home */
+  /* distance sets the pace: the ridge barely creeps, the near wisps race.
+     Vertical placement is set in JS, anchored to the window opening rather
+     than to #view, which may be cropped by a narrow screen. */
+  @keyframes bob { 0%,100%{translate:0 0} 50%{translate:0 var(--bob)} }
+  #sRidge{--bob:3px; opacity:.62; animation:drift 210s linear infinite, bob 41s ease-in-out infinite;}
+  #sDeck {--bob:9px;              animation:drift  84s linear infinite, bob 26s ease-in-out infinite;}
+  #sNear {--bob:13px;opacity:.30; animation:drift  27s linear infinite, bob 19s ease-in-out infinite;}
+
+
+  /* ── signs of life in the sky ──
+     Tiny elements, animated only on opacity and translate. They sit inside
+     #view, so the glass still occludes them like everything else out there. */
+  @keyframes twinkle { 0%,100%{opacity:var(--lo)} 50%{opacity:var(--hi)} }
+  .tw{position:absolute;width:2px;height:2px;border-radius:50%;
+      background:#fff;will-change:opacity;
+      animation:twinkle var(--dur) ease-in-out infinite var(--del);}
+
+  /* mostly waiting, then a quick streak — each has its own keyframes
+     below, since custom properties cannot be step selectors */
+  .shoot{position:absolute;width:60px;height:1.5px;border-radius:1px;
+         background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.9));
+         opacity:0;will-change:opacity,translate;transform-origin:100% 50%;}
+  @keyframes shoot0{0%{opacity:0;translate:0 0}0.00%{opacity:0;translate:0 0}0.90%{opacity:.85}3.40%{opacity:0;translate:260px 150px}100%{opacity:0;translate:260px 150px}}
+  @keyframes shoot1{0%{opacity:0;translate:0 0}0.00%{opacity:0;translate:0 0}0.90%{opacity:.85}3.40%{opacity:0;translate:200px 118px}100%{opacity:0;translate:200px 118px}}
+  @keyframes shoot2{0%{opacity:0;translate:0 0}0.00%{opacity:0;translate:0 0}0.90%{opacity:.85}3.40%{opacity:0;translate:170px 96px}100%{opacity:0;translate:170px 96px}}
+
+  /* ── the cabin: image with a transparent window, laid over the view ── */
+  picture{display:contents;}
+  #frame{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    object-fit:cover;
+    display:block;
+  }
+
+  /* back to hub */
   #topNav{
     position:fixed;top:0;left:0;right:0;height:50px;
-    padding:0 28px;display:flex;align-items:center;z-index:400;
-    font-size:12.5px;
+    padding:0 20px;display:flex;align-items:center;
+    z-index:400;
   }
   #homeBtn{
-    color:rgba(255,255,255,0.38);text-decoration:none;cursor:none;transition:color .2s;
+    color:rgba(255,255,255,0.62);text-decoration:none;cursor:none;
+    transition:color .4s ease;
   }
-  #homeBtn:hover{color:rgba(255,255,255,0.80);}
-  #navSep{color:rgba(255,255,255,0.28);margin:0 2px;}
-  #navSection{color:rgba(255,255,255,0.62);}
+  #homeBtn:hover{color:rgba(255,255,255,0.95);}
+  #navSep{color:rgba(255,255,255,0.34);margin:0 2px;}
+  #navSection{color:rgba(255,255,255,0.78);}
 
-  /* no custom cursor on touch devices */
   @media (hover:none){
     #cur{display:none;}
     *,*::before,*::after{cursor:auto!important;}
   }
+  @media (prefers-reduced-motion:reduce){
+    .strip{animation:none;transform:translate3d(-50%,0,0);}
+  }
 </style>
 </head>
 <body>
-<div id="iri"></div>
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 <div id="cur"></div>
-<div id="start-hint">click to play</div>
 
-<!-- SoundCloud hidden widget -->
-<iframe id="sc-widget"
-  src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/user-322526836/sets/heavens-gate&auto_play=true&hide_related=true&show_comments=false&show_user=false&show_reposts=false&show_teaser=false&visual=false"
-  style="position:absolute;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;"
-  allow="autoplay"></iframe>
+<!-- SoundCloud — invisible, autoplaying, no controls exposed.
+     The opening track is picked in the URL rather than by skipping once the
+     player is up: a skip re-cues the deck and that reload is what used to
+     hold back the first note. start_track is read before anything loads, so
+     a random pick costs nothing. -->
+<script>
+(function(){
+  const TRACKS_KEY = 'odile.radio.tracks';
+  let len = 10;                 /* until the widget tells us the real count */
+  try { const n = parseInt(localStorage.getItem(TRACKS_KEY), 10); if (n > 0) len = n; } catch(e){}
+  const f = document.createElement('iframe');
+  f.id = 'sc-widget';
+  f.src = 'https://w.soundcloud.com/player/?url=' +
+    encodeURIComponent('https://soundcloud.com/user-322526836/sets/heavens-gate') +
+    '&auto_play=true&start_track=' + Math.floor(Math.random() * len) +
+    '&hide_related=true&show_comments=false&show_user=false' +
+    '&show_reposts=false&show_teaser=false&visual=false';
+  f.allow = 'autoplay';
+  f.tabIndex = -1;
+  f.setAttribute('aria-hidden', 'true');
+  f.style.cssText = 'position:absolute;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+  document.currentScript.parentNode.insertBefore(f, document.currentScript);
+})();
+</script>
 
-<canvas id="c"></canvas>
-<div id="play-area"></div>
-<div id="track-info">
-  <div id="track-title">heaven's gate</div>
-  <div id="track-artist"></div>
-  <div id="skip-btn">skip</div>
+<div id="scene">
+  <div id="view">
+
+    <!-- the far ridge, barely creeping -->
+    <div class="strip" id="sRidge">
+      <svg viewBox="0 0 2400 200" preserveAspectRatio="none">
+        <g id="ridge"><polygon fill="#22314e" points="0,103 95,171 171,97 265,163 343,80 416,159 514,62 598,165 686,95 788,169 857,97 926,160 1029,90 1111,170 1200,103 1200,350 0,350"/><polygon fill="#43547b" points="0,103 -89,170 -3,193"/><polygon fill="#141e37" points="0,103 95,171 -3,193"/><polygon fill="#38496c" points="-45,137 -89,170 -46,192"/><polygon fill="#43547b" points="171,97 95,171 173,190"/><polygon fill="#131e35" points="171,97 265,163 173,190"/><polygon fill="#38486b" points="133,134 95,171 134,192"/><polygon fill="#43547b" points="343,80 265,163 338,185"/><polygon fill="#141e37" points="343,80 416,159 338,185"/><polygon fill="#374769" points="304,121 265,163 302,190"/><polygon fill="#45577e" points="514,62 416,159 521,185"/><polygon fill="#131e36" points="514,62 598,165 521,185"/><polygon fill="#374769" points="465,110 416,159 468,189"/><polygon fill="#45577e" points="686,95 598,165 680,189"/><polygon fill="#141e37" points="686,95 788,169 680,189"/><polygon fill="#38486b" points="642,130 598,165 639,192"/><polygon fill="#44557c" points="857,97 788,169 854,192"/><polygon fill="#131e35" points="857,97 926,160 854,192"/><polygon fill="#364668" points="823,133 788,169 821,192"/><polygon fill="#44557c" points="1029,90 926,160 1037,185"/><polygon fill="#141e36" points="1029,90 1111,170 1037,185"/><polygon fill="#39496c" points="977,125 926,160 982,191"/><polygon fill="#131f38" points="0,29 115,159 240,24 356,158 480,22 581,156 720,29 862,152 960,18 1082,146 1200,29 1200,350 0,350"/><polygon fill="#556894" points="0,29 -118,146 10,183"/><polygon fill="#0a111e" points="0,29 115,159 10,183"/><polygon fill="#44557f" points="-59,87 -118,146 -54,186"/><polygon fill="#546894" points="240,24 115,159 251,192"/><polygon fill="#0a111e" points="240,24 356,158 251,192"/><polygon fill="#43547d" points="177,91 115,159 183,186"/><polygon fill="#556894" points="480,22 356,158 481,179"/><polygon fill="#0a101d" points="480,22 581,156 481,179"/><polygon fill="#41527c" points="418,90 356,158 419,186"/><polygon fill="#546894" points="720,29 581,156 709,187"/><polygon fill="#0a111e" points="720,29 862,152 709,187"/><polygon fill="#43547e" points="650,92 581,156 645,186"/><polygon fill="#526591" points="960,18 862,152 954,181"/><polygon fill="#0a101d" points="960,18 1082,146 954,181"/><polygon fill="#41537c" points="911,85 862,152 908,185"/></g>
+        <use href="#ridge" x="1200"/>
+      </svg>
+    </div>
+
+
+    <!-- the deck the plane rides above -->
+    <div class="strip" id="sDeck">
+      <svg viewBox="0 0 2400 300" preserveAspectRatio="none">
+        <g id="deck"><polygon fill="#1a2539" points="0,300 0,151 99,144 190,166 304,154 391,166 500,167 601,186 687,179 795,162 880,186 984,153 1071,167 1160,155 1200,151 1200,300"/><polygon fill="#49576e" points="1363,61 1351,177 1278,110"/><polygon fill="#65748d" points="1363,61 1278,110 1251,65"/><polygon fill="#323e54" points="1351,177 1216,220 1247,161"/><polygon fill="#404d63" points="1351,177 1247,161 1278,110"/><polygon fill="#2c384d" points="1216,220 1098,179 1174,158"/><polygon fill="#303c51" points="1216,220 1174,158 1247,161"/><polygon fill="#47556b" points="1098,179 1019,86 1121,123"/><polygon fill="#414e65" points="1098,179 1121,123 1174,158"/><polygon fill="#687790" points="1019,86 1126,11 1140,73"/><polygon fill="#58667e" points="1019,86 1140,73 1121,123"/><polygon fill="#8394af" points="1126,11 1259,-21 1191,35"/><polygon fill="#75849e" points="1126,11 1191,35 1140,73"/><polygon fill="#7786a0" points="1259,-21 1363,61 1251,65"/><polygon fill="#8393ae" points="1259,-21 1251,65 1191,35"/><polygon fill="#56647c" points="1278,110 1247,161 1174,158 1121,123 1140,73 1191,35 1251,65"/><polygon fill="#8595b0" points="-18,-33 118,17 28,46"/><polygon fill="#8595b0" points="-18,-33 28,46 -42,51"/><polygon fill="#65748d" points="118,17 160,118 85,82"/><polygon fill="#6d7c95" points="118,17 85,82 28,46"/><polygon fill="#364359" points="160,118 82,203 71,137"/><polygon fill="#54627a" points="160,118 71,137 85,82"/><polygon fill="#283348" points="82,203 -54,213 8,163"/><polygon fill="#2f3b51" points="82,203 8,163 71,137"/><polygon fill="#39465c" points="-54,213 -156,142 -54,143"/><polygon fill="#303c52" points="-54,213 -54,143 8,163"/><polygon fill="#57657d" points="-156,142 -125,43 -69,97"/><polygon fill="#47546b" points="-156,142 -69,97 -54,143"/><polygon fill="#8393ae" points="-125,43 -18,-33 -42,51"/><polygon fill="#6d7d96" points="-125,43 -42,51 -69,97"/><polygon fill="#5a6881" points="28,46 85,82 71,137 8,163 -54,143 -69,97 -42,51"/><polygon fill="#899ab5" points="-49,-7 55,-6 1,39"/><polygon fill="#7c8ca6" points="-49,-7 1,39 -49,52"/><polygon fill="#6f7e97" points="55,-6 128,65 49,55"/><polygon fill="#71819a" points="55,-6 49,55 1,39"/><polygon fill="#46536a" points="128,65 111,170 66,103"/><polygon fill="#5d6c84" points="128,65 66,103 49,55"/><polygon fill="#2c384d" points="111,170 -3,189 27,140"/><polygon fill="#344056" points="111,170 27,140 66,103"/><polygon fill="#2d384e" points="-3,189 -105,159 -26,133"/><polygon fill="#333f55" points="-3,189 -26,133 27,140"/><polygon fill="#4d5b72" points="-105,159 -141,57 -71,101"/><polygon fill="#3f4c63" points="-105,159 -71,101 -26,133"/><polygon fill="#6d7c95" points="-141,57 -49,-7 -49,52"/><polygon fill="#5c6b83" points="-141,57 -49,52 -71,101"/><polygon fill="#4f5c74" points="1,39 49,55 66,103 27,140 -26,133 -71,101 -49,52"/><polygon fill="#90a1bd" points="1125,-17 1275,-24 1199,36"/><polygon fill="#7b8ba5" points="1125,-17 1199,36 1144,58"/><polygon fill="#75859f" points="1275,-24 1341,65 1262,53"/><polygon fill="#7a8aa4" points="1275,-24 1262,53 1199,36"/><polygon fill="#4d5b72" points="1341,65 1325,156 1289,102"/><polygon fill="#5f6e87" points="1341,65 1289,102 1262,53"/><polygon fill="#323e54" points="1325,156 1202,210 1230,130"/><polygon fill="#39465c" points="1325,156 1230,130 1289,102"/><polygon fill="#232e43" points="1202,210 1070,163 1167,138"/><polygon fill="#344157" points="1202,210 1167,138 1230,130"/><polygon fill="#47546b" points="1070,163 1061,67 1122,101"/><polygon fill="#37445a" points="1070,163 1122,101 1167,138"/><polygon fill="#6e7e97" points="1061,67 1125,-17 1144,58"/><polygon fill="#5a6880" points="1061,67 1144,58 1122,101"/><polygon fill="#55637b" points="1199,36 1262,53 1289,102 1230,130 1167,138 1122,101 1144,58"/><polygon fill="#313d52" points="417,157 308,190 333,136"/><polygon fill="#37445a" points="417,157 333,136 375,102"/><polygon fill="#273348" points="308,190 185,170 278,136"/><polygon fill="#2f3b51" points="308,190 278,136 333,136"/><polygon fill="#49566d" points="185,170 177,72 239,105"/><polygon fill="#3b485e" points="185,170 239,105 278,136"/><polygon fill="#707f99" points="177,72 246,5 242,55"/><polygon fill="#59677f" points="177,72 242,55 239,105"/><polygon fill="#8697b2" points="246,5 360,-7 301,31"/><polygon fill="#7a8aa4" points="246,5 301,31 242,55"/><polygon fill="#6f7f98" points="360,-7 433,65 360,54"/><polygon fill="#7f8fa9" points="360,-7 360,54 301,31"/><polygon fill="#445168" points="433,65 417,157 375,102"/><polygon fill="#5e6c85" points="433,65 375,102 360,54"/><polygon fill="#58677f" points="333,136 278,136 239,105 242,55 301,31 360,54 375,102"/><polygon fill="#2a354a" points="802,180 705,244 723,166"/><polygon fill="#39465c" points="802,180 723,166 747,123"/><polygon fill="#2e3a4f" points="705,244 603,192 669,164"/><polygon fill="#303c52" points="705,244 669,164 723,166"/><polygon fill="#46546b" points="603,192 573,107 633,135"/><polygon fill="#39465c" points="603,192 633,135 669,164"/><polygon fill="#71809a" points="573,107 612,15 643,94"/><polygon fill="#515e76" points="573,107 643,94 633,135"/><polygon fill="#8a9bb6" points="612,15 724,23 679,58"/><polygon fill="#73839d" points="612,15 679,58 643,94"/><polygon fill="#7888a2" points="724,23 823,76 728,81"/><polygon fill="#7a8aa4" points="724,23 728,81 679,58"/><polygon fill="#4d5a72" points="823,76 802,180 747,123"/><polygon fill="#5c6a82" points="823,76 747,123 728,81"/><polygon fill="#4f5d74" points="723,166 669,164 633,135 643,94 679,58 728,81 747,123"/><polygon fill="#29354a" points="547,193 448,193 499,156"/><polygon fill="#303c51" points="547,193 499,156 547,143"/><polygon fill="#3d4960" points="448,193 370,133 447,144"/><polygon fill="#303c51" points="448,193 447,144 499,156"/><polygon fill="#5b6a82" points="370,133 411,53 451,102"/><polygon fill="#4a576e" points="370,133 451,102 447,144"/><polygon fill="#7e8ea8" points="411,53 502,15 477,73"/><polygon fill="#64738b" points="411,53 477,73 451,102"/><polygon fill="#7e8ea8" points="502,15 598,52 529,66"/><polygon fill="#7989a3" points="502,15 529,66 477,73"/><polygon fill="#57657d" points="598,52 618,135 551,104"/><polygon fill="#67768f" points="598,52 551,104 529,66"/><polygon fill="#374459" points="618,135 547,193 547,143"/><polygon fill="#4b5870" points="618,135 547,143 551,104"/><polygon fill="#536179" points="499,156 447,144 451,102 477,73 529,66 551,104 547,143"/><polygon fill="#4c5a71" points="207,55 197,142 151,95"/><polygon fill="#617089" points="207,55 151,95 132,60"/><polygon fill="#2c384d" points="197,142 114,190 125,125"/><polygon fill="#424f66" points="197,142 125,125 151,95"/><polygon fill="#212c41" points="114,190 18,165 82,137"/><polygon fill="#303c52" points="114,190 82,137 125,125"/><polygon fill="#445168" points="18,165 -3,82 49,107"/><polygon fill="#3c495f" points="18,165 49,107 82,137"/><polygon fill="#697891" points="-3,82 33,3 48,64"/><polygon fill="#515f77" points="-3,82 48,64 49,107"/><polygon fill="#8b9bb7" points="33,3 129,9 93,49"/><polygon fill="#7c8ca6" points="33,3 93,49 48,64"/><polygon fill="#7b8ba6" points="129,9 207,55 132,60"/><polygon fill="#7c8ca7" points="129,9 132,60 93,49"/><polygon fill="#57657d" points="151,95 125,125 82,137 49,107 48,64 93,49 132,60"/><polygon fill="#29354a" points="1358,191 1233,178 1295,143"/><polygon fill="#2b374c" points="1358,191 1295,143 1347,121"/><polygon fill="#3a475d" points="1233,178 1166,107 1255,113"/><polygon fill="#38455b" points="1233,178 1255,113 1295,143"/><polygon fill="#677690" points="1166,107 1193,23 1233,77"/><polygon fill="#54627a" points="1166,107 1233,77 1255,113"/><polygon fill="#8797b3" points="1193,23 1306,-8 1272,45"/><polygon fill="#708099" points="1193,23 1272,45 1233,77"/><polygon fill="#7d8da8" points="1306,-8 1417,30 1328,53"/><polygon fill="#7a8aa4" points="1306,-8 1328,53 1272,45"/><polygon fill="#617089" points="1417,30 1436,118 1373,81"/><polygon fill="#6e7e97" points="1417,30 1373,81 1328,53"/><polygon fill="#323f54" points="1436,118 1358,191 1347,121"/><polygon fill="#4f5c74" points="1436,118 1347,121 1373,81"/><polygon fill="#4d5b72" points="1295,143 1255,113 1233,77 1272,45 1328,53 1373,81 1347,121"/><polygon fill="#56647c" points="675,89 711,160 650,128"/><polygon fill="#6f7e97" points="675,89 650,128 622,101"/><polygon fill="#364258" points="711,160 644,216 643,167"/><polygon fill="#48556c" points="711,160 643,167 650,128"/><polygon fill="#243044" points="644,216 558,208 600,178"/><polygon fill="#344056" points="644,216 600,178 643,167"/><polygon fill="#3f4c62" points="558,208 506,154 561,163"/><polygon fill="#323e54" points="558,208 561,163 600,178"/><polygon fill="#5c6a83" points="506,154 525,85 546,126"/><polygon fill="#4f5c74" points="506,154 546,126 561,163"/><polygon fill="#8696b1" points="525,85 602,47 577,94"/><polygon fill="#72829b" points="525,85 577,94 546,126"/><polygon fill="#8293ae" points="602,47 675,89 622,101"/><polygon fill="#7d8da8" points="602,47 622,101 577,94"/><polygon fill="#56647c" points="650,128 643,167 600,178 561,163 546,126 577,94 622,101"/><polygon fill="#64728b" points="261,53 293,121 233,104"/><polygon fill="#75849e" points="261,53 233,104 204,74"/><polygon fill="#424f66" points="293,121 261,192 241,140"/><polygon fill="#58667e" points="293,121 241,140 233,104"/><polygon fill="#2e3a4f" points="261,192 166,194 200,156"/><polygon fill="#323e54" points="261,192 200,156 241,140"/><polygon fill="#323e54" points="166,194 79,159 162,145"/><polygon fill="#2e3a4f" points="166,194 162,145 200,156"/><polygon fill="#505d75" points="79,159 94,81 130,118"/><polygon fill="#445168" points="79,159 130,118 162,145"/><polygon fill="#7b8ba6" points="94,81 166,30 157,86"/><polygon fill="#606e87" points="94,81 157,86 130,118"/><polygon fill="#8a9ab6" points="166,30 261,53 204,74"/><polygon fill="#8798b3" points="166,30 204,74 157,86"/><polygon fill="#55637a" points="233,104 241,140 200,156 162,145 130,118 157,86 204,74"/><polygon fill="#75849e" points="431,41 482,100 420,98"/><polygon fill="#75849e" points="431,41 420,98 391,79"/><polygon fill="#46536a" points="482,100 462,172 430,128"/><polygon fill="#58677f" points="482,100 430,128 420,98"/><polygon fill="#2f3b51" points="462,172 392,212 412,159"/><polygon fill="#38455b" points="462,172 412,159 430,128"/><polygon fill="#293449" points="392,212 321,174 375,153"/><polygon fill="#323e54" points="392,212 375,153 412,159"/><polygon fill="#48566d" points="321,174 317,106 349,130"/><polygon fill="#39465c" points="321,174 349,130 375,153"/><polygon fill="#7888a2" points="317,106 352,47 356,95"/><polygon fill="#56647c" points="317,106 356,95 349,130"/><polygon fill="#8fa0bb" points="352,47 431,41 391,79"/><polygon fill="#7c8ca7" points="352,47 391,79 356,95"/><polygon fill="#4d5b72" points="420,98 430,128 412,159 375,153 349,130 356,95 391,79"/><polygon fill="#8a9ab6" points="1089,56 1171,27 1142,72"/><polygon fill="#73839d" points="1089,56 1142,72 1113,99"/><polygon fill="#8495b0" points="1171,27 1239,71 1188,75"/><polygon fill="#7d8ea8" points="1171,27 1188,75 1142,72"/><polygon fill="#5c6b83" points="1239,71 1243,134 1208,107"/><polygon fill="#6a7992" points="1239,71 1208,107 1188,75"/><polygon fill="#38455b" points="1243,134 1197,195 1195,140"/><polygon fill="#445168" points="1243,134 1195,140 1208,107"/><polygon fill="#2c384d" points="1197,195 1113,172 1155,148"/><polygon fill="#334055" points="1197,195 1155,148 1195,140"/><polygon fill="#3f4c63" points="1113,172 1051,122 1119,132"/><polygon fill="#3a475d" points="1113,172 1119,132 1155,148"/><polygon fill="#66758e" points="1051,122 1089,56 1113,99"/><polygon fill="#54627a" points="1051,122 1113,99 1119,132"/><polygon fill="#515e76" points="1142,72 1188,75 1208,107 1195,140 1155,148 1119,132 1113,99"/><polygon fill="#6f7e98" points="0,38 54,94 -11,91"/><polygon fill="#75859f" points="0,38 -11,91 -39,68"/><polygon fill="#46536a" points="54,94 30,166 -6,120"/><polygon fill="#606e87" points="54,94 -6,120 -11,91"/><polygon fill="#293449" points="30,166 -42,184 -21,152"/><polygon fill="#3f4c62" points="30,166 -21,152 -6,120"/><polygon fill="#344156" points="-42,184 -104,156 -57,141"/><polygon fill="#2e3a4f" points="-42,184 -57,141 -21,152"/><polygon fill="#526078" points="-104,156 -135,89 -79,119"/><polygon fill="#445268" points="-104,156 -79,119 -57,141"/><polygon fill="#74849e" points="-135,89 -79,31 -69,89"/><polygon fill="#5c6b83" points="-135,89 -69,89 -79,119"/><polygon fill="#8fa0bc" points="-79,31 0,38 -39,68"/><polygon fill="#7f8faa" points="-79,31 -39,68 -69,89"/><polygon fill="#515f77" points="-11,91 -6,120 -21,152 -57,141 -79,119 -69,89 -39,68"/><polygon fill="#66748d" points="696,127 736,68 751,106"/><polygon fill="#4c5a71" points="696,127 751,106 751,141"/><polygon fill="#8e9fbb" points="736,68 809,34 781,83"/><polygon fill="#7787a1" points="736,68 781,83 751,106"/><polygon fill="#8090ab" points="809,34 875,80 823,85"/><polygon fill="#8091ab" points="809,34 823,85 781,83"/><polygon fill="#5a6880" points="875,80 879,147 843,116"/><polygon fill="#63718a" points="875,80 843,116 823,85"/><polygon fill="#333f55" points="879,147 820,188 826,148"/><polygon fill="#46536a" points="879,147 826,148 843,116"/><polygon fill="#2d394e" points="820,188 750,176 788,158"/><polygon fill="#344157" points="820,188 788,158 826,148"/><polygon fill="#3b485e" points="750,176 696,127 751,141"/><polygon fill="#313d53" points="750,176 751,141 788,158"/><polygon fill="#505e75" points="751,106 781,83 823,85 843,116 826,148 788,158 751,141"/><polygon fill="#8c9cb8" points="827,78 903,70 873,108"/><polygon fill="#7787a1" points="827,78 873,108 841,125"/><polygon fill="#7686a0" points="903,70 950,118 910,114"/><polygon fill="#7c8ca6" points="903,70 910,114 873,108"/><polygon fill="#4a586f" points="950,118 963,185 926,146"/><polygon fill="#606f87" points="950,118 926,146 910,114"/><polygon fill="#2e3a4f" points="963,185 896,224 906,176"/><polygon fill="#46536a" points="963,185 906,176 926,146"/><polygon fill="#232e43" points="896,224 832,194 868,185"/><polygon fill="#313d52" points="896,224 868,185 906,176"/><polygon fill="#3d4960" points="832,194 804,141 841,160"/><polygon fill="#3d4a61" points="832,194 841,160 868,185"/><polygon fill="#6e7e97" points="804,141 827,78 841,125"/><polygon fill="#505d75" points="804,141 841,125 841,160"/><polygon fill="#57657d" points="873,108 910,114 926,146 906,176 868,185 841,160 841,125"/><polygon fill="#6f7f98" points="1013,58 1084,91 1017,93"/><polygon fill="#7a8aa4" points="1013,58 1017,93 979,80"/><polygon fill="#505d75" points="1084,91 1074,155 1036,120"/><polygon fill="#66758e" points="1084,91 1036,120 1017,93"/><polygon fill="#2e3a4f" points="1074,155 995,183 1009,143"/><polygon fill="#38445a" points="1074,155 1009,143 1036,120"/><polygon fill="#232e43" points="995,183 923,158 967,150"/><polygon fill="#2b374c" points="995,183 967,150 1009,143"/><polygon fill="#46546b" points="923,158 879,107 943,125"/><polygon fill="#374359" points="923,158 943,125 967,150"/><polygon fill="#6e7e97" points="879,107 931,56 943,97"/><polygon fill="#5d6b83" points="879,107 943,97 943,125"/><polygon fill="#8697b2" points="931,56 1013,58 979,80"/><polygon fill="#7686a0" points="931,56 979,80 943,97"/><polygon fill="#58667f" points="1017,93 1036,120 1009,143 967,150 943,125 943,97 979,80"/><polygon fill="#8495b0" points="994,103 1058,73 1053,115"/><polygon fill="#62718a" points="994,103 1053,115 1034,133"/><polygon fill="#8c9db8" points="1058,73 1124,92 1084,104"/><polygon fill="#7c8ca6" points="1058,73 1084,104 1053,115"/><polygon fill="#6b7a94" points="1124,92 1150,139 1111,123"/><polygon fill="#71809a" points="1124,92 1111,123 1084,104"/><polygon fill="#404d64" points="1150,139 1117,183 1107,150"/><polygon fill="#54627a" points="1150,139 1107,150 1111,123"/><polygon fill="#202b40" points="1117,183 1047,197 1077,162"/><polygon fill="#2e3a4f" points="1117,183 1077,162 1107,150"/><polygon fill="#2d384e" points="1047,197 999,157 1049,153"/><polygon fill="#2e3a4f" points="1047,197 1049,153 1077,162"/><polygon fill="#5b6981" points="999,157 994,103 1034,133"/><polygon fill="#4a586f" points="999,157 1034,133 1049,153"/><polygon fill="#54627a" points="1053,115 1084,104 1111,123 1107,150 1077,162 1049,153 1034,133"/><polygon fill="#72819b" points="-219,124 -168,83 -162,118"/><polygon fill="#54627a" points="-219,124 -162,118 -164,142"/><polygon fill="#8c9db8" points="-168,83 -95,74 -131,106"/><polygon fill="#7686a0" points="-168,83 -131,106 -162,118"/><polygon fill="#74839d" points="-95,74 -59,120 -103,118"/><polygon fill="#8191ac" points="-95,74 -103,118 -131,106"/><polygon fill="#515f76" points="-59,120 -62,169 -86,140"/><polygon fill="#58667e" points="-59,120 -86,140 -103,118"/><polygon fill="#333f55" points="-62,169 -124,188 -111,157"/><polygon fill="#3b485e" points="-62,169 -111,157 -86,140"/><polygon fill="#313d52" points="-124,188 -192,177 -143,160"/><polygon fill="#334055" points="-124,188 -143,160 -111,157"/><polygon fill="#435067" points="-192,177 -219,124 -164,142"/><polygon fill="#39455b" points="-192,177 -164,142 -143,160"/><polygon fill="#525f77" points="-162,118 -131,106 -103,118 -86,140 -111,157 -143,160 -164,142"/></g>
+        <use href="#deck" x="1200"/>
+      </svg>
+    </div>
+
+    <!-- shards rushing past the glass -->
+    <div class="strip" id="sNear">
+      <svg viewBox="0 0 2400 260" preserveAspectRatio="none">
+        <g id="near"><polygon fill="#33435e" points="149,123 76,125 116,117"/><polygon fill="#43536f" points="149,123 116,117 143,114"/><polygon fill="#485974" points="76,125 56,110 92,113"/><polygon fill="#3e4e69" points="76,125 92,113 116,117"/><polygon fill="#6a7b99" points="56,110 86,98 85,106"/><polygon fill="#596a86" points="56,110 85,106 92,113"/><polygon fill="#7d8fae" points="86,98 148,99 117,104"/><polygon fill="#7486a5" points="86,98 117,104 85,106"/><polygon fill="#647693" points="148,99 184,110 142,107"/><polygon fill="#7183a1" points="148,99 142,107 117,104"/><polygon fill="#43536f" points="184,110 149,123 143,114"/><polygon fill="#596b87" points="184,110 143,114 142,107"/><polygon fill="#596a87" points="116,117 92,113 85,106 117,104 142,107 143,114"/><polygon fill="#7d8fae" points="140,96 222,91 183,100"/><polygon fill="#6f819f" points="140,96 183,100 154,107"/><polygon fill="#6a7c9a" points="222,91 285,107 226,104"/><polygon fill="#7789a8" points="222,91 226,104 183,100"/><polygon fill="#495a76" points="285,107 249,126 232,114"/><polygon fill="#596a87" points="285,107 232,114 226,104"/><polygon fill="#35455f" points="249,126 155,130 197,119"/><polygon fill="#42536e" points="249,126 197,119 232,114"/><polygon fill="#40516c" points="155,130 89,113 151,117"/><polygon fill="#40506b" points="155,130 151,117 197,119"/><polygon fill="#5d6e8b" points="89,113 140,96 154,107"/><polygon fill="#536480" points="89,113 154,107 151,117"/><polygon fill="#596a87" points="183,100 226,104 232,114 197,119 151,117 154,107"/><polygon fill="#3f4f6a" points="272,125 221,117 257,115"/><polygon fill="#374862" points="272,125 257,115 284,115"/><polygon fill="#546582" points="221,117 215,103 244,110"/><polygon fill="#4b5b77" points="221,117 244,110 257,115"/><polygon fill="#7789a7" points="215,103 270,95 258,105"/><polygon fill="#677896" points="215,103 258,105 244,110"/><polygon fill="#7e91af" points="270,95 319,104 287,104"/><polygon fill="#7385a3" points="270,95 287,104 258,105"/><polygon fill="#576885" points="319,104 329,117 300,110"/><polygon fill="#617390" points="319,104 300,110 287,104"/><polygon fill="#3c4d68" points="329,117 272,125 284,115"/><polygon fill="#4c5d79" points="329,117 284,115 300,110"/><polygon fill="#5a6b88" points="257,115 244,110 258,105 287,104 300,110 284,115"/><polygon fill="#4d5e7a" points="617,61 593,72 586,64"/><polygon fill="#566783" points="617,61 586,64 582,59"/><polygon fill="#33435d" points="593,72 541,73 565,68"/><polygon fill="#43546f" points="593,72 565,68 586,64"/><polygon fill="#445570" points="541,73 515,63 543,65"/><polygon fill="#3d4d68" points="541,73 543,65 565,68"/><polygon fill="#697a98" points="515,63 531,52 541,60"/><polygon fill="#596b87" points="515,63 541,60 543,65"/><polygon fill="#7b8dac" points="531,52 586,50 560,57"/><polygon fill="#6a7c9a" points="531,52 560,57 541,60"/><polygon fill="#7284a2" points="586,50 617,61 582,59"/><polygon fill="#7789a8" points="586,50 582,59 560,57"/><polygon fill="#5a6b88" points="586,64 565,68 543,65 541,60 560,57 582,59"/><polygon fill="#7a8cab" points="614,44 673,54 634,55"/><polygon fill="#7587a6" points="614,44 634,55 598,55"/><polygon fill="#5a6b88" points="673,54 681,69 651,61"/><polygon fill="#627491" points="673,54 651,61 634,55"/><polygon fill="#40516c" points="681,69 625,78 640,69"/><polygon fill="#4d5e7a" points="681,69 640,69 651,61"/><polygon fill="#384863" points="625,78 558,71 605,69"/><polygon fill="#374862" points="625,78 605,69 640,69"/><polygon fill="#52637f" points="558,71 560,55 582,63"/><polygon fill="#4b5c78" points="558,71 582,63 605,69"/><polygon fill="#7d90ae" points="560,55 614,44 598,55"/><polygon fill="#667895" points="560,55 598,55 582,63"/><polygon fill="#546581" points="634,55 651,61 640,69 605,69 582,63 598,55"/><polygon fill="#788aa8" points="645,55 691,52 674,56"/><polygon fill="#6b7d9b" points="645,55 674,56 657,61"/><polygon fill="#7789a7" points="691,52 724,59 700,57"/><polygon fill="#7789a8" points="691,52 700,57 674,56"/><polygon fill="#536480" points="724,59 720,69 710,63"/><polygon fill="#5f718d" points="724,59 710,63 700,57"/><polygon fill="#384963" points="720,69 675,73 693,68"/><polygon fill="#465672" points="720,69 693,68 710,63"/><polygon fill="#41516d" points="675,73 637,66 668,66"/><polygon fill="#3d4d68" points="675,73 668,66 693,68"/><polygon fill="#60728f" points="637,66 645,55 657,61"/><polygon fill="#4d5e7a" points="637,66 657,61 668,66"/><polygon fill="#546582" points="674,56 700,57 710,63 693,68 668,66 657,61"/><polygon fill="#687a97" points="887,146 914,160 881,155"/><polygon fill="#7284a2" points="887,146 881,155 851,150"/><polygon fill="#40516c" points="914,160 874,171 877,163"/><polygon fill="#586986" points="914,160 877,163 881,155"/><polygon fill="#3c4c67" points="874,171 797,172 843,166"/><polygon fill="#40506b" points="874,171 843,166 877,163"/><polygon fill="#475874" points="797,172 769,156 813,161"/><polygon fill="#445570" points="797,172 813,161 843,166"/><polygon fill="#6a7c99" points="769,156 815,142 814,153"/><polygon fill="#586a86" points="769,156 814,153 813,161"/><polygon fill="#7e90af" points="815,142 887,146 851,150"/><polygon fill="#798baa" points="815,142 851,150 814,153"/><polygon fill="#5b6d89" points="881,155 877,163 843,166 813,161 814,153 851,150"/><polygon fill="#7789a7" points="945,138 1028,150 963,149"/><polygon fill="#7386a4" points="945,138 963,149 913,149"/><polygon fill="#51627e" points="1028,150 1003,171 977,160"/><polygon fill="#5f708d" points="1028,150 977,160 963,149"/><polygon fill="#3c4c67" points="1003,171 915,179 948,168"/><polygon fill="#435470" points="1003,171 948,168 977,160"/><polygon fill="#3f4f6a" points="915,179 840,165 896,167"/><polygon fill="#3b4b66" points="915,179 896,167 948,168"/><polygon fill="#5d6f8b" points="840,165 848,144 886,157"/><polygon fill="#4b5c78" points="840,165 886,157 896,167"/><polygon fill="#7688a7" points="848,144 945,138 913,149"/><polygon fill="#657794" points="848,144 913,149 886,157"/><polygon fill="#586a86" points="963,149 977,160 948,168 896,167 886,157 913,149"/><polygon fill="#7a8caa" points="988,145 1057,145 1022,150"/><polygon fill="#7082a0" points="988,145 1022,150 993,154"/><polygon fill="#667895" points="1057,145 1090,158 1054,154"/><polygon fill="#7587a6" points="1057,145 1054,154 1022,150"/><polygon fill="#4c5d79" points="1090,158 1052,170 1050,162"/><polygon fill="#536481" points="1090,158 1050,162 1054,154"/><polygon fill="#364761" points="1052,170 990,169 1021,165"/><polygon fill="#3c4d68" points="1052,170 1021,165 1050,162"/><polygon fill="#485975" points="990,169 954,158 996,161"/><polygon fill="#41526d" points="990,169 996,161 1021,165"/><polygon fill="#6d7f9d" points="954,158 988,145 993,154"/><polygon fill="#5c6d8a" points="954,158 993,154 996,161"/><polygon fill="#596b87" points="1022,150 1054,154 1050,162 1021,165 996,161 993,154"/><polygon fill="#3c4d68" points="1130,102 1091,106 1106,101"/><polygon fill="#4b5c78" points="1130,102 1106,101 1122,97"/><polygon fill="#3b4b66" points="1091,106 1051,100 1082,100"/><polygon fill="#3c4c67" points="1091,106 1082,100 1106,101"/><polygon fill="#60718e" points="1051,100 1058,88 1079,95"/><polygon fill="#485874" points="1051,100 1079,95 1082,100"/><polygon fill="#7a8cab" points="1058,88 1107,86 1091,91"/><polygon fill="#7082a0" points="1058,88 1091,91 1079,95"/><polygon fill="#7082a0" points="1107,86 1146,92 1114,92"/><polygon fill="#7284a2" points="1107,86 1114,92 1091,91"/><polygon fill="#52637f" points="1146,92 1130,102 1122,97"/><polygon fill="#667895" points="1146,92 1122,97 1114,92"/><polygon fill="#596a87" points="1106,101 1082,100 1079,95 1091,91 1114,92 1122,97"/><polygon fill="#384863" points="-72,103 -114,105 -96,101"/><polygon fill="#3f4f6a" points="-72,103 -96,101 -76,98"/><polygon fill="#40516c" points="-114,105 -149,98 -121,100"/><polygon fill="#3a4b66" points="-114,105 -121,100 -96,101"/><polygon fill="#657794" points="-149,98 -137,87 -126,94"/><polygon fill="#4f607c" points="-149,98 -126,94 -121,100"/><polygon fill="#7b8dac" points="-137,87 -88,86 -106,91"/><polygon fill="#7082a0" points="-137,87 -106,91 -126,94"/><polygon fill="#7082a0" points="-88,86 -49,93 -86,93"/><polygon fill="#7688a6" points="-88,86 -86,93 -106,91"/><polygon fill="#4a5b77" points="-49,93 -72,103 -76,98"/><polygon fill="#5a6c88" points="-49,93 -76,98 -86,93"/><polygon fill="#556682" points="-96,101 -121,100 -126,94 -106,91 -86,93 -76,98"/><polygon fill="#586986" points="1095,103 1101,89 1117,96"/><polygon fill="#495a76" points="1095,103 1117,96 1135,102"/><polygon fill="#7486a4" points="1101,89 1151,82 1136,90"/><polygon fill="#637592" points="1101,89 1136,90 1117,96"/><polygon fill="#7c8ead" points="1151,82 1198,90 1168,89"/><polygon fill="#7385a3" points="1151,82 1168,89 1136,90"/><polygon fill="#576885" points="1198,90 1209,104 1180,96"/><polygon fill="#647693" points="1198,90 1180,96 1168,89"/><polygon fill="#40506b" points="1209,104 1149,109 1167,103"/><polygon fill="#445570" points="1209,104 1167,103 1180,96"/><polygon fill="#3b4b66" points="1149,109 1095,103 1135,102"/><polygon fill="#3d4d68" points="1149,109 1135,102 1167,103"/><polygon fill="#596a87" points="1117,96 1136,90 1168,89 1180,96 1167,103 1135,102"/><polygon fill="#4f607c" points="5,94 -11,107 -19,99"/><polygon fill="#5c6d8a" points="5,94 -19,99 -25,92"/><polygon fill="#3b4c67" points="-11,107 -74,109 -45,104"/><polygon fill="#455571" points="-11,107 -45,104 -19,99"/><polygon fill="#465772" points="-74,109 -107,98 -78,101"/><polygon fill="#3f506b" points="-74,109 -78,101 -45,104"/><polygon fill="#677996" points="-107,98 -88,85 -83,93"/><polygon fill="#50617e" points="-107,98 -83,93 -78,101"/><polygon fill="#7c8ead" points="-88,85 -27,83 -54,90"/><polygon fill="#6b7d9a" points="-88,85 -54,90 -83,93"/><polygon fill="#697a98" points="-27,83 5,94 -25,92"/><polygon fill="#6e809e" points="-27,83 -25,92 -54,90"/><polygon fill="#51627f" points="-19,99 -45,104 -78,101 -83,93 -54,90 -25,92"/><polygon fill="#627391" points="1236,87 1254,97 1228,94"/><polygon fill="#6e809e" points="1236,87 1228,94 1209,92"/><polygon fill="#43546f" points="1254,97 1224,106 1226,99"/><polygon fill="#51627e" points="1254,97 1226,99 1228,94"/><polygon fill="#3a4a65" points="1224,106 1182,103 1203,101"/><polygon fill="#3f506b" points="1224,106 1203,101 1226,99"/><polygon fill="#475874" points="1182,103 1162,95 1185,98"/><polygon fill="#3d4e69" points="1182,103 1185,98 1203,101"/><polygon fill="#6e809e" points="1162,95 1190,87 1191,93"/><polygon fill="#5d6e8b" points="1162,95 1191,93 1185,98"/><polygon fill="#8093b2" points="1190,87 1236,87 1209,92"/><polygon fill="#788aa8" points="1190,87 1209,92 1191,93"/><polygon fill="#536480" points="1228,94 1226,99 1203,101 1185,98 1191,93 1209,92"/><polygon fill="#647693" points="32,88 54,97 28,94"/><polygon fill="#6c7e9c" points="32,88 28,94 9,92"/><polygon fill="#455571" points="54,97 22,105 20,98"/><polygon fill="#546582" points="54,97 20,98 28,94"/><polygon fill="#384863" points="22,105 -21,104 4,101"/><polygon fill="#3a4b66" points="22,105 4,101 20,98"/><polygon fill="#4f607c" points="-21,104 -34,95 -12,98"/><polygon fill="#465672" points="-21,104 -12,98 4,101"/><polygon fill="#6d7e9c" points="-34,95 -12,86 -13,93"/><polygon fill="#5f718e" points="-34,95 -13,93 -12,98"/><polygon fill="#8396b5" points="-12,86 32,88 9,92"/><polygon fill="#7385a3" points="-12,86 9,92 -13,93"/><polygon fill="#5c6e8a" points="28,94 20,98 4,101 -12,98 -13,93 9,92"/></g>
+        <use href="#near" x="1200"/>
+      </svg>
+    </div>
+
+    <i class="tw" style="left:27.0%;top:44.5%;--lo:0.14;--hi:0.85;--dur:3.7s;--del:1.5s"></i><i class="tw" style="left:91.9%;top:14.4%;--lo:0.24;--hi:0.76;--dur:5.1s;--del:3.0s"></i><i class="tw" style="left:24.1%;top:39.2%;--lo:0.14;--hi:0.68;--dur:3.5s;--del:1.6s"></i><i class="tw" style="left:42.2%;top:42.1%;--lo:0.19;--hi:0.64;--dur:4.4s;--del:5.9s"></i><i class="tw" style="left:13.3%;top:30.8%;--lo:0.19;--hi:0.83;--dur:4.7s;--del:4.1s"></i>
+    <i class="shoot s0" style="left:14%;top:12%;rotate:30deg;animation:shoot0 47s linear infinite 6s"></i><i class="shoot s1" style="left:62%;top:6%;rotate:30deg;animation:shoot1 71s linear infinite 29s"></i><i class="shoot s2" style="left:34%;top:26%;rotate:29deg;animation:shoot2 93s linear infinite 55s"></i>
+  </div>
+  <img id="frame" src="plane-window.png" alt="" decoding="async" fetchpriority="high">
 </div>
+
 <nav id="topNav">
   <a id="homeBtn" href="odile_hub.html">odile.xyz</a><span id="navSep"> / </span><span id="navSection">radio</span>
 </nav>
@@ -112,214 +235,220 @@ document.addEventListener('mousemove', e => {
   cur.style.left = e.clientX+'px'; cur.style.top = e.clientY+'px';
 });
 
-/* home */
+/* back to hub */
 document.getElementById('homeBtn').addEventListener('click', e => {
   e.preventDefault();
   document.getElementById('overlay').classList.add('on');
   setTimeout(() => window.location.href = 'odile_hub.html', 700);
 });
 
-/* iridescent bg — identical to hub */
-let mx=.5, my=.5;
-const iri = document.getElementById('iri');
-const blobs   = [{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
-const bbase   = [{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
-const blobDef = [
-  {ax:.38, ay:.30,  ease:.05,  color:'220,180,60',  op:.70, ex:90, ey:70},
-  {ax:-.42,ay:.34,  ease:.04,  color:'200,160,210', op:.50, ex:70, ey:60},
-  {ax:.36, ay:-.38, ease:.045, color:'160,210,200', op:.40, ex:60, ey:50},
-  {ax:.18, ay:.16,  ease:.03,  color:'210,200,190', op:.30, ex:80, ey:80},
-];
-document.addEventListener('mousemove', e => { mx=e.clientX/innerWidth; my=e.clientY/innerHeight; });
-(function blobTick() {
-  let g='';
-  blobs.forEach((b,i) => {
-    const d=blobDef[i];
-    b.x+=(bbase[i].x+(mx-.5)*d.ax*100-b.x)*d.ease;
-    b.y+=(bbase[i].y+(my-.5)*d.ay*100-b.y)*d.ease;
-    g+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;
-  });
-  iri.style.backgroundImage=g.slice(0,-1);
-  requestAnimationFrame(blobTick);
+/* ══════════════════════════════════════════════════════
+   THE WINDOW OPENING
+   Measured off the cabin image's alpha channel: the glass spans 17.8%→81.1%
+   of its width and 13.5%→87.2% of its height. Sizing the sky to that hole
+   instead of the viewport cuts the parallax textures to roughly 40% of what
+   they were, which is most of what made this page stutter.
+══════════════════════════════════════════════════════ */
+(function(){
+  const view = document.getElementById('view');
+  const IW = 2000, IH = 1129;                      /* cabin image, natural px */
+  const X0 = 0.178, X1 = 0.811, Y0 = 0.1346, Y1 = 0.8716;
+  const PAD = 0.025;             /* slack for the shake and the 1.012 scale */
+
+  /* each band as a fraction of the opening: [top, height] */
+  const BANDS = { sNear:[0.06,0.26], sRidge:[0.38,0.26], sDeck:[0.60,0.40] };
+
+  function fitView(){
+    const vw = innerWidth, vh = innerHeight;
+    /* mirror object-fit: cover so the box tracks the glass at any aspect */
+    const s = Math.max(vw / IW, vh / IH);
+    const dw = IW * s, dh = IH * s;
+    const ox = (vw - dw) / 2, oy = (vh - dh) / 2;
+
+    /* the opening, in viewport coordinates */
+    const wl = ox + (X0 - PAD) * dw, wt = oy + (Y0 - PAD) * dh;
+    const ww = (X1 - X0 + PAD * 2) * dw, wh = (Y1 - Y0 + PAD * 2) * dh;
+
+    /* On a screen whose shape differs from the image, cover crops hard and
+       the opening runs well past the edges. Clip to what can actually be
+       seen — off-screen sky still costs a full texture. */
+    const M = 8;
+    const cl = Math.max(wl, -M), ct = Math.max(wt, -M);
+    const cr = Math.min(wl + ww, vw + M), cb = Math.min(wt + wh, vh + M);
+    view.style.left   = cl + 'px';
+    view.style.top    = ct + 'px';
+    view.style.width  = Math.max(0, cr - cl) + 'px';
+    view.style.height = Math.max(0, cb - ct) + 'px';
+
+    /* keep the horizon tied to the glass, not to the clipped box */
+    const dy = wt - ct;
+    for (const id in BANDS){
+      const [t, h] = BANDS[id], el = document.getElementById(id);
+      el.style.top    = (dy + t * wh) + 'px';
+      el.style.height = (h * wh) + 'px';
+    }
+  }
+  fitView();
+  addEventListener('resize', fitView, { passive:true });
+  addEventListener('orientationchange', fitView, { passive:true });
 })();
 
-/* ── SoundCloud Widget ── */
+/* ══════════════════════════════════════════════════════
+   TURBULENCE — the cabin never sits perfectly still
+══════════════════════════════════════════════════════ */
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const scene = document.getElementById('scene');
+  const view  = document.getElementById('view');
+  const t0 = performance.now();
+
+  let settle = 1;              /* rougher air on arrival, easing to cruise */
+
+  (function shake(now){
+    const t = (now - t0) / 1000;
+    settle += (0 - settle) * 0.0035;
+    /* incommensurable frequencies so the motion never visibly repeats,
+       under a slow envelope that breathes between calm and bumpy air */
+    const env = (0.62 + 0.38 * (0.5 + 0.5 * Math.sin(t * 0.13 + 1.1))) * (1 + settle * 1.4);
+    const x = (Math.sin(t*0.71)*2.3 + Math.sin(t*1.93+1.3)*0.85 + Math.sin(t*3.71+2.1)*0.3) * env;
+    const y = (Math.cos(t*0.89+0.5)*1.9 + Math.sin(t*2.31+0.7)*0.7 + Math.cos(t*4.13)*0.26) * env;
+    const r = (Math.sin(t*0.47)*0.15 + Math.sin(t*1.71+0.9)*0.055) * env;
+    scene.style.transform = `translate3d(${x.toFixed(2)}px,${y.toFixed(2)}px,0) rotate(${r.toFixed(3)}deg) scale(1.012)`;
+    /* A long, shallow bank. It goes on the world rather than the cabin: a
+       passenger banks with the aircraft, so what they see tilt is the
+       horizon. Amplitude is kept under a degree — the view is the window's
+       bounding box plus 2.5% of slack, and more rotation than this would
+       swing a corner out from behind the glass. */
+    const bank = Math.sin(t*0.083 + 0.4) * 0.40 + Math.sin(t*0.037 + 2.2) * 0.20;
+    /* the view lags the glass a touch — parallax between window and world */
+    view.style.transform  = `translate3d(${(-x*0.42).toFixed(2)}px,${(-y*0.5).toFixed(2)}px,0) rotate(${bank.toFixed(3)}deg)`;
+    requestAnimationFrame(shake);
+  })(t0);
+})();
+
+/* ══════════════════════════════════════════════════════
+   SOUND — music up front, cabin ambience underneath
+══════════════════════════════════════════════════════ */
+const MUSIC_FADE = 1800;   /* short: the music has to be audible at once */
+const AMB_FADE   = 4000;   /* the room tone can take its time */
+
+/* ── cabin ambience: two elements crossfaded so the loop has no seam ── */
+const AMB_URL = 'plane-cabin.m4a';
+const AMB_VOL = 0.42;      /* sits under the music */
+const XFADE   = 4;         /* seconds of overlap at the seam */
+const beds = [new Audio(AMB_URL), new Audio(AMB_URL)];
+beds[0].preload = 'auto';
+/* the second bed is not needed until the first is nearly through, and
+   fetching both up front doubled the bytes competing with the artwork
+   during the opening seconds */
+beds[1].preload = 'none';
+beds.forEach(a => { a.volume = 0; });
+let bed = 0, ambGain = 0, ambPrev = performance.now(), armed = false;
+
+function playBeds(){ beds[bed].play().catch(()=>{}); }
+
+/* The crossfade below is driven by rAF, which a background tab throttles to
+   a crawl — it can sail straight past the 4s seam and leave the room tone
+   stopped for good. If a bed ever reaches its end, hand over by force. */
+beds.forEach((a, i) => a.addEventListener('ended', () => {
+  if (bed !== i) return;
+  a.currentTime = 0;
+  const nxt = beds[1 - bed];
+  nxt.preload = 'auto';
+  nxt.currentTime = 0;
+  nxt.volume = ambGain * ambGain * AMB_VOL;
+  nxt.play().catch(()=>{});
+  bed = 1 - bed; armed = false;
+}));
+
+function tickAmbience(now){
+  /* advanced by frame delta so a backgrounded tab resumes the swell
+     smoothly instead of snapping to full volume when focused */
+  ambGain = Math.min(ambGain + Math.min(now - ambPrev, 100) / AMB_FADE, 1);
+  ambPrev = now;
+  const base = ambGain * ambGain * AMB_VOL;
+
+  const cur = beds[bed], nxt = beds[1-bed];
+  const d = cur.duration;
+  /* arm the standby bed a little before the seam so it is buffered in time
+     without costing anything at page load */
+  if (!armed && d && cur.currentTime > d - XFADE - 15) {
+    armed = true; nxt.preload = 'auto'; nxt.load();
+  }
+  if (d && cur.currentTime > d - XFADE) {
+    if (nxt.paused) { nxt.currentTime = 0; nxt.play().catch(()=>{}); }
+    const k = Math.max(0, Math.min((d - cur.currentTime) / XFADE, 1));
+    cur.volume = base * k;
+    nxt.volume = base * (1 - k);
+    if (k <= 0.001) { cur.pause(); cur.currentTime = 0; bed = 1 - bed; armed = false; }
+  } else {
+    cur.volume = base;
+    if (!nxt.paused) nxt.volume = 0;
+  }
+  requestAnimationFrame(tickAmbience);
+}
+
+/* ── SoundCloud playlist ──
+   The iframe already carries auto_play, so the deck is rolling by the time
+   the API binds; we only take the volume down to zero and ride it back up.
+   Nothing is skipped or re-cued first — that reload was what delayed the
+   first note. */
 const widget = SC.Widget(document.getElementById('sc-widget'));
-let playing  = false;
-let progress = 0;
-let duration = 0;
+let started = false, fading = false;
 
-const hint = document.getElementById('start-hint');
-let ready = false;
+function startPlayback(){ widget.play(); }
 
-let firstPlay = true;
+function fadeIn(){
+  if (fading) return;
+  fading = true;
+  let prev = performance.now(), t = 0;
+  (function ramp(now){
+    t = Math.min(t + Math.min(now - prev, 100) / MUSIC_FADE, 1);
+    prev = now;
+    /* near-linear: a quadratic curve would keep the opening seconds
+       inaudible, which reads as the music failing to start */
+    widget.setVolume(Math.round(Math.pow(t, 1.25) * 100));
+    if (t < 1) requestAnimationFrame(ramp);
+  })(prev);
+}
 
 widget.bind(SC.Widget.Events.READY, () => {
-  ready = true;
-  hint.classList.add('hidden');
-  widget.getSounds(sounds => {
-    const n = sounds?.length || 1;
-    const i = Math.floor(Math.random() * n);
-    widget.skip(i);
-    setTimeout(() => widget.play(), 150);
-  });
-});
-
-widget.bind(SC.Widget.Events.PLAY, () => {
-  playing = true;
-  hint.classList.add('hidden');
-  widget.getCurrentSound(s => {
-    document.getElementById('track-title').textContent  = s?.title          || '—';
-    document.getElementById('track-artist').textContent = s?.user?.username || '';
-  });
-  widget.getDuration(d => {
-    duration = d;
-    // seek to 20s on the very first play only
-    if (firstPlay) {
-      firstPlay = false;
-      widget.seekTo(20000);
+  widget.setVolume(0);
+  startPlayback();
+  /* learn how long the playlist really is so the next visit can draw from
+     all of it — asked once playback is under way, so it costs nothing */
+  widget.getSounds(list => {
+    if (list && list.length) {
+      try { localStorage.setItem('odile.radio.tracks', list.length); } catch(e){}
     }
   });
 });
-widget.bind(SC.Widget.Events.PAUSE,  () => { playing = false; });
-widget.bind(SC.Widget.Events.FINISH, () => { playing = false; progress = 0; });
-widget.bind(SC.Widget.Events.PLAY_PROGRESS, data => {
-  if (duration > 0) progress = data.currentPosition / duration;
+widget.bind(SC.Widget.Events.PLAY,   () => { started = true; fadeIn(); });
+widget.bind(SC.Widget.Events.FINISH, () => { widget.next(); setTimeout(startPlayback, 200); });
+
+/* keep nudging for a few seconds: the widget may not have been ready on the
+   first call, and some browsers only release audio once the tab is focused */
+let tries = 0;
+const nudge = setInterval(() => {
+  if (started || ++tries > 20) return clearInterval(nudge);
+  startPlayback();
+}, 400);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !started) startPlayback();
 });
 
-/* controls */
-document.getElementById('play-area').addEventListener('click', () => {
-  if (playing) {
-    widget.pause();
-    playing = false;
-  } else {
-    widget.play();
-    playing = true;
-  }
+/* everything starts on its own; these listeners are only a safety net for
+   browsers that refuse unprompted autoplay — nothing is asked of the visitor */
+playBeds();
+requestAnimationFrame(tickAmbience);
+
+['pointerdown','keydown','touchstart','scroll'].forEach(ev => {
+  document.addEventListener(ev, () => {
+    if (!started) startPlayback();
+    if (beds[bed].paused) playBeds();
+  }, { passive:true });
 });
-document.getElementById('skip-btn').addEventListener('click', () => widget.next());
-
-/* ── DIAGRAM CANVAS ── */
-const canvas = document.getElementById('c');
-const ctx    = canvas.getContext('2d');
-let W, H, CX, CY, R;
-
-function resize() {
-  W = canvas.width  = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-  CX = W/2; CY = H/2;
-  R  = Math.min(W,H) * 0.30;
-  const pa = document.getElementById('play-area');
-  const pr = R * 0.16;
-  pa.style.cssText = `width:${pr*2}px;height:${pr*2}px;left:${CX-pr}px;top:${CY-pr}px;`;
-}
-resize();
-window.addEventListener('resize', resize);
-
-/* drawing helpers */
-function circ(x,y,r,a,lw=0.55) {
-  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=lw; ctx.stroke();
-}
-function arcDraw(x,y,r,a0,a1,a,lw=1.1) {
-  ctx.beginPath(); ctx.arc(x,y,r,a0,a1);
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=lw; ctx.stroke();
-}
-function ln(x1,y1,x2,y2,a,lw=0.5) {
-  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=lw; ctx.stroke();
-}
-function arrowHead(x,y,dx,dy,sz,a) {
-  const ang=Math.atan2(dy,dx);
-  ctx.beginPath();
-  ctx.moveTo(x,y);
-  ctx.lineTo(x-sz*Math.cos(ang-.42), y-sz*Math.sin(ang-.42));
-  ctx.moveTo(x,y);
-  ctx.lineTo(x-sz*Math.cos(ang+.42), y-sz*Math.sin(ang+.42));
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=0.5; ctx.stroke();
-}
-function aster(x,y,sz,a) {
-  ctx.strokeStyle=`rgba(255,255,255,${a})`; ctx.lineWidth=0.6;
-  for(let i=0;i<3;i++){
-    const ang=i*Math.PI/3;
-    ctx.beginPath();
-    ctx.moveTo(x+Math.cos(ang)*sz, y+Math.sin(ang)*sz);
-    ctx.lineTo(x-Math.cos(ang)*sz, y-Math.sin(ang)*sz);
-    ctx.stroke();
-  }
-}
-function pt(x,y,r,a) {
-  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle=`rgba(255,255,255,${a})`; ctx.fill();
-}
-
-(function draw(now) {
-  ctx.clearRect(0,0,W,H);
-  const t = now * 0.0001;
-
-  /* outer circle */
-  circ(CX,CY,R,0.22);
-
-  /* cross axes */
-  const ext = R*1.38;
-  ln(CX-ext,CY, CX+ext,CY, 0.18);
-  ln(CX,CY-ext, CX,CY+ext, 0.18);
-  arrowHead(CX+ext,CY,  1, 0, 8,0.18);
-  arrowHead(CX-ext,CY, -1, 0, 8,0.18);
-  arrowHead(CX,CY+ext,  0, 1, 8,0.18);
-  arrowHead(CX,CY-ext,  0,-1, 8,0.18);
-
-  /* rotating circle cluster A — large, slow */
-  const a1 = t*0.55;
-  const c1x=CX+Math.cos(a1)*R*0.26, c1y=CY+Math.sin(a1)*R*0.26;
-  circ(c1x,c1y, R*0.55, 0.12);
-  circ(c1x+R*0.09,c1y-R*0.07, R*0.28, 0.09);
-
-  /* cluster B — medium, counter */
-  const a2 = -t*0.38+Math.PI*0.65;
-  const c2x=CX+Math.cos(a2)*R*0.20, c2y=CY+Math.sin(a2)*R*0.20;
-  circ(c2x,c2y, R*0.40, 0.11);
-
-  /* cluster C — small, fast */
-  const a3 = t*1.05+Math.PI*1.3;
-  const c3x=CX+Math.cos(a3)*R*0.32, c3y=CY+Math.sin(a3)*R*0.32;
-  circ(c3x,c3y, R*0.20, 0.09);
-
-  /* dotted outer ring */
-  const dotRing = R*1.16, nDots=72;
-  for(let i=0;i<nDots;i++){
-    const a=(i/nDots)*Math.PI*2;
-    pt(CX+Math.cos(a)*dotRing, CY+Math.sin(a)*dotRing, 1.3, 0.17);
-  }
-
-  /* asterisks at cardinals */
-  aster(CX+R, CY,   5, 0.30);
-  aster(CX-R, CY,   5, 0.30);
-  aster(CX, CY+R,   5, 0.30);
-  aster(CX, CY-R,   5, 0.30);
-
-  /* small orbiting dot */
-  const od = t*2.2;
-  pt(CX+Math.cos(od)*R, CY+Math.sin(od)*R, 2.5, 0.50);
-
-  /* secondary small orbit (opposite phase, inner) */
-  const od2 = -t*1.6+Math.PI;
-  pt(CX+Math.cos(od2)*R*0.68, CY+Math.sin(od2)*R*0.68, 1.8, 0.35);
-
-  /* progress arc */
-  if(progress > 0.001){
-    arcDraw(CX,CY, R*0.85, -Math.PI/2, -Math.PI/2+progress*Math.PI*2, 0.60);
-    const pa=-Math.PI/2+progress*Math.PI*2;
-    pt(CX+Math.cos(pa)*R*0.85, CY+Math.sin(pa)*R*0.85, 3, 0.85);
-  }
-
-  /* center — pulses when playing */
-  const pulse = playing ? 0.42+Math.sin(now*0.0024)*0.16 : 0.20;
-  circ(CX,CY, R*0.052, pulse, 0.8);
-  if(playing) pt(CX,CY, R*0.022, pulse*0.75);
-
-  requestAnimationFrame(draw);
-})();
 </script>
 </body>
 </html>

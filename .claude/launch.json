@@ -6,6 +6,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "8080", "--directory", "HTMLs"],
       "port": 8080
+    },
+    {
+      "name": "odile-games",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8081", "--directory", "GAMES"],
+      "port": 8081
     }
   ]
 }

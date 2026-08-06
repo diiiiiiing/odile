@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODILE — WORK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0a; --fg:#f5f5f5;
+    --dim1:rgba(255,255,255,.55); --dim2:rgba(255,255,255,.3);
+    --pad:32px;
+    --font:'Syne',sans-serif;
+    --fs:12px;
+  }
+  body.light{
+    --bg:#fff; --fg:#0a0a0a;
+    --dim1:rgba(0,0,0,.55); --dim2:rgba(0,0,0,.3);
+  }
+
+body.yellow-mode{
+    --bg:#808080; --fg:#E5FF00;
+    --dim1:rgba(229,255,0,.55); --dim2:rgba(229,255,0,.3);
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    width:100%;height:100%;
+    background:var(--bg);color:var(--fg);
+    font-family:var(--font);font-weight:400;
+    font-size:var(--fs);line-height:1;
+    letter-spacing:.02em;text-transform:lowercase;
+    overflow:hidden;cursor:none;
+    transition:background-color .55s ease,color .55s ease;
+  }
+  body{animation:fadeIn .6s ease both;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  /* reactive iridescent background, same as the hub */
+  .bg-iri{position:fixed;inset:0;z-index:0;background-color:var(--bg);transition:background-color .55s ease;}
+
+  #cur{position:fixed;width:5px;height:5px;background:#fff;
+    mix-blend-mode:difference;
+    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
+    opacity:0;pointer-events:none;transition:opacity .7s ease;}
+  #overlay.on{opacity:1;pointer-events:auto;}
+
+  /* TOP-RIGHT INFO — hidden behind the "info" button on desktop,
+     unfolds with the same grid/opacity animation as the menu categories */
+  #info{
+    position:fixed;top:47px;left:var(--pad);
+    max-height:0;margin-top:0;overflow:hidden;
+    max-width:240px;
+    transition:max-height .4s ease,margin-top .4s ease;
+  }
+  #info.show{margin-top:28px;}
+  #infoInner{
+    display:flex;flex-direction:column;align-items:flex-start;gap:3px;
+    opacity:0;transition:opacity .25s ease;
+  }
+  #info.show #infoInner{opacity:1;transition-delay:.1s;}
+  #info .i-line{color:var(--fg);}
+  #info a{
+    color:var(--fg);text-decoration:none;cursor:none;
+  }
+  .ext-link{color:var(--fg);text-decoration:none;cursor:none;}
+
+  /* rotating ring of project thumbnails — sits centered behind the menu/info/
+     center columns, shown only on the "home" state (no project open, no CV) */
+  #ringStage{
+    position:fixed;overflow:visible;pointer-events:none;
+    opacity:0;transform:scale(.9) rotate(-6deg);
+    transition:opacity 1s ease,transform 1.4s cubic-bezier(0.16,1,0.3,1);
+  }
+  #ringStage.show{opacity:1;transform:none;pointer-events:auto;}
+  #ringStage.leaving{opacity:0;transform:scale(.96);pointer-events:none;transition:opacity 1s ease,transform 1s ease;}
+  /* #center is empty (no project open) whenever the ring is shown, but it still
+     sits on top of it and would otherwise eat the clicks meant for the ring */
+  #ringStage.show~#center{pointer-events:none;}
+  #ring{position:absolute;inset:0;overflow:visible;}
+  .ring-tile{position:absolute;cursor:none;overflow:visible;}
+  .ring-tile-sq{
+    width:100%;height:100%;background-color:var(--dim2);
+    background-size:cover;background-position:center;
+    display:block;will-change:transform,filter;
+    transition:filter .3s ease,opacity .3s ease;
+  }
+  .ring-tile:hover .ring-tile-sq,.ring-tile.highlight .ring-tile-sq,.ring-tile.cat-focus .ring-tile-sq{filter:brightness(1.2);}
+  /* with a category open, the projects outside it fade into the background —
+     unlike hover, this brings no movement, just a brightness/opacity shift */
+  #ring.focus .ring-tile:not(.highlight):not(.cat-focus) .ring-tile-sq{filter:brightness(.35);opacity:.5;}
+  #ring.name-hover .ring-tile:not(.highlight) .ring-tile-sq{filter:brightness(.35);opacity:.5;}
+
+  /* TOP-LEFT SITE TITLE — same size/format as the rest of the text,
+     hidden on mobile where the "index" nav button sits in the same spot */
+  #siteTitle{position:fixed;top:30px;left:var(--pad);z-index:70;color:var(--fg);cursor:none;}
+  @media (max-width:640px){#siteTitle{display:none;}}
+
+  /* MOBILE NAV BUTTONS — hidden on desktop, shown <=640px */
+  .nav-btn{
+    display:none;
+    position:fixed;top:30px;z-index:70;
+    background:none;border:none;
+    color:var(--fg);font:inherit;
+    text-transform:lowercase;letter-spacing:.02em;
+    padding:0;cursor:none;
+  }
+  #menuBtn{left:var(--pad);}
+  #infoBtn{right:var(--pad);}
+
+  /* bio/email shown inside the CV panel on mobile only */
+  .mobile-info-header{display:none;flex-direction:column;gap:3px;}
+  .mobile-info-header a{color:var(--fg);text-decoration:none;cursor:none;}
+
+  /* LEFT MENU COLUMN — vertically centered to match the ring */
+  #menu{
+    position:fixed;top:50%;left:var(--pad);
+    transform:translateY(-50%);
+    max-height:calc(100vh - 60px);width:300px;
+    display:flex;flex-direction:column;gap:0;
+    overflow-y:auto;
+  }
+  #menu::-webkit-scrollbar{width:0;}
+  .menu-group{display:flex;flex-direction:column;gap:0;}
+  .menu-group-archives{margin-top:28px;}
+  .menu-items{
+    max-height:0;
+    margin-top:0;margin-bottom:0;overflow:hidden;
+    transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;
+  }
+  .menu-items.open{margin-top:28px;margin-bottom:28px;}
+  .menu-items-inner{
+    display:flex;flex-direction:column;min-height:0;overflow:hidden;
+    opacity:0;transition:opacity .25s ease;
+  }
+  .menu-items.open .menu-items-inner{opacity:1;transition-delay:.1s;}
+  /* archive accordion — separate class so toggleCategory() doesn't collapse it */
+  .archive-items{max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;}
+  .archive-items.open{margin-top:28px;margin-bottom:28px;}
+  .archive-inner{display:flex;flex-direction:column;min-height:0;overflow:hidden;opacity:0;transition:opacity .25s ease;}
+  .archive-items.open .archive-inner{opacity:1;transition-delay:.1s;}
+  .menu-cat{
+    color:var(--fg);cursor:none;
+    width:fit-content;
+  }
+  .menu-group a{
+    color:var(--fg);text-decoration:none;cursor:none;
+    width:fit-content;
+  }
+
+  /* bracket selection — replaces bold */
+  #siteTitle:hover::before,#siteTitle.active::before,
+  .nav-btn:hover::before,.nav-btn.active::before,
+  .mobile-info-header a:hover::before,
+  .menu-cat:hover::before,.menu-cat.open::before,
+  .menu-group a:hover::before,.menu-group a.active::before,.menu-group a.hl::before,
+  #info a:hover::before,#info a.active::before,
+  .ext-link:hover::before{content:'[';}
+  #siteTitle:hover::after,#siteTitle.active::after,
+  .nav-btn:hover::after,.nav-btn.active::after,
+  .mobile-info-header a:hover::after,
+  .menu-cat:hover::after,.menu-cat.open::after,
+  .menu-group a:hover::after,.menu-group a.active::after,.menu-group a.hl::after,
+  #info a:hover::after,#info a.active::after,
+  .ext-link:hover::after{content:']';}
+
+  /* CENTER — info, then media stacked top to bottom */
+  #center{
+    position:fixed;top:0;bottom:0;
+    left:calc(var(--pad) + 300px);right:0;
+    overflow-y:auto;overflow-x:hidden;
+    padding:30px 0 0;
+    display:flex;flex-direction:column;gap:0;
+    opacity:1;transition:opacity .25s ease;
+  }
+  #center.center-hidden{opacity:0;pointer-events:none;}
+  #center::-webkit-scrollbar{display:none;}
+  @keyframes phIn{to{opacity:1;}}
+  #centerEmpty{
+    padding:60px 0;text-align:center;
+    color:var(--fg);
+    opacity:0;animation:phIn .4s ease forwards;animation-delay:.25s;
+  }
+  /* "next project" — fixed bottom-right, only shown once the project's
+     media has been scrolled to the end */
+  .next-link{
+    position:fixed;bottom:30px;right:var(--pad);z-index:60;
+    opacity:0;pointer-events:none;transition:opacity .3s ease;
+    color:#fff;mix-blend-mode:difference;
+  }
+  .next-link.show{opacity:1;pointer-events:auto;}
+
+  /* media — two-column grid; wide (landscape) items span both columns */
+  .media-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:3px;
+  }
+  .media-item{
+    width:100%;height:auto;display:block;
+    opacity:0;transition:opacity .4s ease;
+  }
+  .media-item.wide{grid-column:1/-1;}
+  .media-item.show{opacity:1;}
+  video.media-item{cursor:auto;}
+  .media-item.ph{aspect-ratio:4/5;background:#d9d9d9;opacity:1;}
+
+  /* PROJECT INFO — revealed first, before media */
+  .proj-info{
+    display:flex;flex-direction:column;gap:0;
+    padding-bottom:18px;color:var(--fg);
+    opacity:0;animation:phIn .4s ease forwards;
+    width:50%;
+  }
+  .proj-info .proj-title{font-weight:400;}
+  .proj-info .proj-tags{opacity:.5;}
+  .proj-info .proj-link{width:fit-content;}
+  .proj-body{
+    max-height:0;margin-top:0;overflow:hidden;
+    transition:max-height .55s cubic-bezier(0.16,1,0.3,1),margin-top .55s cubic-bezier(0.16,1,0.3,1);
+  }
+  .proj-body.open{max-height:600px;margin-top:28px;}
+  .proj-body-inner{
+    display:flex;flex-direction:column;gap:28px;
+    min-height:0;overflow:hidden;
+    opacity:0;transition:opacity .25s ease;
+  }
+  .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
+  .proj-desc{display:flex;flex-direction:column;gap:6px;}
+  #hoverInfo{
+    position:fixed;top:30px;
+    left:calc(var(--pad) + 300px);
+    display:flex;flex-direction:column;gap:6px;
+    color:var(--fg);
+    pointer-events:none;z-index:55;
+    opacity:0;transition:opacity .15s ease;
+  }
+  #hoverInfo.show{opacity:1;}
+  #hoverInfo .hover-title{font-weight:400;}
+  #hoverInfo .hover-tags{opacity:.5;}
+  @media (max-width:1320px){#hoverInfo{left:calc(var(--pad) + 200px);}}
+  @media (max-width:640px){#hoverInfo{display:none;}}
+
+  /* CV PANEL */
+  #cv{
+    position:fixed;top:0;bottom:0;
+    left:calc(var(--pad) + 300px);
+    width:min(38vw,480px);
+    overflow-y:hidden;
+    padding:30px 0 60px;
+    display:flex;flex-direction:column;gap:24px;
+    color:var(--fg);
+    opacity:0;pointer-events:none;
+    transition:opacity .25s ease;
+  }
+  #cvThemeBtn{display:none;}
+  #cv.show{opacity:1;pointer-events:auto;}
+  #cv::-webkit-scrollbar{width:0;}
+  #cv .cv-section{display:flex;flex-direction:column;gap:2px;}
+  #cv .cv-head{font-weight:400;margin-bottom:4px;}
+  #cv .cv-loc{margin-top:-2px;margin-bottom:4px;}
+  #cv .cv-row{display:flex;gap:12px;}
+  #cv .cv-row .cv-date{flex-shrink:0;width:110px;}
+  #cv .cv-row .cv-company{flex-shrink:0;width:160px;}
+  #cv .cv-row .cv-role{flex:1;}
+
+  /* below this width, the project text column (#center) starts to overlap
+     the menu ("commercial" list) and the top-right info ("currently
+     designer at unveil®") — narrow everything down before that happens */
+  @media (max-width:1320px){
+    #menu{width:200px;}
+    #center{left:calc(var(--pad) + 200px);right:0;width:auto;}
+    #cv{left:calc(var(--pad) + 200px);width:min(60vw,420px);}
+    .mobile-info-header{display:flex;}
+  }
+
+  /* ── MOBILE — index/info become full-screen drawers behind nav buttons ── */
+  @media (max-width:640px){
+    :root{--pad:20px;--fs:12px;}
+
+    #ringStage{display:none!important;}
+
+    .nav-btn{display:block;}
+
+    #menu{
+      position:fixed;inset:0;
+      width:100%;max-height:none;
+      padding:70px var(--pad) 30px;
+      transform:translateX(100%);
+      transition:transform .5s cubic-bezier(0.16,1,0.3,1);
+      z-index:60;background:var(--bg);
+    }
+    #menu.show{transform:translateX(0);}
+
+    #center{
+      left:0;right:0;transform:none;width:100%;
+      padding:70px 0 90px;
+    }
+
+    #cv{
+      left:0;right:0;transform:none;width:100%;
+      display:flex!important;
+      padding:70px var(--pad) 50px;
+      transform:translateX(100%);opacity:0;
+      transition:transform .35s cubic-bezier(.22,1,.36,1),opacity .25s ease;
+      z-index:60;overflow-y:auto;background:var(--bg);
+    }
+    #cv.show{transform:translateX(0);opacity:1;}
+
+    .proj-info{padding-left:var(--pad);padding-right:var(--pad);}
+    #cv .cv-row{flex-wrap:wrap;}
+    #cv .cv-row .cv-role{flex-basis:100%;}
+
+    .mobile-info-header{display:flex;}
+    .media-grid{grid-template-columns:1fr;}
+    #loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}
+
+    /* mobile home — project grid replacing the empty center */
+    #mobileHome{display:flex;flex-direction:column;gap:3px;}
+    .mh-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+    .mh-item{cursor:pointer;}
+    .mh-thumb{width:100%;aspect-ratio:1/1;background:var(--dim2);background-size:cover;background-position:center;}
+
+    /* "ding" logo centered in the mobile nav bar */
+    #mobileLogo{
+      display:block;
+      position:fixed;top:30px;left:50%;transform:translateX(-50%);
+      z-index:70;
+      background:none;border:none;color:var(--fg);
+      font:inherit;text-transform:lowercase;letter-spacing:.02em;
+      padding:0;cursor:pointer;
+    }
+
+    /* theme egg SVG inside info panel */
+    #cvThemeBtn{
+      display:block;
+      margin-top:auto;padding-top:24px;
+      background:none;border:none;padding:0;cursor:pointer;
+      opacity:0.1;transition:opacity .2s ease;
+    }
+    #cvThemeBtn:active{opacity:0.45;}
+    #cvThemeBtn svg{width:36px;height:auto;display:block;}
+    #cvThemeBtn svg path{fill:var(--fg);transition:fill .55s ease;}
+    #themeEgg{display:none;}
+  }
+
+  /* no custom cursor on touch devices */
+  @media (hover:none){
+    #cur{display:none;}
+    *,*::before,*::after{cursor:auto!important;}
+  }
+
+  /* ── LOADER — full-screen overlay; text/ring reveal after it fades ─ */
+  #loader{
+    position:fixed;inset:0;z-index:900;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--bg);
+    opacity:1;transition:opacity 1.4s cubic-bezier(0.4,0,0.2,1);
+    pointer-events:auto;
+  }
+  #loader.loaded{opacity:0;pointer-events:none;}
+  @keyframes loader-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+  #loader svg{
+    width:min(74vw,74vh);height:min(74vw,74vh);
+    overflow:visible;
+    animation:loader-in 1.2s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  /* content hidden until loader reveals it */
+  #menu,#siteTitle,#menuBtn,#infoBtn{opacity:0;transition:opacity .5s ease;}
+  /* color-adapt SVG — !important beats the embedded <style> inside the SVG */
+  #loader .cls-1{fill:var(--fg)!important;}
+  #loader .cls-2{stroke:var(--fg)!important;fill:none!important;}
+
+  /* 2 groups: lg-circles = 9 concentric rings, lg-outer = 11 radial ornaments */
+  @keyframes spin-cw  {to{transform:rotate( 360deg);}}
+  @keyframes spin-ccw {to{transform:rotate(-360deg);}}
+  @keyframes snap-in  {to{opacity:1}}
+
+  /* staggered centre-to-edge entrance — opacity 0 → target, fill:both so each ring
+     starts invisible during its delay then stays at its rest opacity afterwards */
+  @keyframes ci-in{from{opacity:0}to{opacity:var(--ci-op,1)}}
+
+  /* circles spin CCW as a group; each ring fades in solid, inside→out */
+  #lg-circles{transform-origin:570.86px 570.86px;animation:spin-ccw 40s linear infinite;}
+  #lg-circles circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
+  #lg-circles .ci-9{--ci-op:.7;animation:ci-in .4s ease 0.00s both;}
+  #lg-circles .ci-8{--ci-op:.6;animation:ci-in .4s ease 0.09s both;}
+  #lg-circles .ci-7{--ci-op:.7;animation:ci-in .4s ease 0.18s both;}
+  #lg-circles .ci-6{--ci-op:.6;animation:ci-in .4s ease 0.27s both;}
+  #lg-circles .ci-5{--ci-op:.7;animation:ci-in .4s ease 0.36s both;}
+  #lg-circles .ci-4{--ci-op:.6;animation:ci-in .4s ease 0.45s both;}
+  #lg-circles .ci-3{--ci-op:.7;animation:ci-in .4s ease 0.54s both;}
+  #lg-circles .ci-2{--ci-op:.6;animation:ci-in .4s ease 0.63s both;}
+  #lg-circles .ci-1{--ci-op:.7;animation:ci-in .4s ease 0.72s both;}
+
+  /* ornaments spin CW; each appears one-by-one via inline style set in JS */
+  #lg-outer{transform-origin:570.86px 570.86px;animation:spin-cw 22s linear infinite;}
+
+  /* easter egg theme cycler — bottom-left, barely visible */
+  #themeEgg{
+    position:fixed;bottom:28px;left:var(--pad);z-index:60;
+    background:none;border:none;
+    opacity:0.1;cursor:none;padding:0;
+    transition:opacity .2s ease;
+    display:flex;align-items:center;
+  }
+  #themeEgg:hover{opacity:0.45;}
+  #themeEgg svg{width:40px;height:auto;}
+#themeEgg svg path{fill:var(--fg);transition:fill .55s ease;}
+  @media(hover:none){#themeEgg{cursor:auto;}}
+</style>
+</head>
+<body>
+<div class="bg-iri" id="iri"></div>
+<div id="loader"></div>
+<div id="overlay"></div>
+<script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
+<div id="cur"></div>
+
+<div id="siteTitle">Ding</div>
+
+<div id="ringStage"><div id="ring"></div></div>
+
+<button id="menuBtn" class="nav-btn">index</button>
+<button id="mobileLogo">ding</button>
+<button id="infoBtn" class="nav-btn">info</button>
+
+<div id="info">
+  <div id="infoInner">
+    <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
+    <a href="#" id="emailCopy">thomasding227@gmail.com</a>
+    <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
+    <a href="#" id="cvBtn">CV</a>
+  </div>
+</div>
+
+<button id="themeEgg"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 819.12 606.69"><path d="M796.61,203.63c-.05-.18-.11-.35-.17-.53-.01-.03-.02-.06-.03-.08-.45-1.21-1.11-2.34-1.93-3.39,0-.01-.02-.02-.02-.02-3.09-3.99-8.41-6.77-12.66-7.65l-14.51-3.01c-12.95-2.07-25.07-8.04-34.12-17.68.27-3.51-1.24-7.12-2.55-9.82,1.41-6,.15-12.14-5.4-15.65,1.24-7.93-4.34-14.6-11.64-17.71-.69-10.81-9.64-17.2-19.78-19.38-.06-.01-.11-.03-.16-.04-.69-.14-1.37-.26-2.06-.37-.27-.48-.57-.95-.89-1.4-4.77-6.87-13.83-9.54-22.15-8.18-7.02-8.11-18.91-9.05-27.04-2.24-4.69-3.21-10.18-3.19-14.95-.27.04-.91-.03-1.84-.09-2.75-.06-1.1-.12-2.17.02-3.13.04-.4.13-.78.27-1.14,5.57-11.24,7.16-23.05,4.67-34.55-.02-.14-.05-.27-.09-.41-.1-.48-.22-.95-.34-1.43-.12-.48-.25-.96-.39-1.45-1.03-3.62-2.47-7.2-4.33-10.71-2.15-4.07-3.81-8.08-7.17-11.35-9.4-9.17-21.11-.28-29.29,8.42-1.4,1.5-2.75,3.04-4.01,4.61-.25.28-.47.56-.68.84-.3.37-.59.74-.87,1.11-.38.48-.74.97-1.09,1.46-.14.17-.26.35-.39.52-.08.11-.16.22-.24.33-.37.52-.73,1.04-1.08,1.56-.19.28-.38.57-.57.85-.4.59-.78,1.19-1.15,1.79-.26.42-.51.83-.75,1.25-.25.41-.49.84-.73,1.26-.25.45-.5.9-.74,1.36-.64,1.2-1.24,2.43-1.8,3.67-.19.42-.37.83-.55,1.25-.18.41-.35.83-.52,1.25-.16.42-.33.85-.49,1.27-.16.42-.31.85-.46,1.27-.18.5-.36,1.01-.52,1.52-1.12,3.47-1.96,6.83-2.15,10.38-.07,1.36-.05,2.76.09,4.21.04.33-.15.51-.35.52-.08.02-.17,0-.24-.06-.12-.07-.2-.23-.17-.47-.04-.11-.07-.22-.12-.33-4.99-14.52-18.08-24.09-33.72-22.58-14.78-13.14-33.7-17.91-50.89-6.81-16.36-6.02-30.4-1.11-41.01,12.2-11.83-.81-21.69,7.82-23.45,19.2-6.18,1.75-10.76,6.32-12.29,12.32l-.03.55v.05s-.23,3.48-.23,3.48l-.03.47c-6.84,1.52-12.98,4.39-19.23,7.58l-15.23,7.78c-7.03,3.59-13.32,3.83-19.56,3.49-.03,0-.07,0-.11,0-1.28-.07-2.56-.16-3.84-.26-.14,0-.28-.02-.42-.03l-2.84-.19c-.2-.02-.4-.03-.6-.04-2.26-.13-4.55-.18-6.89-.03-1.27.08-2.55.21-3.85.43-1.52.27-2.96.68-4.3,1.25-.13.04-.25.09-.38.15-.05.02-.09.04-.13.06-.16.07-.32.15-.47.23-1.7.83-3.21,1.95-4.41,3.47-.24.29-.46.59-.67.91-.47.25-.91.54-1.33.84,0,0,0,.01-.01.01-1.78,1.32-3.05,3.08-3.81,5.12-.47,1.26-.74,2.62-.81,4.05-.06,1.38-.01,2.73.16,4.07.02.18.05.36.07.55.04.24.08.48.13.72l.15.75c.05.24.11.48.17.73.23.96.54,1.91.91,2.86.09.23.19.47.3.71.2.46.41.92.64,1.38.13.26.27.52.42.78.06.13.13.26.21.39.05.09.11.19.17.28.12.22.26.43.39.65,2.42,3.98,5.35,7.61,8.69,10.81.07.06.13.13.2.19.3.28.6.56.91.83.44.41.9.81,1.36,1.18,3.14,2.66,6.57,4.94,10.23,6.78.32.17.64.33.97.49,3.28,1.57,6.73,2.79,10.3,3.61,2.98.7,6.04,1.11,9.15,1.21,1.82.07,3.66.03,5.51-.13.64.5,1.31.87,2,1.14.01,0,.02.01.03.01,2.11.82,4.43.71,6.93.36.81-.15,1.61-.32,2.4-.52.03,0,.06-.01.09-.02,2.56-.62,5.04-1.44,7.45-2.43.32-.13.64-.27.97-.42.33-.14.66-.29.98-.45,4.57-2.07,8.91-4.77,13.12-7.85.03.97.13,1.88.32,2.72.32,1.49.89,2.8,1.65,4.01.41.64.87,1.26,1.38,1.86.18.19.35.39.53.58-.43,1.14-.76,2.3-.99,3.45-.03.12-.05.23-.08.35-.06.32-.11.64-.16.95-.3,2.15-.27,4.28.12,6.34.08.38.16.76.26,1.14.08.31.17.63.28.94.27.87.62,1.72,1.04,2.55.15.3.31.6.49.9.3.53.63,1.05,1,1.55.4.55.84,1.09,1.31,1.61.43.47.89.93,1.38,1.37-3.33,2.53-5.05,5.97-5.37,9.81-.02.18-.03.36-.04.54-.04.83-.01,1.67.07,2.52l-.04.03-3.24,2.42-1.01.75s-.01-.01-.02-.01c-12.06-6.25-20.93,1.38-22.6.98-.3-.07-5.31-6.06-16.53-5.18-2.9-4.29-6.65-7.77-11.6-9.49l-3.94-.6c-5.81-9.52-15.93-19.94-27.07-18.58-8.85-6.79-18.23-13.35-29.77-9.67-7.77-4.16-16.44-5.66-25.48-4.74-7.56-6.01-7.85-16.87-6.06-26.35.76-4.04.09-8.17-3.38-8.45,1.7-5.28,2.62-10.49,2.02-15.88-.81-7.26-6.45-11.96-13.64-11.25l-.99.3-1.67.52-3.35,1.04c-4.42.44-8.34,1.82-11.74,4.11-.02.01-.04.02-.05.03-.24.16-.48.33-.72.5-.71.52-1.39,1.08-2.04,1.68-.12.1-.23.21-.35.32-1.3,1.22-2.5,2.61-3.59,4.16-1.03.38-2.01.86-2.93,1.42-.16.09-.32.18-.47.28-1.31.85-2.49,1.86-3.56,3-.06.05-.11.11-.16.17-2.98,3.25-5.02,7.53-6.16,12.13-.09.34-.18.69-.25,1.04-.42,1.96-.69,3.95-.8,5.94-.02.31-.03.62-.04.93-.01.59-.01,1.18,0,1.77,0,.14,0,.29.01.43,0,.22.01.43.02.65.02.34.04.68.06,1.01.11,1.38.29,2.74.55,4.05-.15.04-.29.08-.42.12-1.36.47-2.02,1.37-2.47,2.67-.02.05-.03.09-.04.14-.72,2.18-.87,4.5-.56,6.83.05.39.11.79.19,1.18.36,1.87.99,3.73,1.85,5.53,0,.02.01.04.02.05.11.23.22.45.33.67.16.31.32.61.48.92.35.6.7,1.19,1.08,1.76.19.29.39.58.59.86.27.38.55.75.83,1.11.12.16.25.32.37.47.2.25.41.49.62.73.36.41.73.81,1.11,1.19,1.15,1.2,2.41,2.29,3.71,3.21.03.02.06.04.08.06.39.27.79.53,1.19.78-.27.81-.31,1.58-.14,2.3.02.09.05.19.08.28.02.09.06.19.1.28.04.11.09.22.15.33.06.13.13.25.2.37.16.27.35.53.58.78.07.09.15.17.23.25.1.11.21.21.32.31.81.73,1.86,1.36,3.05,1.88.27.12.56.23.85.34.18.06.37.13.56.2.67.22,1.38.4,2.1.56.02,0,.05.01.08.02.34.07.68.13,1.02.19.38.05.75.1,1.12.15,1.3.13,2.58.16,3.78.05,0,.01.01.02.01.03.07.17.1.33.11.48.02.4-.14.73-.41.99-.32.32-.79.54-1.27.66-6.24,1.48-12.75,6.58-12.52,12.58,0,.1,0,.2.01.3,0,.16.02.31.04.47v.03c.05.35.12.71.22,1.06h-.02s-5.08,2.78-5.08,2.78c-1.85-3.72-4.76-5.87-8.48-7.07l-1.42-7.11c-1.32-6.59-5.01-11.82-10.69-15.2-2.65-1.58-5.19-2.7-8.37-2.15-.53.09-.98.27-1.36.56-.18.11-.35.25-.5.42l-.03.03c-.48.52-.82,1.21-1.06,2.03-5.93.33-13.54,3.21-15.18,8.32-.05.15-.09.3-.13.45s-.07.3-.1.45c-.11.66-.13,1.35-.04,2.08-.02.01-.05.03-.07.04-6.09,3.84-13.68,10.18-13.61,17.2l-11.73,16.43c-11.1,15.54-25.69,34-41.23,44.74-10.79,7.45-17.77,5.14-23.17,9.7-.99.84-1.77,1.82-2.27,2.89-.06.12-.11.23-.15.35-.02.04-.04.08-.05.12-.05.12-.1.25-.14.37-.34,1.06-.41,2.19-.16,3.36.01.04.02.09.03.14.12.49.29,1,.53,1.5-4.3.32-7.04-1.04-9.46.27-.13.07-.26.14-.38.22-.12.08-.25.17-.37.27-.72.56-1.42,1.41-2.13,2.67-3.75.08-8.1-2.02-12.04-.57-9.57,3.55-17.56,10.07-23.45,18.33-1.62,2.27-2.5,5.2-1.96,7.33.13.48.32.93.61,1.31,0,.02.02.03.03.04.33.44.77.8,1.33,1.05.16.08.34.14.52.2l.02.13.11.94.21,1.7.08.69c.48.35.97.67,1.49.95,2.7,1.51,5.87,2.14,9.22,2.33h.04c3.04.16,6.23-.04,9.34-.31h.05c1.39-.12,2.76-.26,4.1-.37.49.29.99.55,1.49.76,2.03.91,4.15,1.27,6.45,1.14.15-.01.3-.02.45-.03.26-.02.52-.04.78-.07.2-.02.4-.04.6-.07.21-.03.41-.06.61-.1.02,0,.03,0,.04,0,.25-.04.51-.09.76-.15.23-.05.47-.1.7-.16,3.48-.85,6.68-2.52,9.92-3.99.01,0,.02-.01.03-.02.6-.27,1.21-.54,1.82-.79.32-.13.63-.26.94-.38.31-.13.63-.25.94-.36.71-.25,1.42-.48,2.15-.68.49-.14.98-.25,1.47-.34.16-.03.32-.06.48-.08.17-.03.34-.06.51-.08.15-.02.3-.05.45-.06.27-.04.55-.06.83-.08.19-.01.38-.03.57-.05.12,0,.23,0,.35-.03,5.52-.5,10.57-2.21,15.47-4.87,1.27-.69,2.53-1.44,3.78-2.25.42-.27.83-.54,1.25-.82.84-.56,1.67-1.15,2.49-1.75.66-.48,1.32-.98,1.98-1.5,6.6-5.07,12.94-11.32,18.94-17.63.09-.09.17-.18.25-.26,3.88-4.09,7.62-8.18,11.22-11.97.6-.65,1.21-1.28,1.81-1.91l11.27-11.74c.42-.44.85-.87,1.28-1.29.41-.41.82-.82,1.24-1.19,1.23-1.2,2.49-2.33,3.79-3.44.24-.21.49-.42.73-.63,2.46-2.08,5.02-4.11,7.7-6.26.68,1.53,1.48,2.96,2.4,4.3.74,1.09,1.56,2.11,2.46,3.09.22.24.45.48.68.72.46.46.93.9,1.41,1.35.49.44.99.87,1.52,1.29.53.42,1.08.84,1.65,1.24h0c.04,1.1.17,2.16.39,3.17v.03c.05.24.11.48.17.72.32,1.19.76,2.32,1.32,3.41h0c.23.44.48.87.74,1.28.18.28.37.56.57.84.2.27.4.54.62.81.11.14.21.27.33.39.14.17.29.35.45.52.67.74,1.42,1.44,2.23,2.12.16.14.34.27.51.41.12.09.25.19.37.28-1.3,2.36-2.71,4.61-4.21,6.78-.28.4-.55.79-.84,1.19-1.41,1.99-2.89,3.91-4.45,5.78-.14.18-.29.36-.44.54-.25.31-.51.62-.77.93-2.78,3.31-5.73,6.49-8.76,9.65-4.01,4.19-8.22,7.93-13,10.95-1.7,1.07-3.47,2.06-5.33,2.93-.4.19-.8.38-1.2.55-.02,0-.04.02-.06.03l-.76.19-6.45,1.62c-2.93.74-5.64,2.22-6.89,4.29-.53.88-.79,1.88-.7,2.97,0,.01,0,.02.01.03.05.58.21,1.19.49,1.82-.06-.03-.13-.07-.19-.09-1.75-.84-3.47-.43-5.06.12-.03.01-.05.02-.07.03-.72.25-1.42.52-2.07.71-.42.13-.82.22-1.21.25-5.46-.58-10.26-1.08-15.3,1.86-4.2,2.46-8.18,5.46-11.5,9.06-.02.02-.04.03-.05.05-1.36,1.47-2.61,3.04-3.71,4.72-.09.12-.18.25-.26.38-.31.48-.5.98-.61,1.48h0c-.2.84-.2,1.67-.24,2.41v.09c.01.73.57,1.25,1.14,1.71.02.02.05.04.07.06.3.24.59.46.81.68l.04.04c.07.08.14.17.19.25.08.24.16.46.23.67.24.74.45,1.35.77,1.87.04.06.08.12.13.18.35.5.83.91,1.58,1.24.12.06.25.11.38.16.33.12.67.24,1,.34.18.07.37.13.56.18.46.14.93.27,1.4.37,4.34,1.06,8.81,1.03,13.4.47h.01c.08.07.16.14.25.2l.15.12c.96.74,1.97,1.26,3.02,1.59.15.05.29.09.44.13.24.08.49.14.74.18.21.04.42.08.64.11,1.42.19,2.89.11,4.39-.16.03,0,.06-.01.09-.01,2.55-.45,5.19-1.41,7.81-2.42.37-.14.75-.29,1.12-.43l.91.07,5.42.41c.46-.02.92-.06,1.38-.09,1.48-.13,2.92-.32,4.31-.59.07-.01.14-.02.2-.04,3.42-.66,6.59-1.73,9.57-3.14,3.69-1.72,7.1-3.95,10.33-6.53,3.81-3.05,7.39-6.59,10.93-10.38,8.75-9.37,17.66-18.14,27.45-26.44,5.73-4.86,11.82-8.48,18.14-12.53.55.51,1.11.98,1.69,1.41.51.37,1.03.71,1.57,1.02.31.18.62.35.94.51.04.03.08.05.12.06.15.08.3.15.46.22.17.09.34.17.52.24.52.22,1.04.42,1.58.6.17.07.35.13.53.17.18.06.36.11.54.16.34.1.68.18,1.03.27.05,0,.11.03.17.03.27.07.55.12.82.18.33.06.67.12,1.01.17.29.04.58.08.88.12,1.55.18,3.14.25,4.74.24.02.02.04.04.05.06.67.71,1.41,1.26,2.22,1.67h.01c1.18.59,2.49.89,3.89.96,1.79.11,3.72-.16,5.65-.63.73-.17,1.46-.37,2.18-.6.32.23.65.43.98.6,1.09.57,2.23.83,3.42.86.68.02,1.39-.03,2.11-.15.64-.13,1.27-.27,1.89-.43,4.94-1.23,9.43-3.36,13.98-5.73l1.23.91,2.62,1.93v.05c0,1.44.29,2.74.79,3.98.01.02.01.03.02.05.26.63.58,1.25.94,1.86.29.48.59.95.92,1.41.12.17.24.34.37.51,1.66,2.28,3.73,4.33,6.05,6.17.33.27.67.53,1.01.78l.81.6c.46.34.93.67,1.4.98.65.43,1.31.86,1.97,1.27,2.01,1.23,4.09,2.35,6.18,3.38.17.09.34.17.51.25,2.3,1.13,4.61,2.14,6.83,3.07.16.45.33.9.53,1.33.01.03.03.06.04.09.56,1.23,1.3,2.4,2.32,3.37.07.07.15.14.23.2.59.53,1.27.99,2.06,1.37.96.45,1.91.88,2.88,1.28.35.16.71.31,1.07.45.47.2.94.38,1.41.56.16.06.32.12.48.18.62.23,1.24.46,1.87.67.19.06.39.13.58.19,4.8,1.59,9.77,2.64,15.03,3.13-.24,1.1-.39,2.16-.47,3.18,0,.04,0,.09,0,.13-.14,1.91-.03,3.71.21,5.44.01.02.01.03.01.05.22,1.56.8,2.62,1.57,3.52.01.01.02.02.02.03.75.85,1.66,1.54,2.57,2.32.29.25.58.5.86.78.29.28.55.66.81,1.12.6,1.03,1.21,2.43,2.1,3.8.09.13.18.26.27.39.37.52.78,1.03,1.26,1.5.12.12.25.24.37.35.15.13.31.26.47.39.52.4,1.1.77,1.77,1.07.19.08.38.16.59.24.94.35,2.03.59,3.3.66.68.58,1.37,1.14,2.06,1.69.02.01.04.03.06.05,1.17.9,2.38,1.75,3.66,2.49.22.14.45.26.69.38,1.62.89,3.37,1.59,5.3,2,.21.05.42.09.64.12.15.04.3.07.45.09,2.08.38,4.18.57,6.28.57.36,0,.72-.01,1.07-.02,2.49-.07,4.98-.4,7.47-.98.5.32,1.01.61,1.52.88.45.23.9.45,1.35.65.2.09.4.17.6.25,3.72,1.46,7.67,1.75,11.73,1.53,3.35-.18,6.77-.72,10.17-1.24l10.32-1.59h.04c4.6-.71,9.1-1.05,13.61-.68h.07c1.87.15,3.75.42,5.63.83h.02c1.39,2.75,3.11,5.14,5.1,7.23.68.72,1.39,1.4,2.14,2.04.37.33.75.64,1.13.95.39.31.78.62,1.18.92.79.6,1.62,1.17,2.46,1.71.07.05.15.1.23.14,1.62,1.03,3.32,1.96,5.09,2.83.51.25,1.06.65,1.66,1.18,1.39,1.25,3,3.19,4.69,5.5,3.4,4.67,7.1,10.85,9.9,15.81.77,1.35,1.45,2.6,2.05,3.7.17.33.36.66.53.99.11.21.23.42.34.63.39.74.79,1.49,1.17,2.23.36.7.72,1.4,1.07,2.1.51,1,1.01,1.99,1.49,2.99.38.76.75,1.53,1.11,2.3,1.5,3.12,2.93,6.26,4.3,9.43.45,1.04.89,2.08,1.33,3.12,3.06,7.29,5.83,14.7,8.44,22.29-.56.77-1.15,1.47-1.79,2.13-.21.21-.43.42-.65.63-.16.15-.32.29-.48.43-1.01.88-2.09,1.64-3.25,2.3-.22.14-.44.26-.67.38-.32.18-.65.35-.99.51-.44.21-.89.41-1.34.6l-8.43,3.52c-1.99.83-4.01,2.41-5.46,4.25-.21.26-.41.53-.59.8-.1.15-.2.31-.3.46-.15.24-.28.49-.4.74-.06.12-.11.26-.17.38-.03.08-.06.16-.1.24-.04.11-.08.22-.11.33-.03.09-.05.17-.07.25-.03.08-.05.17-.07.25-.07.32-.12.64-.14.96-.01.12-.01.24-.01.36,0,.18.01.36.03.54.16.84.58,1.63,1.31,2.32-.41.61-.93,1.14-1.53,1.6-.03.03-.06.05-.09.07-.57.44-1.21.81-1.89,1.14-1.63.82-3.45,1.39-5,1.91-2.36.8-3.35,3.28-4.76,5.11-.3,0-.6.01-.89.03h-.04c-5.47.32-10.08,2.94-13.02,7.63-3.46,5.53-5.92,11.78-6.96,18.22-.1.6-.19,1.21-.26,1.82-.11.91-.19,1.82-.24,2.73-.02.31-.01.6.01.89.02.18.05.36.08.53.31,1.66,1.36,2.87,2.75,3.42.03.02.07.04.1.04.55.22,1.14.33,1.77.33.22.64.56,1.15,1,1.53,1.1.99,2.79,1.22,4.61.96.23-.03.45-.07.68-.11.67-.14,1.36-.33,2.02-.57.18-.06.35-.13.53-.2.13-.06.26-.11.39-.17.49-.2.97-.43,1.42-.68l10.28-5.62c.79-.44,1.5-.7,2.19-.84.03,0,.05-.01.07-.01,1.1-.23,2.18-.18,3.54-.15.21,0,.43,0,.64-.02,4.21-.19,7.53-3.21,10.64-5.88l18.06-15.44c.32-.37.62-.39.79-.12.04.06.06.14.06.21.04.3-.15.63-.25.89l-1.4,3.91-2.16,6.04c-.68,1.91-1.17,4.04-1.34,6.18-.21,2.38-.03,4.77.68,6.83.09.25.18.5.29.75.07.18.16.36.26.54.96,1.85,2.49,3.31,4.72,4.06-.14.49-.31.97-.51,1.44-.49,1.21-1.13,2.37-1.76,3.52-.02.04-.04.07-.06.11-1.24,2.28-2.46,4.56-2.57,7.29v.02c-.02.52,0,1.05.07,1.61.11.88.08,1.65-.11,2.37-.07.26-.15.51-.26.76-.22.49-.51.95-.9,1.41-.25.3-.5.61-.73.93-1.72,2.32-2.82,4.91-3.29,7.72-.22,1.36-.29,2.78-.22,4.24.45,8.84,4,19.05,8.29,24.09.05.07.11.14.17.2.1.12.2.23.31.34.09.1.18.19.28.28,2.41,2.46,5.02,3.21,7.41,1.14.09-.08.18-.14.28-.18.52-.25,1.06-.02,1.54.29.13.08.26.17.38.26.38.27.79.43,1.22.48.88.12,1.85-.18,2.82-.77,2.65-1.59,5.38-5.27,6.82-8.38,1.85-4.07,3.48-8.06,4.66-12.37.26-.91.49-1.84.7-2.79.47-.35.92-.72,1.34-1.1,2.54-2.3,4.33-5.19,5.34-8.58,1.08-2.86,1.44-6.01,1.58-9.16h0c.03-.54.04-1.06.06-1.58,0-.23.01-.46.02-.69,0-.31,0-.62.01-.92.04-2.53.05-5.01.28-7.27.11-1.03.27-2.03.5-2.96.09-.36.19-.71.3-1.05,2.47-7.49,3.63-14.76,3.53-22.62l.68-6.61c-.78-11.46-2.72-22.47-6.42-33.35,2.67-3.04,4.79-6,6.69-9.44l10.48-19.03,3.55-7.67,16.46-35.6,8.56-18.49c3.79-8.18,7.57-16.01,12.74-23.33,4.94-6.98,7.05-15.25,5.66-23.84.5-.35.92-.76,1.25-1.23.62-.86.97-1.9,1.09-3.07.57-5.27-3.45-12.94-7.47-16.72-.23-.08-.43-.18-.62-.29-.4-.22-.71-.49-.95-.81-.26-.33-.44-.7-.53-1.13-.04-.16-.07-.33-.08-.5-.04-.35-.02-.72.03-1.11-.39-.51-.8-.98-1.24-1.42-.11-.13-.23-.24-.35-.35-6.42-6.17-15.81-4.95-24.8-2.93l-14.07,3.16c.09-.52.13-1.06.18-1.61.09-1.25.17-2.5.77-3.46.04-.07.08-.14.13-.2l3.84-5.24.13-.18c1.71.37,3.21.22,4.57-.29.23-.09.47-.19.7-.32.16-.08.31-.16.47-.26,3.16-1.76,5.47-5.59,7.81-9.35h.01c.92-1.49,1.84-2.96,2.82-4.28.56-.77,1.15-1.49,1.76-2.14.57.1,1.14.16,1.72.16h.06c.93-.01,1.86-.15,2.77-.47.54-.18,1.08-.43,1.6-.74,2-1.2,3.93-2.44,5.88-3.63.73-.45,1.47-.89,2.21-1.32.32-.19.64-.37.96-.55,2.26-1.26,4.61-2.4,7.17-3.29,5.59-1.94,9.39-2.79,12.57-2.79h.29c2.98.05,5.43.86,8.36,2.22.09.03.18.07.27.12,2.79,1.31,6.03,3.11,10.57,5.21.1.06.21.11.32.15.31.15.64.3.97.45,1.41.64,2.78,1.32,4.11,2.05.04.01.08.03.12.06.85.46,1.68.94,2.5,1.44,1.83,1.1,3.59,2.29,5.3,3.57.4.3.81.61,1.21.92.28.22.56.44.84.67.39.31.78.63,1.16.95.39.32.77.65,1.15.98,1.32,1.14,2.61,2.34,3.87,3.59.21.2.41.4.62.6.06.05.11.11.17.16,4.03,3.79,8.55,6.69,13.21,8.34.31.12.62.22.93.32.33.11.67.21,1,.3.5.15,1.01.27,1.51.38.25.06.5.11.76.16.28.05.56.1.83.15.31.05.62.09.94.13.24.03.47.05.71.07.33.03.66.05.99.07.55.02,1.11.03,1.66,0,.39-.02.78-.05,1.16-.09.39-.04.77-.1,1.16-.16.35-.05.69-.12,1.04-.2,4.62-.97,9.04-3.52,12.91-7.98.61.1,1.22.15,1.82.15.1,0,.21,0,.31-.01,7.82-.17,14.03-8.07,15.11-15.99l1.02-3.47c.96-3.29-1.24-6.7-1.98-9.64,5.34-6.65,7.59-10.82,5.46-19.44,5.29-5.24,10.2-12.48,12.47-19.7,0-.01.01-.02.01-.03.15-.48.29-.95.41-1.42h.06c.13-.01.25-.02.37-.02,1.54-.1,2.84-.06,4.28.21.17.02.34.05.51.09.65.97,1.34,1.92,2.06,2.83.42.53.84,1.05,1.29,1.56.8.93,1.63,1.83,2.49,2.69.87.86,1.76,1.68,2.68,2.47.62.51,1.25,1.02,1.89,1.51,1.34,1,2.73,1.94,4.16,2.79.72.42,1.44.83,2.18,1.22h.01c.65.34,1.3.66,1.97.97h.01c4.64,2.17,9.68,3.56,14.95,4.13,1.08.11,2.04-.06,2.93-.35.12-.03.24-.06.36-.11.13-.04.25-.09.37-.13.14-.04.27-.1.41-.15.24-.09.47-.19.7-.28.59-.23,1.18-.46,1.79-.63,2.7-.05,5.62-.33,8.62-.85.43-.07.86-.15,1.29-.23.58-.11,1.16-.22,1.74-.35.51-.11,1.01-.23,1.52-.35.51-.13,1.02-.26,1.52-.39,1.02-.28,2.03-.58,3.03-.9.24-.08.48-.16.71-.24,5.26-1.78,10.26-4.3,14.15-7.57.19-.15.37-.31.55-.47,1.08-.95,2.07-1.97,2.94-3.04.15-.18.29-.36.43-.55.06-.07.12-.15.17-.23.09-.12.18-.24.26-.36,1.2-1.67,2.12-3.47,2.72-5.41.66-2.12.6-4.13.03-5.98ZM459.09,164.04c-2.49.97-4.97-3.34-3.36-4.91,1.11-1.09,2.93.24,3.57,1.16.56.81,1.01,3.28-.21,3.75ZM465.33,186.72c-1.68-.08-4.04-1.28-5.47-2.19,3.99-2.28,5.73-6,5.97-10.28.43-7.33-2.83-14.1-7.87-19.31-2.45-2.53-5.22-3.8-9.06-3.54,1.22-1.46,2.46-3.16,4.25-3.72,4.96-1.56,20.44,11.76,18.9,29.43-.39,4.43-2.35,8.27-6.72,9.61ZM481.05,179.34c-.88,3.77-1.83,7.56-4.68,10.32-2.84.49-6.09-.33-8.84-1.46,9.57-4.8,7.79-19.2,2.76-28.58-3.39-6.33-8.37-12.32-15.53-13.76,7.26-4.35,15.4-5.66,23.46-3.68,6.35,10.13,5.58,25.41,2.83,37.16ZM537.66,341.81c.09.09.14.2.14.32l.21,7.46c-.32,1.57-.65,3.14-1.02,4.73-.17.74-.35,1.49-.52,2.23-5.58,22.98-15.86,47.05-27.42,67.83l-10.48-25.79-10.1-26.15c-.88-2.58-1.48-5.15-1.79-7.77-.04-.38-.08-.75-.11-1.13,0-.06,0-.12-.01-.19-.04-.49-.07-.98-.09-1.48-.04-.99-.03-1.99,0-3,.16-4.07-.94-7.69-2.51-11.59,3.51,1.24,7.06,2.14,10.6,2.63.77.11,1.54.2,2.32.27,2.75.25,5.5.25,8.24-.02.66-.06,1.32-.15,1.98-.25.72-.1,1.45-.23,2.17-.38,2.26-.46,4.03-1.68,5.22-3.57.05-.07.1-.14.14-.21,1.57.16,3.13.26,4.67.27.35,0,.7,0,1.05-.01.66-.02,1.33-.05,1.99-.1.32-.02.63-.05.95-.08.5-.06.99-.12,1.48-.19.33-.05.66-.1.99-.16.23-.04.46-.09.69-.14.28-.05.55-.11.83-.18,2.6-.58,5.11-1.51,7.51-2.84.47-.27.88-.62,1.03-.9.13-.25.6-.3,1.03-.2h0c.26.07.5.19.64.35ZM559.51,188.27c1.46-5.57,1.34-11.17-1.25-16.39l3.5-3.96c2.18,6.28,2.71,16.15-2.25,20.35ZM565.76,175.42c-.77-3.48-1.84-6.2-3.14-9.2-.27-2.01,3.76-3.9,5.45-2.26-.12,3.82-1.29,7.84-2.31,11.46ZM613.35,190.57c-.32-2.57,1.38-3.47,3.15-4.32,4.37-2.11,9.2-1.17,12.46,2.65,1.53,1.8,2.8,4.58,3.5,6.59l-4.41,1.92c-.68-3.2-2.47-5.6-5.11-7.06-3.03-1.67-6.37-1.96-9.59.22ZM621.87,195.79c.18-.76.81-1.83,1.36-2.02.55-.19,1.72.6,2.15,1.35.91,1.58.71,4.66-.94,4.98-2.16.41-2.98-2.51-2.57-4.31ZM626.88,218.01l-4.12-2.38c4.29-3.6,5.69-8.33,6-13.95l4.43-.74c.51,6.7-1.67,11.88-6.31,17.07ZM639,222.24c-3.87,1.47-7.82-.04-10.5-2.98,8.01-8.38,9.09-21.4,2.45-30.95-3.59-5.18-10.5-6.29-16.17-3.4-.22-.33.66-1.99,1.25-2.17l7.76.27c11.39,2.15,18.15,11.41,22.94,21.55-.54,6.26-2.71,15.77-7.73,17.68ZM698.59,225.1c-.92-.01-1.67-1.97-.99-2.74l1.87-2.12c.57,2.04.31,3.76-.88,4.86ZM701.01,225.82c.2-2.13.67-4.55.15-6.36-.46-1.62-.97-2.63.99-3.91,1.29,3.55.78,7.13-1.14,10.27ZM704.65,221.39c-.2-2.74-.53-4.68-1.22-7.24,1.22-1.8,4.17-3.19,6.46-3.15l-5.24,10.39Z"/></svg></button>
+<div id="menu"></div>
+
+<div id="center"></div>
+<div id="hoverInfo"></div>
+
+<a href="#" id="nextProject" class="ext-link next-link">next project</a>
+
+<div id="cv">
+  <div class="cv-section">
+    <div class="cv-head">Thomas Ding</div>
+    <div class="cv-loc">Paris based</div>
+  </div>
+  <div class="mobile-info-header">
+    <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
+    <a href="#" id="emailCopyMobile">thomasding227@gmail.com</a>
+    <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
+  </div>
+
+  <div class="cv-section">
+    <div class="cv-head">Experience</div>
+    <div class="cv-row"><span class="cv-date">2026 — now</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">multi-disciplinary designer</span></div>
+    <div class="cv-row"><span class="cv-date">2025 — 2026</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">creative intern</span></div>
+    <div class="cv-row"><span class="cv-date">2023 — 2025</span><span class="cv-company"><a href="https://www.womenmanagement.com/paris/home.web" target="_blank" rel="noopener" class="ext-link">Women Management</a></span><span class="cv-role">graphic designer &amp; image editor</span></div>
+    <div class="cv-row"><span class="cv-date">2022 — 2023</span><span class="cv-company">Dream Factory</span><span class="cv-role">graphic designer</span></div>
+  </div>
+
+  <div class="cv-section">
+    <div class="cv-head">Services</div>
+    <div>Art direction, graphic design, image, video, AI</div>
+  </div>
+
+  <button id="cvThemeBtn"></button>
+
+</div>
+
+<script>
+/* loader — fetch SVG, add group IDs for CSS animation, inject inline */
+const loaderEl=document.getElementById('loader');
+const loaderStart=Date.now();
+fetch('./loadersvg.svg')
+  .then(r=>r.text())
+  .then(text=>{
+    const doc=new DOMParser().parseFromString(text,'image/svg+xml');
+    const svg=doc.documentElement;
+    const groups=[...svg.children].filter(n=>n.tagName==='g');
+    if(groups[0]){
+      groups[0].id='lg-circles';
+      /* tag each circle ci-1 (outermost) → ci-9 (innermost) so CSS can
+         stagger their entrance animation from centre outward */
+      [...groups[0].children].forEach((c,i)=>c.classList.add('ci-'+(i+1)));
+    }
+    if(groups[1]){
+      groups[1].id='lg-outer';
+      /* ornaments (mice): appear one by one after circles finish, no fade */
+      [...groups[1].children].forEach((g,i)=>{
+        g.style.opacity='0';
+        g.style.animation=`snap-in 0.15s ease ${(0.2+i*0.06).toFixed(2)}s both`;
+      });
+    }
+    /* root paths (mice + numbers): group identical numbers by radial distance
+       from SVG centre, then reveal each group together, inner → outer */
+    const CX=570.86,CY=570.86,TOL=18; // tolerance in px to consider same ring
+    const paths=[...svg.children].filter(n=>n.tagName==='path');
+    // inject temporarily to measure bounding boxes
+    svg.style.cssText='position:fixed;top:-9999px;width:1px;height:1px;overflow:visible;';
+    document.body.appendChild(svg);
+    const radii=paths.map(p=>{
+      const b=p.getBBox();
+      const cx=b.x+b.width/2, cy=b.y+b.height/2;
+      return Math.round(Math.sqrt((cx-CX)**2+(cy-CY)**2)/TOL)*TOL;
+    });
+    document.body.removeChild(svg);
+    svg.style.cssText='';
+    // sort unique radii inner→outer and map each to a step index
+    const sortedR=[...new Set(radii)].sort((a,b)=>a-b);
+    const stepMap=Object.fromEntries(sortedR.map((r,i)=>[r,i]));
+    const STEP=0.04, START=0.05; // 40ms between groups, start at 50ms
+    paths.forEach((p,i)=>{
+      const delay=(START+stepMap[radii[i]]*STEP).toFixed(3);
+      p.style.opacity='0';
+      p.style.animation=`snap-in 0.12s ease ${delay}s both`;
+    });
+    loaderEl.appendChild(svg);
+  }).catch(()=>{});
+let suppressRingShow=true;
+function hideLoader(){
+  const elapsed=Date.now()-loaderStart;
+  const wait=Math.max(0,2200-elapsed);
+  setTimeout(()=>{
+    loaderEl.classList.add('loaded');               // whole loader fades as one (1.4s)
+    loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
+    setTimeout(()=>{                                // reveal content halfway through
+      suppressRingShow=false;
+      updateRingVisibility();
+      ['menu','siteTitle','menuBtn','infoBtn'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el)el.style.opacity='1';
+      });
+      buildMobileHome();
+    },700);
+  },wait);
+}
+
+/* cursor */
+const cur=document.getElementById('cur');
+document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
+
+/* reactive iridescent background, same as the hub */
+(function(){
+  const iri=document.getElementById('iri');
+  let mx=0.5,my=0.5;
+  const base=[{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+  const blobs=base.map(b=>({...b}));
+  const blobDef=[
+    {ax:0.28,ay:0.22,ease:0.022,color:'220,180,60',op:0.22,ex:120,ey:100},
+    {ax:-0.30,ay:0.26,ease:0.018,color:'200,160,210',op:0.18,ex:110,ey:95},
+    {ax:0.26,ay:-0.28,ease:0.02,color:'160,210,200',op:0.16,ex:105,ey:90},
+    {ax:0.13,ay:0.12,ease:0.013,color:'210,200,190',op:0.13,ex:120,ey:110},
+  ];
+  document.addEventListener('mousemove',e=>{
+    mx=e.clientX/window.innerWidth;
+    my=e.clientY/window.innerHeight;
+  });
+  (function tick(){
+    let grad='';
+    blobs.forEach((b,i)=>{
+      const d=blobDef[i];
+      b.x+=(base[i].x+(mx-0.5)*d.ax*100-b.x)*d.ease;
+      b.y+=(base[i].y+(my-0.5)*d.ay*100-b.y)*d.ease;
+      grad+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 70%),`;
+    });
+    iri.style.backgroundImage=grad.slice(0,-1);
+    requestAnimationFrame(tick);
+  })();
+})();
+
+/* scroll the CV or the media column, no matter where the cursor is —
+   on the "home" state (no project open), the wheel instead spins the ring */
+window.addEventListener('wheel',e=>{
+  if(cvOpen){cvPanel.scrollTop+=e.deltaY;return;}
+  if(selectedIdx===null&&!galleryOpen&&!isMobile()){ringTarget+=e.deltaY*0.18;return;}
+  centerPanel.scrollTop+=e.deltaY;
+},{passive:true});
+
+let lty=null;
+document.addEventListener('touchstart',e=>{lty=e.touches[0].clientY;},{passive:true});
+document.addEventListener('touchmove',e=>{
+  if(lty===null)return;
+  if(cvOpen||selectedIdx!==null||isMobile()){lty=e.touches[0].clientY;return;}
+  ringTarget+=(lty-e.touches[0].clientY)*0.35;
+  lty=e.touches[0].clientY;
+},{passive:true});
+document.addEventListener('touchend',()=>{lty=null;},{passive:true});
+
+/* email copy */
+function copyEmail(el){
+  navigator.clipboard.writeText('thomasding227@gmail.com');
+  const original=el.textContent;
+  el.textContent='copied';
+  setTimeout(()=>{el.textContent=original;},1200);
+}
+const emailCopy=document.getElementById('emailCopy');
+emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);});
+const emailCopyMobile=document.getElementById('emailCopyMobile');
+emailCopyMobile.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopyMobile);});
+
+/* CV toggle */
+let cvOpen=false;
+const cvBtn=document.getElementById('cvBtn');
+const cvPanel=document.getElementById('cv');
+const centerPanel=document.getElementById('center');
+const hoverInfo=document.getElementById('hoverInfo');
+
+/* "next project" link — fixed bottom-right, only appears once the current
+   project's media has been scrolled to the end */
+const nextLinkEl=document.getElementById('nextProject');
+let nextLinkTarget=null;
+function updateNextLinkVisibility(){
+  if(nextLinkTarget===null){nextLinkEl.classList.remove('show');return;}
+  const atEnd=centerPanel.scrollTop+centerPanel.clientHeight>=centerPanel.scrollHeight-4;
+  nextLinkEl.classList.toggle('show',atEnd);
+}
+centerPanel.addEventListener('scroll',updateNextLinkVisibility,{passive:true});
+window.addEventListener('resize',updateNextLinkVisibility,{passive:true});
+nextLinkEl.addEventListener('click',e=>{
+  e.preventDefault();
+  if(nextLinkTarget!==null)selectProject(nextLinkTarget);
+});
+
+const infoPanel=document.getElementById('info');
+const infoInnerEl=document.getElementById('infoInner');
+/* unfold/fold #info exactly like a menu category — animate max-height
+   to the panel's measured content height, same .4s/.25s timing as
+   .menu-items/.menu-items-inner */
+function setInfoOpen(open){
+  infoPanel.classList.toggle('show',open);
+  infoPanel.style.maxHeight=open?infoInnerEl.scrollHeight+'px':'0px';
+}
+
+/* theme cycling: dark → light → red → yellow */
+const THEMES=['dark','light','yellow'];
+function setTheme(name){
+  document.body.classList.remove('light','red-mode','yellow-mode');
+  if(name==='light')document.body.classList.add('light');
+else if(name==='yellow')document.body.classList.add('yellow-mode');
+  localStorage.setItem('odile-theme',name);
+  if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
+}
+function cycleTheme(){
+  const cur=localStorage.getItem('odile-theme')||'light';
+  setTheme(THEMES[(THEMES.indexOf(cur)+1)%THEMES.length]);
+}
+/* default: light mode unless explicitly saved */
+setTheme(['dark','light','red','yellow'].includes(localStorage.getItem('odile-theme'))?localStorage.getItem('odile-theme'):'light');
+
+/* ding: at home → toggle info; otherwise → close whatever is open + show info */
+const siteTitle=document.getElementById('siteTitle');
+siteTitle.addEventListener('click',()=>{
+  const atHome=selectedIdx===null&&!cvOpen&&!galleryOpen;
+  if(atHome){
+    if(isDesktop()){
+      const open=!infoPanel.classList.contains('show');
+      setInfoOpen(open);
+      siteTitle.classList.toggle('active',open);
+    }
+    return;
+  }
+  const wasProject=selectedIdx!==null;
+  const wasGallery=galleryOpen;
+  const wasCV=cvOpen;
+  if(selectedIdx!==null)closeProject();
+  if(cvOpen)toggleCV(false);
+  if(openCat!==null)toggleCategory(openCat);
+  if(galleryOpen){closeGallery();clearCenter();}
+  if(isDesktop()){
+    if(wasProject||wasGallery){setInfoOpen(true);siteTitle.classList.add('active');}
+    else if(wasCV){setInfoOpen(false);siteTitle.classList.remove('active');}
+  }
+});
+
+/* ⛨ easter egg */
+document.getElementById('themeEgg').addEventListener('click',cycleTheme);
+/* mobile — clone the SVG from themeEgg into the info panel button */
+(function(){
+  const mb=document.getElementById('cvThemeBtn');
+  const svg=document.querySelector('#themeEgg svg');
+  if(mb&&svg)mb.appendChild(svg.cloneNode(true));
+})();
+
+/* mobile theme toggle in + panel */
+const cvThemeBtn=document.getElementById('cvThemeBtn');
+if(cvThemeBtn)cvThemeBtn.addEventListener('click',cycleTheme);
+window.addEventListener('resize',()=>{
+  if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
+  document.querySelectorAll('.menu-items.open').forEach(el=>{
+    el.style.maxHeight=el.querySelector('.menu-items-inner').scrollHeight+'px';
+  });
+  if(archiveAccOpen){const ai=document.querySelector('.archive-items');if(ai)ai.style.maxHeight=ai.querySelector('.archive-inner').scrollHeight+'px';}
+},{passive:true});
+function isDesktop(){return window.matchMedia('(min-width:1321px)').matches;}
+function isMobile(){return window.matchMedia('(max-width:640px)').matches;}
+function toggleCV(force){
+  cvOpen=force!==undefined?force:!cvOpen;
+  cvBtn.classList.toggle('active',cvOpen);
+  cvPanel.classList.toggle('show',cvOpen);
+  centerPanel.classList.toggle('center-hidden',cvOpen);
+  if(!isDesktop()){
+    infoBtn.classList.toggle('active',cvOpen);
+  }
+  updateRingVisibility();
+}
+cvBtn.addEventListener('click',e=>{e.preventDefault();toggleCV();});
+
+/* mobile nav — index/info open as full-screen drawers */
+const menuBtn=document.getElementById('menuBtn');
+const menuPanel=document.getElementById('menu');
+const infoBtn=document.getElementById('infoBtn');
+function closeMobileMenu(){
+  menuPanel.classList.remove('show');
+  menuBtn.classList.remove('active');
+  centerPanel.classList.remove('center-hidden');
+}
+menuBtn.addEventListener('click',e=>{
+  e.preventDefault();
+  if(cvOpen)toggleCV(false);
+  const open=menuPanel.classList.toggle('show');
+  menuBtn.classList.toggle('active',open);
+  centerPanel.classList.toggle('center-hidden',open);
+});
+infoBtn.addEventListener('click',e=>{
+  e.preventDefault();
+  if(menuPanel.classList.contains('show'))closeMobileMenu();
+  toggleCV();
+});
+
+/* ── FALLBACK DATA — used if the CMS is unreachable or empty ── */
+const FALLBACK_PROJECTS=[
+  {title:'Project Alpha',      tags:['commercial'], media:[[1,1],[4,5],[16,9]].map(toPh)},
+  {title:'Working Title 02',   tags:['commercial'], media:[[4,5],[4,5],[1,1],[16,9]].map(toPh)},
+  {title:'Concrete Study',     tags:['commercial'], media:[[1,1],[16,9]].map(toPh)},
+  {title:'Untitled Campaign',  tags:['commercial'], media:[[4,5],[1,1],[4,5]].map(toPh)},
+  {title:'Field Recordings',   tags:['personal'],   media:[[16,9],[1,1]].map(toPh)},
+  {title:'Notes on Light',     tags:['personal'],   media:[[1,1],[4,5],[1,1],[16,9]].map(toPh)},
+  {title:'Specimen 07',        tags:['editorial'],  media:[[4,5],[4,5]].map(toPh)},
+  {title:'Loop & Repeat',      tags:['editorial'],  media:[[16,9],[4,5],[1,1]].map(toPh)},
+];
+function toPh([w,h]){return{type:'ph',ar:w/h};}
+
+/* menu sections are sorted by medium rather than by raw CMS tags —
+   "video" (film/music video), "graphic design", then everything else
+   (campaigns, imagery, editions, ...) falls into "images" */
+const CAT_ORDER=['videos','images','graphic design'];
+const CATEGORY_OVERRIDE={"runner's high":'images'};
+function getProjectCategory(p){
+  const key=(p.title||'').toLowerCase();
+  if(CATEGORY_OVERRIDE[key])return CATEGORY_OVERRIDE[key];
+  const tags=(p.tags||[]).map(t=>t.toLowerCase());
+  if(tags.includes('film')||tags.includes('music video')||tags.includes('video'))return 'videos';
+  if(tags.includes('graphic design'))return 'graphic design';
+  return 'images';
+}
+
+let projects=[];
+let openCat=null;
+let selectedIdx=null;
+let galleryOpen=false;
+let archiveData=null;
+let openArchiveId=null;
+let archiveAccOpen=false;
+let menuOrder=[];
+
+/* ── SANITY ── */
+const PID='zgrgr7sj',DS='production';
+const GROQ=`*[_type=="project"]|order(year desc){
+  _id,title,client,"year":string(year),"favorite":favorite==true,description,link,
+  "tags":tags[]->{title},
+  "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
+  "media":media[]{
+    _type,
+    _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+    _type=="file"=>{"url":asset->url,"mime":asset->mimeType},
+    _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
+    _type=="mediaVideo"=>{"url":video.asset->url,"mime":video.asset->mimeType}
+  }
+}`;
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* projects are personal content: title/client/year/description + media (images, videos, or placeholders) */
+async function loadFromSanity(){
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(GROQ)}`);
+    const{result}=await res.json();
+    if(result?.length){
+      projects=result.map(p=>({
+        title:p.title||'(untitled)',
+        client:p.client||'',
+        year:p.year||'',
+        favorite:!!p.favorite,
+        link:p.link||'',
+        description:Array.isArray(p.description)
+          ?p.description.filter(b=>b._type==='block'&&Array.isArray(b.children))
+            .map(b=>b.children.map(c=>c.text||'').join(''))
+            .filter(t=>t.trim())
+          :[],
+        tags:Array.isArray(p.tags)?p.tags.map(t=>(t?.title||'').toLowerCase().trim()).filter(Boolean):[],
+        media:Array.isArray(p.media)?p.media.map(m=>{
+          if(m._type==='image'||m._type==='mediaImage')return{type:'image',url:m.url,ar:m.ar||1};
+          if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url};
+          return null;
+        }).filter(Boolean):[],
+        thumb:p.thumb?.url||'',
+        thumbAR:p.thumb?.ar||1,
+      }));
+      /* fall back to the first image media item if no ring thumbnail is set */
+      projects.forEach(p=>{
+        if(!p.thumb){
+          const firstImg=p.media.find(m=>m.type==='image');
+          if(firstImg){p.thumb=firstImg.url;p.thumbAR=firstImg.ar||1;}
+        }
+      });
+    }
+  }catch(e){console.warn('[Sanity]',e.message);}
+  if(!projects.length)projects=FALLBACK_PROJECTS;
+  buildMenu();
+  buildRing();
+  hideLoader();
+}
+
+/* group projects by medium (video / images / graphic design), preserving year-desc order */
+function buildMenu(){
+  const menu=document.getElementById('menu');
+  menu.innerHTML='';
+  if(!projects.length)return;
+
+  const groups=new Map();
+  projects.forEach((p,i)=>{
+    const cat=getProjectCategory(p);
+    if(!groups.has(cat))groups.set(cat,[]);
+    groups.get(cat).push(i);
+  });
+
+  /* favorited projects come first within each category, preserving
+     the existing chronological (year-desc) order otherwise */
+  groups.forEach(idxs=>{
+    idxs.sort((a,b)=>(projects[b].favorite?1:0)-(projects[a].favorite?1:0));
+  });
+
+  /* fixed category order (video, images, graphic design), any unknown
+     category falls back after these */
+  const sortedGroups=[...groups.entries()].sort((a,b)=>{
+    const ai=CAT_ORDER.indexOf(a[0]),bi=CAT_ORDER.indexOf(b[0]);
+    return (ai===-1?CAT_ORDER.length:ai)-(bi===-1?CAT_ORDER.length:bi);
+  });
+
+  /* flat project order across the whole menu, used by the "next project" button */
+  menuOrder=sortedGroups.flatMap(([,idxs])=>idxs);
+
+  sortedGroups.forEach(([cat,idxs])=>{
+    const group=document.createElement('div');
+    group.className='menu-group';
+
+    const head=document.createElement('div');
+    head.className='menu-cat'+(openCat===cat?' open':'');
+    head.dataset.cat=cat;
+    head.textContent=cat;
+    head.addEventListener('click',()=>toggleCategory(cat));
+    group.appendChild(head);
+
+    const items=document.createElement('div');
+    items.className='menu-items'+(openCat===cat?' open':'');
+    items.dataset.cat=cat;
+    const inner=document.createElement('div');
+    inner.className='menu-items-inner';
+    idxs.forEach(i=>{
+      const a=document.createElement('a');
+      a.href='#';
+      const proj=projects[i];
+      a.textContent=proj.client||proj.title;
+      a.dataset.idx=i;
+      if(selectedIdx===i)a.classList.add('active');
+      a.addEventListener('click',e=>{
+        e.preventDefault();
+        if(selectedIdx===i)closeProject();
+        else selectProject(i);
+      });
+      /* hovering a project name rolls the ring so its thumbnail comes to the top */
+      a.addEventListener('mouseenter',()=>ringFocusOn(i));
+      a.addEventListener('mouseleave',()=>ringUnfocus(i));
+      inner.appendChild(a);
+    });
+    items.appendChild(inner);
+    group.appendChild(items);
+
+    menu.appendChild(group);
+  });
+
+  /* archives — accordion with one sub-item per gallery document */
+  const gGroup=document.createElement('div');
+  gGroup.className='menu-group menu-group-archives';
+  const gHead=document.createElement('div');
+  gHead.className='menu-cat'+(archiveAccOpen?' open':'');
+  gHead.dataset.cat='archives';
+  gHead.textContent='archives';
+  gHead.addEventListener('click',toggleArchiveAccordion);
+  gGroup.appendChild(gHead);
+  const gItems=document.createElement('div');
+  gItems.className='archive-items'+(archiveAccOpen?' open':'');
+  const gInner=document.createElement('div');
+  gInner.className='archive-inner';
+  gItems.appendChild(gInner);
+  gGroup.appendChild(gItems);
+  menu.appendChild(gGroup);
+  /* populate sub-items once archive data is ready */
+  loadArchiveData().then(data=>{
+    gInner.innerHTML='';
+    data.forEach(g=>{
+      const a=document.createElement('a');
+      a.href='#';
+      a.className='archive-link'+(openArchiveId===g.id?' active':'');
+      a.dataset.archiveId=g.id;
+      a.textContent=g.title;
+      a.addEventListener('click',e=>{e.preventDefault();openArchiveGallery(g.id);});
+      gInner.appendChild(a);
+    });
+    if(archiveAccOpen)gItems.style.maxHeight=gInner.scrollHeight+'px';
+  });
+}
+
+/* ── MOBILE HOME — grid of thumbnails per category shown on landing ── */
+const mobileLogoBtn=document.getElementById('mobileLogo');
+mobileLogoBtn.addEventListener('click',()=>{
+  if(cvOpen)toggleCV(false);
+  if(menuPanel.classList.contains('show'))closeMobileMenu();
+  if(selectedIdx!==null){selectedIdx=null;document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));}
+  if(galleryOpen)closeGallery();
+  buildMobileHome();
+});
+
+function buildMobileHome(){
+  if(!isMobile())return;
+  const center=document.getElementById('center');
+  center.innerHTML='';
+  center.scrollTop=0;
+
+  const wrap=document.createElement('div');
+  wrap.id='mobileHome';
+
+  const groups=new Map();
+  menuOrder.forEach(i=>{
+    const cat=getProjectCategory(projects[i]);
+    if(!groups.has(cat))groups.set(cat,[]);
+    groups.get(cat).push(i);
+  });
+
+  groups.forEach((idxs,cat)=>{
+    const section=document.createElement('div');
+    const grid=document.createElement('div');
+    grid.className='mh-grid';
+
+    idxs.forEach(i=>{
+      const p=projects[i];
+      const item=document.createElement('div');
+      item.className='mh-item';
+
+      const thumb=document.createElement('div');
+      thumb.className='mh-thumb';
+      if(p.thumb)thumb.style.backgroundImage=`url(${p.thumb})`;
+
+      item.appendChild(thumb);
+      item.addEventListener('click',()=>selectProject(i));
+      grid.appendChild(item);
+    });
+
+    section.appendChild(grid);
+    wrap.appendChild(section);
+  });
+
+  center.appendChild(wrap);
+  mobileBackBtn.classList.remove('show');
+}
+
+/* remove the ring highlight for every project in a given category */
+function clearCategoryFocus(cat){
+  projects.forEach((p,i)=>{
+    if(getProjectCategory(p)===cat&&ringTiles[i]){
+      ringTiles[i].tile.classList.remove('cat-focus');
+    }
+  });
+}
+
+/* open/close a category without rebuilding the menu, so the foldout transitions can play.
+   opening one category forces any other open category, and the scraps gallery, to close */
+function toggleCategory(cat){
+  const closing=(openCat===cat);
+  const prevCat=openCat;
+
+  if(!closing){
+    if(prevCat)clearCategoryFocus(prevCat);
+    if(galleryOpen){closeGallery();clearCenter();}
+    if(archiveAccOpen)closeArchiveAccordion();
+  }
+
+  openCat=closing?null:cat;
+  document.querySelectorAll('.menu-cat').forEach(el=>{
+    el.classList.toggle('open',el.dataset.cat===openCat);
+  });
+  document.querySelectorAll('.menu-items').forEach(el=>{
+    const open=el.dataset.cat===openCat;
+    el.classList.toggle('open',open);
+    const inner=el.querySelector('.menu-items-inner');
+    el.style.maxHeight=open?inner.scrollHeight+'px':'0px';
+  });
+
+  /* closing the category that holds the currently open project closes it too */
+  if(closing&&selectedIdx!==null){
+    if(getProjectCategory(projects[selectedIdx])===cat)closeProject();
+  }
+
+  /* highlight the open category's projects and dim the rest, with no
+     movement (unlike the hover push-out) */
+  if(closing){
+    clearCategoryFocus(cat);
+    ringEl.classList.remove('focus');
+  }else{
+    projects.forEach((p,i)=>{
+      if(getProjectCategory(p)===cat&&ringTiles[i])ringTiles[i].tile.classList.add('cat-focus');
+    });
+    ringEl.classList.add('focus');
+  }
+
+  updateRingVisibility();
+}
+
+/* fade out and empty the center column */
+let closeTimer=null;
+function clearCenter(){
+  const center=document.getElementById('center');
+  center.classList.add('center-hidden');
+  if(closeTimer)clearTimeout(closeTimer);
+  closeTimer=setTimeout(()=>{
+    center.innerHTML='';
+    center.classList.remove('center-hidden');
+    closeTimer=null;
+  },250);
+}
+
+/* clear the center column and deselect the active project, with a short fade-out */
+function closeProject(){
+  selectedIdx=null;
+  document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
+  if(cvOpen)toggleCV(false);
+  nextLinkTarget=null;
+  updateNextLinkVisibility();
+  if(isMobile()){
+    const center=document.getElementById('center');
+    center.classList.add('center-hidden');
+    setTimeout(()=>{
+      center.classList.remove('center-hidden');
+      buildMobileHome();
+    },250);
+  }else{
+    clearCenter();
+  }
+  updateRingVisibility();
+}
+
+/* show a project's images in the center scrollable column */
+function selectProject(i){
+  if(galleryOpen)closeGallery();
+  if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
+  centerPanel.classList.remove('center-hidden');
+  selectedIdx=i;
+  document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
+  const newActive=document.querySelector(`.menu-items a[data-idx="${i}"]`);
+  if(newActive)newActive.classList.add('active');
+  updateRingVisibility();
+
+  /* auto-open the category for this project if not already open */
+  const pCat=getProjectCategory(projects[i]);
+  if(pCat&&openCat!==pCat)toggleCategory(pCat);
+
+  if(cvOpen)toggleCV(false);
+
+  if(menuPanel.classList.contains('show'))closeMobileMenu();
+
+  const center=document.getElementById('center');
+  center.innerHTML='';
+  center.scrollTop=0;
+  const proj=projects[i];
+
+  /* reveal info first */
+  const info=document.createElement('div');
+  info.className='proj-info';
+  const title=document.createElement('div');
+  title.className='proj-title';
+  title.textContent=[proj.client,proj.title].filter(Boolean).join(' — ');
+  info.appendChild(title);
+
+  const body=document.createElement('div');
+  body.className='proj-body';
+  const bodyInner=document.createElement('div');
+  bodyInner.className='proj-body-inner';
+  if(proj.year||proj.description?.length){
+    const desc=document.createElement('div');
+    desc.className='proj-desc';
+    if(proj.year){const m=document.createElement('div');m.textContent=proj.year;desc.appendChild(m);}
+    proj.description?.forEach(line=>{const p=document.createElement('div');p.textContent=line;desc.appendChild(p);});
+    bodyInner.appendChild(desc);
+  }
+  if(proj.tags?.length){
+    const t=document.createElement('div');
+    t.className='proj-tags';
+    t.textContent=proj.tags.join(', ');
+    bodyInner.appendChild(t);
+  }
+  if(proj.link){
+    const a=document.createElement('a');
+    a.href=proj.link;a.target='_blank';a.rel='noopener';
+    a.className='ext-link proj-link';
+    a.textContent='visit project';
+    bodyInner.appendChild(a);
+  }
+  body.appendChild(bodyInner);
+  info.appendChild(body);
+  center.appendChild(info);
+  requestAnimationFrame(()=>{body.classList.add('open');});
+
+  /* then reveal media, stacked top to bottom, after the info */
+  if(!proj.media?.length){
+    const empty=document.createElement('div');
+    empty.id='centerEmpty';
+    empty.textContent='no media';
+    center.appendChild(empty);
+  }else{
+    renderMediaStack(center,proj.media);
+  }
+
+  /* "next project" — fixed bottom-right, appears once the project's media
+     has been scrolled to the end (see updateNextLinkVisibility) */
+  const pos=menuOrder.indexOf(i);
+  nextLinkTarget=(pos!==-1&&menuOrder.length>1)?menuOrder[(pos+1)%menuOrder.length]:null;
+  nextLinkEl.classList.toggle('show',false);
+  updateNextLinkVisibility();
+
+}
+
+/* resolve once an image/video has enough data to report its size,
+   or after a short timeout so a slow/broken item can't stall the loop setup */
+function waitForMedia(els){
+  const loaded=Promise.all(els.map(el=>new Promise(res=>{
+    if(el.tagName==='IMG'){
+      if(el.complete)return res();
+      el.addEventListener('load',res,{once:true});
+      el.addEventListener('error',res,{once:true});
+    }else if(el.tagName==='VIDEO'){
+      if(el.readyState>=1)return res();
+      el.addEventListener('loadedmetadata',res,{once:true});
+      el.addEventListener('error',res,{once:true});
+    }else res();
+  })));
+  return Promise.race([loaded,new Promise(res=>setTimeout(res,2500))]);
+}
+
+/* render media into #center as a two-column grid, no orphans.
+   Algorithm: walk items in order; each run of consecutive non-landscape items
+   is a "portrait block". If a block has an odd count, widen its first item so
+   all remaining items pair up cleanly. Unknown-ar items (videos) count as
+   portrait slots since they render portrait by default. */
+function renderMediaStack(center,media){
+  const grid=document.createElement('div');
+  grid.className='media-grid';
+
+  const widenSet=new Set();
+  let blockStart=-1,blockCount=0;
+  const flush=()=>{
+    if(blockCount%2===1&&blockStart!==-1)widenSet.add(blockStart);
+    blockStart=-1;blockCount=0;
+  };
+  media.forEach((m,i)=>{
+    if(m.ar&&m.ar>1.2){flush();}          // known landscape → end portrait block
+    else{if(blockStart===-1)blockStart=i;blockCount++;} // portrait or unknown-ar
+  });
+  flush();
+
+  media.forEach((m,i)=>{
+    const el=createMediaEl(m);
+    if(widenSet.has(i))el.classList.add('wide');
+    grid.appendChild(el);
+  });
+  center.appendChild(grid);
+}
+
+/* render a single media item — landscape items get .wide to span both columns */
+function createMediaEl(m){
+  if(m.type==='image'){
+    const img=document.createElement('img');
+    img.className='media-item'+(m.ar&&m.ar>1.2?' wide':'');
+    img.addEventListener('load',()=>{img.classList.add('show');updateNextLinkVisibility();});
+    img.src=m.url;
+    return img;
+  }
+  if(m.type==='video'){
+    const vid=document.createElement('video');
+    vid.className='media-item';
+    vid.muted=true;vid.loop=true;vid.autoplay=true;vid.playsInline=true;
+    vid.disablePictureInPicture=true;
+    vid.controlsList='nodownload noremoteplayback';
+    vid.preload='none';
+    vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();});
+    vid.addEventListener('loadedmetadata',()=>{
+      if(vid.videoWidth>0&&vid.videoHeight>0&&vid.videoWidth/vid.videoHeight>1.2)vid.classList.add('wide');
+      if(vid.duration>=18)vid.controls=true;
+    });
+    // lazy: load src only when near viewport
+    const obs=new IntersectionObserver(entries=>{
+      if(entries[0].isIntersecting){vid.src=m.url;obs.disconnect();}
+    },{rootMargin:'200px'});
+    obs.observe(vid);
+    return vid;
+  }
+  const ph=document.createElement('div');
+  ph.className='media-item ph';
+  return ph;
+}
+
+/* ── ARCHIVES — per-gallery sub-categories under the "archives" menu entry ── */
+const ARCHIVE_GROQ=`*[_type=="gallery"]|order(_createdAt asc){
+  _id,
+  "title":coalesce(title,"(sans titre)"),
+  "items":media[_type=="image"]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio}
+}`;
+
+async function loadArchiveData(){
+  if(archiveData)return archiveData;
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(ARCHIVE_GROQ)}`);
+    const{result}=await res.json();
+    archiveData=(result||[]).map(doc=>({
+      id:doc._id,
+      title:doc.title||'(sans titre)',
+      items:(doc.items||[]).filter(r=>r.url).map(r=>({type:'image',url:r.url,ar:r.ar||1}))
+    }));
+  }catch(e){console.warn('[Archive]',e.message);archiveData=[];}
+  return archiveData;
+}
+
+/* deselect the active sub-gallery from #center; accordion stays open */
+function closeGallery(){
+  if(!galleryOpen)return;
+  galleryOpen=false;
+  openArchiveId=null;
+  document.querySelectorAll('.archive-link.active').forEach(el=>el.classList.remove('active'));
+}
+
+/* collapse the archives accordion (and close any open sub-gallery) */
+function closeArchiveAccordion(){
+  archiveAccOpen=false;
+  document.querySelectorAll('.menu-cat[data-cat="archives"]').forEach(el=>el.classList.remove('open'));
+  const itemsEl=document.querySelector('.archive-items');
+  if(itemsEl){itemsEl.classList.remove('open');itemsEl.style.maxHeight='0px';}
+  if(galleryOpen){closeGallery();clearCenter();}
+}
+
+/* toggle the archives accordion — mirrors toggleCategory() for project cats */
+function toggleArchiveAccordion(){
+  if(archiveAccOpen){closeArchiveAccordion();updateRingVisibility();return;}
+  if(openCat!==null)toggleCategory(openCat);
+  if(selectedIdx!==null)closeProject();
+  if(cvOpen)toggleCV(false);
+  if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
+  if(menuPanel.classList.contains('show'))closeMobileMenu();
+  archiveAccOpen=true;
+  document.querySelectorAll('.menu-cat[data-cat="archives"]').forEach(el=>el.classList.add('open'));
+  const itemsEl=document.querySelector('.archive-items');
+  if(itemsEl){
+    const inner=itemsEl.querySelector('.archive-inner');
+    itemsEl.classList.add('open');
+    itemsEl.style.maxHeight=(inner.scrollHeight||200)+'px';
+  }
+  updateRingVisibility();
+}
+
+/* open a specific sub-gallery in #center */
+async function openArchiveGallery(id){
+  if(openArchiveId===id){closeGallery();clearCenter();updateRingVisibility();return;}
+  if(!archiveAccOpen)toggleArchiveAccordion();
+  openArchiveId=id;
+  galleryOpen=true;
+  document.querySelectorAll('.archive-link').forEach(el=>el.classList.toggle('active',el.dataset.archiveId===id));
+  centerPanel.classList.remove('center-hidden');
+  updateRingVisibility();
+  const center=document.getElementById('center');
+  center.innerHTML='';
+  const loading=document.createElement('div');
+  loading.id='centerEmpty';loading.textContent='loading…';
+  center.appendChild(loading);
+  const data=await loadArchiveData();
+  if(openArchiveId!==id)return;
+  const gallery=data.find(g=>g.id===id);
+  center.innerHTML='';
+  if(!gallery||!gallery.items.length){
+    const empty=document.createElement('div');
+    empty.id='centerEmpty';empty.textContent='no images yet';
+    center.appendChild(empty);
+  }else{
+    renderMediaStack(center,gallery.items);
+  }
+}
+
+/* ── rotating ring of project thumbnails — desktop "home" state only ── */
+const ringStage=document.getElementById('ringStage');
+const ringEl=document.getElementById('ring');
+const RING_TILE_W=0.42; // fraction of ring radius
+const RING_PUSH=22; // px a hovered thumbnail moves away from the ring
+let ringTiles=[];
+let ringHoverT=[];
+let ringAngle=0,ringTarget=0,ringAtmo=0,ringHover=false;
+
+function ringTileRatio(ar){
+  if(!ar||ar<=0)ar=16/9;
+  if(ar>=1)return{wr:RING_TILE_W,hr:RING_TILE_W/ar};
+  const h=Math.min(RING_TILE_W/ar,RING_TILE_W*0.9);
+  return{wr:h*ar,hr:h};
+}
+
+/* hovering a project name highlights its thumbnail in the ring (brightness only) —
+   unlike hovering the thumbnail itself, this brings no push-out movement */
+function ringFocusOn(i){
+  if(!ringTiles[i])return;
+  ringTiles[i].tile.classList.add('highlight');
+  ringEl.classList.add('name-hover');
+}
+function ringUnfocus(i){
+  if(!ringTiles[i])return;
+  ringTiles[i].tile.classList.remove('highlight');
+  ringEl.classList.remove('name-hover');
+}
+
+function buildRing(){
+  ringEl.innerHTML='';
+  ringTiles=[];
+  if(isMobile()||!projects.length)return;
+  projects.forEach((p,i)=>{
+    const tile=document.createElement('div');
+    tile.className='ring-tile';
+    const sq=document.createElement('div');
+    sq.className='ring-tile-sq';
+    if(p.thumb)sq.style.backgroundImage=`url(${p.thumb})`;
+    tile.appendChild(sq);
+    tile.addEventListener('mouseenter',()=>{
+      ringHover=true;ringTiles[i].hovered=true;
+      const a=document.querySelector(`.menu-items a[data-idx="${i}"]`);
+      if(a)a.classList.add('hl');
+      hoverInfo.innerHTML='';
+      const ht=document.createElement('span');
+      ht.className='hover-title';
+      ht.textContent=[p.client,p.title].filter(Boolean).join(' — ');
+      hoverInfo.appendChild(ht);
+      if(p.tags&&p.tags.length){
+        const htags=document.createElement('span');
+        htags.className='hover-tags';
+        htags.textContent=p.tags.join(', ');
+        hoverInfo.appendChild(htags);
+      }
+      hoverInfo.classList.add('show');
+    });
+    tile.addEventListener('mouseleave',()=>{
+      ringHover=false;ringTiles[i].hovered=false;
+      const a=document.querySelector(`.menu-items a[data-idx="${i}"]`);
+      if(a)a.classList.remove('hl');
+      hoverInfo.classList.remove('show');
+    });
+    tile.addEventListener('click',()=>selectProject(i));
+    ringEl.appendChild(tile);
+    ringTiles.push({tile,sq,ratio:ringTileRatio(p.thumbAR),hovered:false});
+  });
+  ringHoverT=new Float32Array(ringTiles.length);
+  updateRingVisibility();
+}
+
+/* the ring is shown on the desktop "home" state for any category — no project open, no CV, no scrap */
+function updateRingVisibility(){
+  if(suppressRingShow){ringStage.classList.remove('show');return;}
+  const home=selectedIdx===null&&!cvOpen&&!galleryOpen;
+  const visible=!isMobile()&&home&&ringTiles.length>0;
+  if(visible){
+    ringStage.classList.remove('leaving');
+    ringStage.classList.add('show');
+  } else if(ringStage.classList.contains('show')){
+    ringStage.classList.add('leaving');
+    ringStage.classList.remove('show');
+    setTimeout(()=>ringStage.classList.remove('leaving'),1100);
+  }
+  if(isDesktop()&&(selectedIdx!==null||galleryOpen)){setInfoOpen(false);document.getElementById('siteTitle').classList.remove('active');}
+}
+
+let ringWasMobile=isMobile();
+window.addEventListener('resize',()=>{
+  const nowMobile=isMobile();
+  if(nowMobile!==ringWasMobile){ringWasMobile=nowMobile;buildRing();}
+},{passive:true});
+
+(function ringLoop(){
+  if(ringTiles.length){
+    const VW=window.innerWidth,VH=window.innerHeight;
+    const R=Math.min(VW,VH)*0.30;
+    const S=R*2+200;
+    ringStage.style.left=(VW/2-S/2)+'px';
+    ringStage.style.top=(VH/2-S/2)+'px';
+    ringStage.style.width=S+'px';
+    ringStage.style.height=S+'px';
+
+    ringAngle+=(ringTarget-ringAngle)*0.09;
+    if(!ringHover)ringAtmo+=0.01;
+    const total=ringAngle+ringAtmo;
+    ringEl.style.transform=`rotate(${total}deg)`;
+
+    const half=S/2,N=ringTiles.length;
+    ringTiles.forEach(({tile,sq,ratio,hovered},i)=>{
+      const a=(i/N)*2*Math.PI-Math.PI/2;
+      const tw=ratio.wr*R,th=ratio.hr*R;
+      tile.style.width=tw+'px';
+      tile.style.height=th+'px';
+      tile.style.left=(half+R*Math.cos(a)-tw/2)+'px';
+      tile.style.top=(half+R*Math.sin(a)-th/2)+'px';
+
+      /* hovered thumbnails ease outward, away from the ring's center */
+      const want=hovered?1:0;
+      ringHoverT[i]+=(want-ringHoverT[i])*0.12;
+      const t=ringHoverT[i];
+      const absAngle=a+total*Math.PI/180;
+      const dx=Math.cos(absAngle)*RING_PUSH*t;
+      const dy=Math.sin(absAngle)*RING_PUSH*t;
+      sq.style.transform=`rotate(${-total}deg) translate(${dx}px,${dy}px)`;
+    });
+  }
+  requestAnimationFrame(ringLoop);
+})();
+
+loadFromSanity();
+loadArchiveData(); /* pre-fetch in parallel so sub-items are ready when user clicks archives */
+</script>
+</body>
+</html>

@@ -574,13 +574,7 @@
 
 <div id="chat">
   <div id="chat-msgs"></div>
-  <div id="chat-emojis">
-    <button class="emoji-btn" data-emoji="e1"><img src="e1.png" alt="✨"></button>
-    <button class="emoji-btn" data-emoji="e2"><img src="e2.png" alt="🌸"></button>
-    <button class="emoji-btn" data-emoji="e3"><img src="e3.png" alt="💫"></button>
-    <button class="emoji-btn" data-emoji="e4"><img src="e4.png" alt="🌙"></button>
-    <button class="emoji-btn" data-emoji="e5"><img src="e5.png" alt="🫧"></button>
-  </div>
+  <div id="chat-emojis"></div>
   <div id="chat-bottom">
     <div id="chat-input-wrap">
       <input id="chat-input" type="text" maxlength="120" placeholder="message…" autocomplete="off" spellcheck="false">
@@ -647,6 +641,37 @@ const sb = createClient(
   'https://iwmfhvhhbpcsjcsakigg.supabase.co',
   'sb_publishable_wp_9hP65hwOLHAoPDAhQRA_MYR5ER3-'
 );
+
+/* Sanity */
+const PID = 'zgrgr7sj', DS = 'production';
+let emojiUrls = [];
+
+async function loadEmojis() {
+  const q = `*[_type=="sanity.imageAsset" && references("I02pFZIEVcuOi5ODxOXGGm")]{url}`;
+  try {
+    const res = await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(q)}`);
+    const { result } = await res.json();
+    emojiUrls = (result || []).map(r => r.url + '?w=80&auto=format');
+    const container = document.getElementById('chat-emojis');
+    container.innerHTML = '';
+    emojiUrls.forEach((url, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'emoji-btn';
+      btn.dataset.emoji = `e${i + 1}`;
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = `[e${i + 1}]`;
+      btn.appendChild(img);
+      btn.addEventListener('click', () => {
+        const tag = `[e${i + 1}]`;
+        const pos = chatInput.selectionStart ?? chatInput.value.length;
+        chatInput.value = chatInput.value.slice(0, pos) + tag + chatInput.value.slice(pos);
+        chatInput.focus();
+      });
+      container.appendChild(btn);
+    });
+  } catch (e) { console.error('emoji load failed', e); }
+}
 
 /* app settings (chat cooldown / submission moderation), set from admin */
 let appSettings = { chat_cooldown_seconds: 0, require_approval: true };
@@ -1060,13 +1085,13 @@ function addChatMsg(text, color) {
   dot.className = 'chat-dot';
   dot.style.background = color;
   el.appendChild(dot);
-  /* parse [e1]–[e5] emoji tags inline */
+  /* parse [e1]–[eN] emoji tags inline */
   const body = document.createElement('span');
-  text.split(/(\[e[1-5]\])/).forEach(part => {
-    const m = part.match(/^\[e([1-5])\]$/);
+  text.split(/(\[e\d+\])/).forEach(part => {
+    const m = part.match(/^\[e(\d+)\]$/);
     if (m) {
       const img = document.createElement('img');
-      img.src = `e${m[1]}.png`;
+      img.src = emojiUrls[parseInt(m[1]) - 1] || `e${m[1]}.png`;
       img.alt = part;
       img.className = 'chat-emoji';
       body.appendChild(img);
@@ -1142,14 +1167,7 @@ function sendChatMsg() {
 chatSend.addEventListener('click', sendChatMsg);
 chatInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendChatMsg(); });
 
-document.querySelectorAll('.emoji-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const tag = `[${btn.dataset.emoji}]`;
-    const pos = chatInput.selectionStart ?? chatInput.value.length;
-    chatInput.value = chatInput.value.slice(0, pos) + tag + chatInput.value.slice(pos);
-    chatInput.focus();
-  });
-});
+loadEmojis();
 </script>
 </body>
 </html>

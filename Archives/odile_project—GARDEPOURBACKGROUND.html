@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODILE — PROJECT</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#7a7a7e; --dim1:rgba(0,0,0,0.65); --dim2:rgba(0,0,0,0.28); --hl:rgba(0,0,0,0.88);
+    --font:'Raleway',sans-serif; --fs:11px; --nav:50px; --info:36px;
+    --item-w:clamp(160px,18vw,320px);
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;}
+  body{
+    background:var(--bg);color:var(--dim1);
+    font-family:var(--font);font-weight:300;font-size:var(--fs);line-height:1.55;
+    cursor:none;animation:fadeIn .7s ease both;
+  }
+  @keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+  #cur{position:fixed;width:3px;height:3px;background:#E5FF00;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
+  .grain{position:fixed;inset:0;opacity:0.06;pointer-events:none;z-index:600;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;opacity:0;pointer-events:none;transition:opacity .7s ease;}
+  #overlay.on{opacity:1;pointer-events:auto;}
+  #iri{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+  /* NAV */
+  #topNav{
+    position:fixed;top:0;left:0;right:0;height:var(--nav);
+    padding:0 36px;
+    display:flex;align-items:center;justify-content:space-between;z-index:400;
+  }
+  #topNav-left{display:flex;align-items:center;}
+  #topNav-right{display:flex;align-items:center;gap:20px;}
+  .nav-link{color:var(--dim2);text-decoration:none;cursor:none;transition:color .2s;}
+  .nav-link:hover{color:var(--dim1);}
+  .nav-sep{color:var(--dim2);margin:0 2px;}
+  .nav-current{color:var(--dim1);}
+  .nav-meta{color:var(--dim2);}
+  #proj-link{color:var(--dim2);text-decoration:none;cursor:none;transition:color .2s;}
+  #proj-link:hover{color:var(--hl);}
+  #proj-link.hidden{display:none;}
+  #next-btn{color:var(--dim2);cursor:none;transition:color .2s;user-select:none;}
+  #next-btn:hover{color:var(--hl);}
+  #next-name{color:var(--dim1);}
+
+  /* CAROUSEL */
+  #carousel-container{
+    position:fixed;
+    top:var(--nav);
+    bottom:0;
+    left:0;right:0;
+    overflow:hidden;
+    z-index:1;
+  }
+  #carousel-track{
+    position:absolute;
+    top:0;bottom:0;left:0;
+    display:flex;
+    flex-direction:row;
+    align-items:flex-end;
+    gap:4px;
+    will-change:transform;
+  }
+  .c-item{
+    flex-shrink:0;
+    align-self:flex-end;
+  }
+  .c-item img,.c-item video{
+    display:block;
+    width:var(--item-w);
+    height:auto;
+    opacity:0;
+    transition:opacity .5s ease;
+  }
+  .c-item img.on,.c-item video.on{opacity:1;}
+
+  /* single-media mode: full height, centered */
+  #carousel-container.single{
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  #carousel-container.single #carousel-track{
+    position:static;transform:none !important;
+    display:flex;align-items:flex-end;justify-content:center;gap:0;
+  }
+  #carousel-container.single .c-item{align-self:flex-end;}
+  #carousel-container.single .c-item img,
+  #carousel-container.single .c-item video{
+    width:auto;
+    height:calc(100vh - var(--nav));
+    max-width:90vw;
+  }
+
+  /* two-row mode (>18 items) */
+  #carousel-container.two-rows #carousel-track{
+    flex-direction:column;
+    align-items:flex-start;
+    height:100%;
+    bottom:auto;
+  }
+  .c-row{
+    display:flex;flex-direction:row;
+    gap:4px;align-items:flex-end;
+    flex:1;overflow:hidden;min-height:0;
+  }
+
+  /* video controls overlay */
+  .v-wrap{position:relative;align-self:flex-end;flex-shrink:0;}
+  .v-wrap video{display:block;}
+  .v-controls{
+    position:absolute;bottom:10px;right:10px;
+    display:flex;gap:6px;
+    opacity:0;transition:opacity .2s;
+  }
+  .v-wrap:hover .v-controls{opacity:1;}
+  .v-btn{
+    width:28px;height:28px;
+    background:rgba(0,0,0,0.45);border:none;border-radius:50%;
+    color:#fff;font-size:12px;line-height:1;
+    cursor:none;display:flex;align-items:center;justify-content:center;
+    transition:background .15s;
+  }
+  .v-btn:hover{background:rgba(0,0,0,0.75);}
+
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div id="iri"></div>
+<div id="overlay"></div>
+<div id="cur"></div>
+
+<nav id="topNav">
+  <div id="topNav-left">
+    <a class="nav-link" id="navHome" href="odile_hub.html">odile.xyz</a>
+    <span class="nav-sep"> / </span>
+    <a class="nav-link" id="navWork" href="odile_work.html">work</a>
+    <span class="nav-sep"> / </span>
+    <span class="nav-current" id="navTitle">—</span>
+  </div>
+  <div id="topNav-right">
+    <span class="nav-meta" id="proj-year"></span>
+    <span class="nav-meta" id="proj-client" style="display:none"></span>
+    <span class="nav-meta" id="proj-cat"></span>
+    <a id="proj-link" class="hidden nav-meta" href="#" target="_blank" rel="noopener">↗</a>
+    <span id="next-btn">→ <span id="next-name">—</span></span>
+  </div>
+</nav>
+
+<div id="carousel-container">
+  <div id="carousel-track"></div>
+</div>
+
+
+<script>
+/* cursor */
+const cur = document.getElementById('cur');
+document.addEventListener('mousemove', e => { cur.style.left=e.clientX+'px'; cur.style.top=e.clientY+'px'; });
+
+/* iri bg */
+let mx=.5,my=.5;
+const iri=document.getElementById('iri');
+const blobs=[{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const base= [{x:50,y:100},{x:20,y:60},{x:80,y:40},{x:50,y:50}];
+const bd=[
+  {ax:.38,ay:.30,ease:.05,color:'220,180,60', op:.55,ex:90,ey:70},
+  {ax:-.42,ay:.34,ease:.04,color:'200,160,210',op:.38,ex:70,ey:60},
+  {ax:.36,ay:-.38,ease:.045,color:'160,210,200',op:.28,ex:60,ey:50},
+  {ax:.18,ay:.16,ease:.03,color:'210,200,190',op:.22,ex:80,ey:80},
+];
+document.addEventListener('mousemove',e=>{mx=e.clientX/innerWidth;my=e.clientY/innerHeight;});
+(function t(){let g='';blobs.forEach((b,i)=>{const d=bd[i];b.x+=(base[i].x+(mx-.5)*d.ax*100-b.x)*d.ease;b.y+=(base[i].y+(my-.5)*d.ay*100-b.y)*d.ease;g+=`radial-gradient(ellipse ${d.ex}% ${d.ey}% at ${b.x.toFixed(1)}% ${b.y.toFixed(1)}%, rgba(${d.color},${d.op}) 0%, transparent 55%),`;});iri.style.backgroundImage=g.slice(0,-1);requestAnimationFrame(t);})();
+
+/* nav */
+function go(href){document.getElementById('overlay').classList.add('on');setTimeout(()=>window.location.href=href,700);}
+document.getElementById('navHome').addEventListener('click',e=>{e.preventDefault();go('odile_hub.html');});
+document.getElementById('navWork').addEventListener('click',e=>{e.preventDefault();go('odile_work.html');});
+
+/* params */
+const p=new URLSearchParams(location.search);
+const id=p.get('id')||'';
+const title=p.get('title')||'—', year=p.get('year')||'—', cat=p.get('cat')||'—';
+const nextTitle=p.get('next')||'—', nextIndex=p.get('nextIndex');
+let allProjects=[];
+try{allProjects=JSON.parse(p.get('projects')||'[]');}catch(e){}
+
+document.title=`ODILE — ${title.toUpperCase()}`;
+document.getElementById('navTitle').textContent=title;
+document.getElementById('proj-year').textContent=year;
+document.getElementById('proj-cat').textContent=cat;
+document.getElementById('next-name').textContent=nextTitle;
+
+document.getElementById('next-btn').addEventListener('click',()=>{
+  if(nextIndex!==null&&allProjects.length){
+    const ni=parseInt(nextIndex);
+    const proj=allProjects[ni], next=allProjects[(ni+1)%allProjects.length];
+    const q=new URLSearchParams({id:proj._id||'',title:proj.title,year:proj.year,cat:proj.cat,next:next.title,nextIndex:(ni+1)%allProjects.length,index:ni,projects:JSON.stringify(allProjects)});
+    go('odile_project.html?'+q.toString());
+  }
+});
+
+/* ── INFINITE HORIZONTAL CAROUSEL ── */
+const track = document.getElementById('carousel-track');
+const container = document.getElementById('carousel-container');
+
+let origItems = [];
+let stripWidth = 0;
+let scrollX = 0;
+let velocity = 0;
+const AUTO = 0.4;
+const FRICTION = 0.90;
+
+// Loop runs immediately and always — setInterval avoids rAF tab throttling
+function carouselLoop() {
+  velocity *= FRICTION;
+  scrollX += velocity + AUTO;
+  if (stripWidth > 0) {
+    scrollX = ((scrollX % stripWidth) + stripWidth) % stripWidth;
+  }
+  track.style.transform = `translateX(${-scrollX}px)`;
+}
+setInterval(carouselLoop, 16); // ~60fps
+
+function recompute() {
+  if (!origItems.length) return;
+  let w = 0;
+  origItems.forEach((el, i) => {
+    w += el.offsetWidth + (i < origItems.length - 1 ? 4 : 0);
+  });
+  if (w > 0) stripWidth = w + 4; // +4 for gap between last and first clone
+}
+
+// Re-measure when images finish loading
+const ro = new ResizeObserver(recompute);
+
+function makeVideoWrap(item, trackVisible, startMuted = false) {
+  const vwrap = document.createElement('div');
+  vwrap.className = 'v-wrap c-item';
+
+  const el = document.createElement('video');
+  el.src = item.url;
+  el.autoplay = true; el.loop = true; el.muted = startMuted; el.playsInline = true;
+  el.oncanplay = () => el.classList.add('on');
+  vwrap.appendChild(el);
+
+  // controls
+  const ctrl = document.createElement('div');
+  ctrl.className = 'v-controls';
+
+  // mute button
+  const muteBtn = document.createElement('button');
+  muteBtn.className = 'v-btn';
+  muteBtn.textContent = startMuted ? '🔇' : '🔊';
+  muteBtn.title = 'Mute / unmute';
+  muteBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    el.muted = !el.muted;
+    muteBtn.textContent = el.muted ? '🔇' : '🔊';
+  });
+
+  // fullscreen button
+  const fsBtn = document.createElement('button');
+  fsBtn.className = 'v-btn';
+  fsBtn.textContent = '⛶';
+  fsBtn.title = 'Fullscreen';
+  fsBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  });
+
+  ctrl.appendChild(muteBtn);
+  ctrl.appendChild(fsBtn);
+  vwrap.appendChild(ctrl);
+  return { wrap: vwrap, el };
+}
+
+/* helper: build one media item element */
+function makeItem(item, isOrig) {
+  let wrap;
+  if (item.type === 'image') {
+    wrap = document.createElement('div');
+    wrap.className = 'c-item';
+    const el = document.createElement('img');
+    el.src = item.url;
+    el.onload = () => { el.classList.add('on'); recompute(); };
+    wrap.appendChild(el);
+  } else {
+    const v = makeVideoWrap(item, true, true);
+    wrap = v.wrap;
+    v.el.oncanplay = () => { v.el.classList.add('on'); recompute(); };
+  }
+  if (isOrig) { origItems.push(wrap); ro.observe(wrap); }
+  return wrap;
+}
+
+function buildCarousel(mediaItems) {
+  track.innerHTML = '';
+  origItems = [];
+  stripWidth = 0;
+  if (!mediaItems.length) return;
+
+  const single  = mediaItems.length === 1;
+  const twoRows = mediaItems.length > 18;
+  container.classList.toggle('single',   single);
+  container.classList.toggle('two-rows', twoRows);
+
+  /* ── single media ── */
+  if (single) {
+    const item = mediaItems[0];
+    if (item.type === 'image') {
+      const wrap = document.createElement('div');
+      wrap.className = 'c-item';
+      const el = document.createElement('img');
+      el.src = item.url;
+      el.onload = () => el.classList.add('on');
+      wrap.appendChild(el);
+      track.appendChild(wrap);
+    } else {
+      track.appendChild(makeVideoWrap(item, false).wrap);
+    }
+    return;
+  }
+
+  /* ── two-row mode (>18 items) ── */
+  if (twoRows) {
+    const rowA = mediaItems.filter((_, i) => i % 2 === 0);
+    const rowB = mediaItems.filter((_, i) => i % 2 === 1);
+    // Pad rowB to same length as rowA so strip widths match perfectly
+    while (rowB.length < rowA.length) rowB.push(rowB[rowB.length % rowB.length]);
+
+    [rowA, rowB].forEach((items, ri) => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'c-row';
+      // Two sets for seamless loop; only first set of row A goes into origItems
+      [true, false].forEach(isFirst => {
+        items.forEach(item => rowEl.appendChild(makeItem(item, isFirst && ri === 0)));
+      });
+      track.appendChild(rowEl);
+    });
+    return;
+  }
+
+  /* ── single-row carousel ── */
+  [true, false].forEach(isFirst => {
+    mediaItems.forEach(item => track.appendChild(makeItem(item, isFirst)));
+  });
+}
+
+container.addEventListener('wheel', e => {
+  if (container.classList.contains('single')) return;
+  e.preventDefault();
+  velocity += e.deltaY * 0.6;
+}, { passive: false });
+
+let tx0 = 0;
+container.addEventListener('touchstart', e => { tx0 = e.touches[0].clientX; }, { passive: true });
+container.addEventListener('touchmove', e => {
+  velocity += (tx0 - e.touches[0].clientX) * 0.4;
+  tx0 = e.touches[0].clientX;
+}, { passive: true });
+
+/* sanity */
+const PID='zgrgr7sj', DS='production';
+async function load(){
+  const esc=id.replace(/\\/g,'\\\\').replace(/"/g,'\\"');
+  const base = `title,client,"year":string(year),"tags":tags,link,
+    "media": media[]{_type,"url":asset->url},
+    "images": images[].asset->{url},
+    "videos": videos[].asset->{url}`;
+  const groq = id
+    ? `*[_type=="project"&&_id=="${esc}"][0]{${base}}`
+    : `*[_type=="project"][0]{${base}}`;
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(groq)}`);
+    const {result:proj}=await res.json();
+    if(!proj)return;
+    document.getElementById('navTitle').textContent=proj.title||title;
+    document.title=`ODILE — ${(proj.title||title).toUpperCase()}`;
+    if(proj.year) document.getElementById('proj-year').textContent=proj.year;
+    if(proj.client){const el=document.getElementById('proj-client');el.textContent=proj.client;el.style.display='';}
+    if(proj.tags?.length) document.getElementById('proj-cat').textContent=proj.tags.join(', ');
+    if(proj.link){const a=document.getElementById('proj-link');a.href=proj.link;a.classList.remove('hidden');}
+    const items=[];
+    if(Array.isArray(proj.media) && proj.media.length) {
+      // New mixed array — respects order set in Sanity
+      proj.media.forEach(m => {
+        if(!m?.url) return;
+        items.push({ type: m._type === 'file' ? 'video' : 'image', url: m.url });
+      });
+    } else {
+      // Fallback to old separate fields
+      if(Array.isArray(proj.images)) proj.images.forEach(i=>{if(i?.url)items.push({type:'image',url:i.url});});
+      if(Array.isArray(proj.videos)) proj.videos.forEach(v=>{if(v?.url)items.push({type:'video',url:v.url});});
+    }
+    if(items.length) buildCarousel(items);
+  }catch(e){console.warn('[Sanity]',e.message);}
+}
+load();
+</script>
+</body>
+</html>
