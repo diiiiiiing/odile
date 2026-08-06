@@ -11,7 +11,10 @@
   :root{
     /* one palette, no modes */
     --bg:#808080; --fg:#000;
-    --dim1:rgba(0,0,0,.55); --dim2:rgba(0,0,0,.3);
+    /* description/tags/link text: a solid grey rather than alpha-blended
+       black, so it reads as grey on its own terms instead of only when
+       composited over the exact background colour */
+    --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
     --pad:32px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
@@ -159,8 +162,9 @@
   }
   .menu-proj a:hover,.menu-proj a.active,.menu-proj a.hl{font-weight:700;}
 
-  /* CENTER — media only; project name/description live in .proj-info,
-     fixed bottom-left over the index column, so media fills full height */
+  /* CENTER — media only; on desktop/tablet a project's name/description
+     unfold inline in the index below its own entry, pushing the rest of
+     the list down (see .proj-body below) */
   #center{
     position:fixed;top:0;bottom:0;
     left:calc(var(--pad) + 300px);right:0;
@@ -226,22 +230,6 @@
   }
   .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
   .proj-desc{display:flex;flex-direction:column;gap:6px;}
-  /* PROJECT INFO — pinned to the foot of the index column on desktop and
-     tablet, so the media column keeps its full height. Width tracks the
-     index's own so it never runs under the media. */
-  #projInfo{
-    position:fixed;left:var(--pad);bottom:30px;
-    width:300px;z-index:55;
-    display:flex;flex-direction:column;gap:0;
-    color:var(--fg);
-    opacity:0;pointer-events:none;
-    transition:opacity .3s ease;
-  }
-  #projInfo.show{opacity:1;pointer-events:auto;}
-  #projInfo .proj-title{font-weight:700;}
-  #projInfo .proj-body.open{margin-top:14px;}
-  @media (max-width:1320px){#projInfo{width:200px;}}
-  @media (max-width:640px){#projInfo{display:none;}}
 
   #hoverInfo{
     position:fixed;top:30px;
@@ -434,7 +422,6 @@
 
 
 <div id="center"></div>
-<div id="projInfo"></div>
 <div id="hoverInfo"></div>
 
 <a href="#" id="nextProject" class="ext-link next-link">next project</a>
@@ -1023,8 +1010,6 @@ function closeProject(){
   selectedIdx=null;
   document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
   document.querySelectorAll('#menu .proj-body.open').forEach(el=>el.classList.remove('open'));
-  const projInfoEl=document.getElementById('projInfo');
-  if(projInfoEl){projInfoEl.classList.remove('show');projInfoEl.innerHTML='';}
   if(cvOpen)toggleCV(false);
   nextLinkTarget=null;
   updateNextLinkVisibility();
@@ -1065,21 +1050,21 @@ function selectProject(i){
   const proj=projects[i];
   const mobile=isMobile();
 
-  /* desktop/tablet — the name and description sit at the foot of the index
-     column rather than unfolding inline in the list, which kept pushing the
-     list around and cost the media column its height */
+  /* desktop/tablet — the description unfolds inline below the selected
+     project's own name, pushing the rest of the list down; the name link
+     itself already carries the title, so only the body needs opening.
+     Closing the others and opening this one happen inside the same rAF
+     tick rather than one now + one deferred — two selections made in quick
+     succession could otherwise both end up open if the first rAF lands
+     after the second one's synchronous cleanup already ran. */
   if(!mobile){
-    document.querySelectorAll('#menu .proj-body.open').forEach(el=>el.classList.remove('open'));
-    const panel=document.getElementById('projInfo');
-    panel.innerHTML='';
-    const title=document.createElement('div');
-    title.className='proj-title';
-    title.textContent=proj.displayTitle||[proj.client,proj.title].filter(Boolean).join(' — ');
-    panel.appendChild(title);
-    const body=buildProjBody(proj);
-    panel.appendChild(body);
-    panel.classList.add('show');
-    requestAnimationFrame(()=>body.classList.add('open'));
+    const body=document.querySelector(`#menu .proj-body[data-idx="${i}"]`);
+    requestAnimationFrame(()=>{
+      document.querySelectorAll('#menu .proj-body.open').forEach(el=>{
+        if(el!==body)el.classList.remove('open');
+      });
+      if(body)body.classList.add('open');
+    });
   }
 
   const center=document.getElementById('center');
