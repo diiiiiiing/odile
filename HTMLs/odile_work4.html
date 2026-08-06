@@ -21,8 +21,8 @@
   }
 
 body.yellow-mode{
-    --bg:#808080; --fg:#E5FF00;
-    --dim1:rgba(229,255,0,.55); --dim2:rgba(229,255,0,.3);
+    --bg:#808080; --fg:#000;
+    --dim1:rgba(0,0,0,.55); --dim2:rgba(0,0,0,.3);
   }
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
   html,body{
@@ -166,12 +166,13 @@ body.yellow-mode{
   }
   .menu-group a:hover,.menu-group a.active,.menu-group a.hl{font-weight:700;}
 
-  /* CENTER — info, then media stacked top to bottom */
+  /* CENTER — media only; project name/description live in .proj-info,
+     fixed bottom-left over the index column, so media fills full height */
   #center{
     position:fixed;top:0;bottom:0;
     left:calc(var(--pad) + 300px);right:0;
     overflow-y:auto;overflow-x:hidden;
-    padding:30px 0 0;
+    padding:0;
     display:flex;flex-direction:column;gap:0;
     opacity:1;transition:opacity .25s ease;
   }
@@ -208,12 +209,17 @@ body.yellow-mode{
   video.media-item{cursor:auto;}
   .media-item.ph{aspect-ratio:4/5;background:#d9d9d9;opacity:1;}
 
-  /* PROJECT INFO — revealed first, before media */
+  /* PROJECT INFO — fixed bottom-left, over the index column */
   .proj-info{
+    position:fixed;left:var(--pad);bottom:30px;z-index:65;
     display:flex;flex-direction:column;gap:0;
-    padding-bottom:18px;color:var(--fg);
+    color:var(--fg);
     opacity:0;animation:phIn .4s ease forwards;
-    width:50%;
+    width:300px;
+  }
+  @media (max-width:1320px){.proj-info{width:200px;}}
+  @media (max-width:640px){
+    .proj-info{position:static;width:100%;left:auto;bottom:auto;padding-bottom:18px;}
   }
   .proj-info .proj-title{font-weight:700;}
   .proj-info .proj-tags{opacity:.5;}
@@ -315,19 +321,14 @@ body.yellow-mode{
     #cv .cv-row .cv-role{flex-basis:100%;}
 
     .mobile-info-header{display:flex;}
-    .media-grid{grid-template-columns:1fr;}
     #loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}
 
     /* mobile home — project grid replacing the empty center */
     #mobileHome{display:flex;flex-direction:column;gap:3px;}
-    .mh-grid{display:flex;flex-direction:column;align-items:center;gap:3px;}
-    .mh-item{cursor:pointer;}
-    .mh-thumb{
-      height:55vw;
-      width:calc(55vw * var(--thumb-ar, 1));
-      max-width:100%;
-      background:var(--dim2);background-size:cover;background-position:center;
-    }
+    .mh-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+    .mh-item{cursor:pointer;display:flex;flex-direction:column;gap:6px;}
+    .mh-thumb{width:100%;aspect-ratio:1/1;background:var(--dim2);background-size:cover;background-position:center;}
+    .mh-name{color:var(--fg);}
 
     /* "ding" logo centered in the mobile nav bar */
     #mobileLogo{
@@ -985,9 +986,12 @@ function buildMobileHome(){
         item.className='mh-item';
         const thumb=document.createElement('div');
         thumb.className='mh-thumb';
-        thumb.style.setProperty('--thumb-ar',p.thumbAR||1);
         if(p.thumb)thumb.style.backgroundImage=`url(${p.thumb})`;
         item.appendChild(thumb);
+        const name=document.createElement('div');
+        name.className='mh-name';
+        name.textContent=p.client||p.title;
+        item.appendChild(name);
         item.addEventListener('click',()=>selectProject(i));
         grid.appendChild(item);
       });
