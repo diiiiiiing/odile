@@ -290,12 +290,21 @@ body.yellow-mode{
 
     .nav-btn{display:block;}
 
-    #menu{
+    /* Enters from the left, the side its own button sits on, where the info
+       panel enters from the right — and on the same curve, which it was not.
+
+       `body #menu` on purpose: the loader's reveal rule further down sets
+       `transition:opacity .5s ease` on #menu, and being shorthand it resets
+       transition-property, dropping transform altogether. At equal
+       specificity but later in the sheet it won, so this drawer never
+       actually slid — it snapped. One extra element settles it, and opacity
+       is restated so the loader's fade still runs. */
+    body #menu{
       position:fixed;inset:0;
       width:100%;max-height:none;margin-top:0;flex:none;
       padding:70px var(--pad) 30px;
-      transform:translateX(100%);
-      transition:transform .5s cubic-bezier(0.16,1,0.3,1);
+      transform:translateX(-100%);
+      transition:transform .35s cubic-bezier(.22,1,.36,1), opacity .5s ease;
       z-index:60;background:var(--bg);
     }
     #menu.show{transform:translateX(0);}
@@ -328,16 +337,6 @@ body.yellow-mode{
     .mh-item{cursor:pointer;display:flex;flex-direction:column;gap:6px;}
     .mh-thumb{width:100%;aspect-ratio:1/1;background:var(--dim2);background-size:cover;background-position:center;}
     .mh-name{color:var(--fg);}
-
-    /* "ding" logo centered in the mobile nav bar */
-    #mobileLogo{
-      display:block;
-      position:fixed;top:30px;left:50%;transform:translateX(-50%);
-      z-index:70;
-      background:none;border:none;color:var(--fg);
-      font:inherit;text-transform:uppercase;letter-spacing:.02em;
-      padding:0;cursor:pointer;
-    }
 
     /* theme egg SVG inside info panel */
     #cvThemeBtn{
@@ -428,8 +427,7 @@ body.yellow-mode{
 <div id="ringStage"><div id="ring"></div></div>
 
 <button id="menuBtn" class="nav-btn">index</button>
-<button id="mobileLogo">ding</button>
-<button id="infoBtn" class="nav-btn">info</button>
+<button id="infoBtn" class="nav-btn">ding</button>
 
 <!-- LEFT COLUMN — Ding, info, and the index menu stacked in normal flow,
      so opening #info pushes #menu down the same way a menu category
@@ -967,15 +965,6 @@ function buildMenu(){
 }
 
 /* ── MOBILE HOME — grid of thumbnails per category shown on landing ── */
-const mobileLogoBtn=document.getElementById('mobileLogo');
-mobileLogoBtn.addEventListener('click',()=>{
-  if(cvOpen)toggleCV(false);
-  if(menuPanel.classList.contains('show'))closeMobileMenu();
-  if(selectedIdx!==null){selectedIdx=null;document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));document.querySelectorAll('#menu .proj-body.open').forEach(el=>el.classList.remove('open'));}
-  if(galleryOpen)closeGallery();
-  buildMobileHome();
-});
-
 function buildMobileHome(){
   if(!isMobile())return;
   const center=document.getElementById('center');
