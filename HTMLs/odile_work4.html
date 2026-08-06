@@ -119,11 +119,10 @@ body.yellow-mode{
   .mobile-info-header a{color:var(--fg);text-decoration:none;cursor:none;}
   .mobile-info-header a:hover{font-weight:700;}
 
-  /* LEFT MENU COLUMN — vertically centered to match the ring */
+  /* LEFT MENU COLUMN — top-anchored, just under the "Ding" site title */
   #menu{
-    position:fixed;top:50%;left:var(--pad);
-    transform:translateY(-50%);
-    max-height:calc(100vh - 60px);width:300px;
+    position:fixed;top:70px;left:var(--pad);
+    max-height:calc(100vh - 100px);width:300px;
     display:flex;flex-direction:column;gap:0;
     overflow-y:auto;
   }
