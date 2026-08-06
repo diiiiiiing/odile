@@ -128,6 +128,7 @@ body.yellow-mode{
     max-height:calc(100vh - 100px);width:300px;
     display:flex;flex-direction:column;gap:0;
     overflow-y:auto;
+    transition:top .4s ease;
   }
   #menu::-webkit-scrollbar{width:0;}
   .menu-group{display:flex;flex-direction:column;gap:0;}
@@ -627,12 +628,22 @@ nextLinkEl.addEventListener('click',e=>{
 
 const infoPanel=document.getElementById('info');
 const infoInnerEl=document.getElementById('infoInner');
+const menuPanelEl=document.getElementById('menu');
 /* unfold/fold #info exactly like a menu category — animate max-height
    to the panel's measured content height, same .4s/.25s timing as
    .menu-items/.menu-items-inner */
 function setInfoOpen(open){
   infoPanel.classList.toggle('show',open);
   infoPanel.style.maxHeight=open?infoInnerEl.scrollHeight+'px':'0px';
+  updateMenuOffset();
+}
+/* #info sits fixed under "Ding", #menu sits fixed under #info — when info
+   unfolds, push #menu down by info's open height so they never overlap,
+   same push-down the menu categories already do to their own siblings */
+function updateMenuOffset(){
+  if(!menuPanelEl)return;
+  const open=infoPanel.classList.contains('show');
+  menuPanelEl.style.top=open?(75+infoInnerEl.scrollHeight+28)+'px':'70px';
 }
 
 /* theme cycling: dark → light → red → yellow */
@@ -692,6 +703,7 @@ const cvThemeBtn=document.getElementById('cvThemeBtn');
 if(cvThemeBtn)cvThemeBtn.addEventListener('click',cycleTheme);
 window.addEventListener('resize',()=>{
   if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
+  updateMenuOffset();
   document.querySelectorAll('.menu-items.open').forEach(el=>{
     el.style.maxHeight=el.querySelector('.menu-items-inner').scrollHeight+'px';
   });
