@@ -139,17 +139,6 @@ body.yellow-mode{
   #menu::-webkit-scrollbar{width:0;}
   .menu-group{display:flex;flex-direction:column;gap:0;}
   .menu-group-archives{margin-top:28px;}
-  .menu-items{
-    max-height:0;
-    margin-top:0;margin-bottom:0;overflow:hidden;
-    transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;
-  }
-  .menu-items.open{margin-top:28px;margin-bottom:28px;}
-  .menu-items-inner{
-    display:flex;flex-direction:column;min-height:0;overflow:hidden;
-    opacity:0;transition:opacity .25s ease;
-  }
-  .menu-items.open .menu-items-inner{opacity:1;transition-delay:.1s;}
   /* archive accordion — separate class so toggleCategory() doesn't collapse it */
   .archive-items{max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;}
   .archive-items.open{margin-top:28px;margin-bottom:28px;}
@@ -165,6 +154,17 @@ body.yellow-mode{
     width:fit-content;
   }
   .menu-group a:hover,.menu-group a.active,.menu-group a.hl{font-weight:700;}
+
+  /* flat project index — no category accordion, each project's own
+     description unfolds directly below it (reusing .proj-body's push-down
+     accordion) instead of behind a category header */
+  .menu-projects{display:flex;flex-direction:column;gap:0;}
+  .menu-proj{display:flex;flex-direction:column;gap:0;}
+  .menu-proj a{
+    color:var(--fg);text-decoration:none;cursor:none;
+    width:fit-content;
+  }
+  .menu-proj a:hover,.menu-proj a.active,.menu-proj a.hl{font-weight:700;}
 
   /* CENTER — media only; project name/description live in .proj-info,
      fixed bottom-left over the index column, so media fills full height */
@@ -209,21 +209,19 @@ body.yellow-mode{
   video.media-item{cursor:auto;}
   .media-item.ph{aspect-ratio:4/5;background:#d9d9d9;opacity:1;}
 
-  /* PROJECT INFO — fixed bottom-left, over the index column */
+  /* PROJECT INFO — mobile only now (title + description at the top of
+     #center); on desktop/tablet the description lives inline in the
+     index instead, see .menu-proj/.proj-body below */
   .proj-info{
-    position:fixed;left:var(--pad);bottom:30px;z-index:65;
     display:flex;flex-direction:column;gap:0;
-    color:var(--fg);
+    padding-bottom:18px;color:var(--fg);
     opacity:0;animation:phIn .4s ease forwards;
-    width:300px;
-  }
-  @media (max-width:1320px){.proj-info{width:200px;}}
-  @media (max-width:640px){
-    .proj-info{position:static;width:100%;left:auto;bottom:auto;padding-bottom:18px;}
+    width:50%;
   }
   .proj-info .proj-title{font-weight:700;}
-  .proj-info .proj-tags{opacity:.5;}
   .proj-info .proj-link{width:fit-content;}
+  /* accordion that pushes the rest of the list down — reused both inline
+     in the index (desktop/tablet) and under .proj-info (mobile) */
   .proj-body{
     max-height:0;margin-top:0;overflow:hidden;
     transition:max-height .55s cubic-bezier(0.16,1,0.3,1),margin-top .55s cubic-bezier(0.16,1,0.3,1);
@@ -232,6 +230,7 @@ body.yellow-mode{
   .proj-body-inner{
     display:flex;flex-direction:column;gap:28px;
     min-height:0;overflow:hidden;
+    color:var(--dim1);
     opacity:0;transition:opacity .25s ease;
   }
   .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
@@ -641,10 +640,9 @@ nextLinkEl.addEventListener('click',e=>{
 
 const infoPanel=document.getElementById('info');
 const infoInnerEl=document.getElementById('infoInner');
-/* unfold/fold #info exactly like a menu category — animate max-height
-   to the panel's measured content height, same .4s/.25s timing as
-   .menu-items/.menu-items-inner. #info sits in normal flow above #menu
-   inside #leftCol, so this alone already pushes #menu down. */
+/* unfold/fold #info — animate max-height to the panel's measured content
+   height. #info sits in normal flow above #menu inside #leftCol, so this
+   alone already pushes #menu down. */
 function setInfoOpen(open){
   infoPanel.classList.toggle('show',open);
   infoPanel.style.maxHeight=open?infoInnerEl.scrollHeight+'px':'0px';
@@ -707,9 +705,6 @@ const cvThemeBtn=document.getElementById('cvThemeBtn');
 if(cvThemeBtn)cvThemeBtn.addEventListener('click',cycleTheme);
 window.addEventListener('resize',()=>{
   if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
-  document.querySelectorAll('.menu-items.open').forEach(el=>{
-    el.style.maxHeight=el.querySelector('.menu-items-inner').scrollHeight+'px';
-  });
   if(archiveAccOpen){const ai=document.querySelector('.archive-items');if(ai)ai.style.maxHeight=ai.querySelector('.archive-inner').scrollHeight+'px';}
 },{passive:true});
 function isDesktop(){return window.matchMedia('(min-width:1321px)').matches;}
@@ -845,6 +840,38 @@ async function loadFromSanity(){
   hideLoader();
 }
 
+/* build a project's description accordion (year, description lines, tags,
+   link) — reused inline in the index (desktop/tablet) and under the
+   title at the top of #center (mobile) */
+function buildProjBody(proj){
+  const body=document.createElement('div');
+  body.className='proj-body';
+  const inner=document.createElement('div');
+  inner.className='proj-body-inner';
+  if(proj.year||proj.description?.length){
+    const desc=document.createElement('div');
+    desc.className='proj-desc';
+    if(proj.year){const m=document.createElement('div');m.textContent=proj.year;desc.appendChild(m);}
+    proj.description?.forEach(line=>{const p=document.createElement('div');p.textContent=line;desc.appendChild(p);});
+    inner.appendChild(desc);
+  }
+  if(proj.tags?.length){
+    const t=document.createElement('div');
+    t.className='proj-tags';
+    t.textContent=proj.tags.join(', ');
+    inner.appendChild(t);
+  }
+  if(proj.link){
+    const a=document.createElement('a');
+    a.href=proj.link;a.target='_blank';a.rel='noopener';
+    a.className='ext-link proj-link';
+    a.textContent='visit project';
+    inner.appendChild(a);
+  }
+  body.appendChild(inner);
+  return body;
+}
+
 /* group projects by medium (video / images / graphic design), preserving year-desc order */
 function buildMenu(){
   const menu=document.getElementById('menu');
@@ -874,44 +901,38 @@ function buildMenu(){
   /* flat project order across the whole menu, used by the "next project" button */
   menuOrder=sortedGroups.flatMap(([,idxs])=>idxs);
 
-  sortedGroups.forEach(([cat,idxs])=>{
-    const group=document.createElement('div');
-    group.className='menu-group';
+  /* flat list — no category accordion; each project's description
+     unfolds directly under its own name (see selectProject) */
+  const list=document.createElement('div');
+  list.className='menu-projects';
+  menuOrder.forEach(i=>{
+    const proj=projects[i];
+    const wrap=document.createElement('div');
+    wrap.className='menu-proj';
 
-    const head=document.createElement('div');
-    head.className='menu-cat'+(openCat===cat?' open':'');
-    head.dataset.cat=cat;
-    head.textContent=cat;
-    head.addEventListener('click',()=>toggleCategory(cat));
-    group.appendChild(head);
-
-    const items=document.createElement('div');
-    items.className='menu-items'+(openCat===cat?' open':'');
-    items.dataset.cat=cat;
-    const inner=document.createElement('div');
-    inner.className='menu-items-inner';
-    idxs.forEach(i=>{
-      const a=document.createElement('a');
-      a.href='#';
-      const proj=projects[i];
-      a.textContent=proj.displayTitle||proj.client||proj.title;
-      a.dataset.idx=i;
-      if(selectedIdx===i)a.classList.add('active');
-      a.addEventListener('click',e=>{
-        e.preventDefault();
-        if(selectedIdx===i)closeProject();
-        else selectProject(i);
-      });
-      /* hovering a project name rolls the ring so its thumbnail comes to the top */
-      a.addEventListener('mouseenter',()=>ringFocusOn(i));
-      a.addEventListener('mouseleave',()=>ringUnfocus(i));
-      inner.appendChild(a);
+    const a=document.createElement('a');
+    a.href='#';
+    a.textContent=proj.displayTitle||proj.client||proj.title;
+    a.dataset.idx=i;
+    if(selectedIdx===i)a.classList.add('active');
+    a.addEventListener('click',e=>{
+      e.preventDefault();
+      if(selectedIdx===i)closeProject();
+      else selectProject(i);
     });
-    items.appendChild(inner);
-    group.appendChild(items);
+    /* hovering a project name rolls the ring so its thumbnail comes to the top */
+    a.addEventListener('mouseenter',()=>ringFocusOn(i));
+    a.addEventListener('mouseleave',()=>ringUnfocus(i));
+    wrap.appendChild(a);
 
-    menu.appendChild(group);
+    const body=buildProjBody(proj);
+    body.dataset.idx=i;
+    if(selectedIdx===i)body.classList.add('open');
+    wrap.appendChild(body);
+
+    list.appendChild(wrap);
   });
+  menu.appendChild(list);
 
   /* archives — accordion with one sub-item per gallery document */
   const gGroup=document.createElement('div');
@@ -950,7 +971,7 @@ const mobileLogoBtn=document.getElementById('mobileLogo');
 mobileLogoBtn.addEventListener('click',()=>{
   if(cvOpen)toggleCV(false);
   if(menuPanel.classList.contains('show'))closeMobileMenu();
-  if(selectedIdx!==null){selectedIdx=null;document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));}
+  if(selectedIdx!==null){selectedIdx=null;document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));document.querySelectorAll('#menu .proj-body.open').forEach(el=>el.classList.remove('open'));}
   if(galleryOpen)closeGallery();
   buildMobileHome();
 });
@@ -1046,12 +1067,6 @@ function toggleCategory(cat){
   document.querySelectorAll('.menu-cat').forEach(el=>{
     el.classList.toggle('open',el.dataset.cat===openCat);
   });
-  document.querySelectorAll('.menu-items').forEach(el=>{
-    const open=el.dataset.cat===openCat;
-    el.classList.toggle('open',open);
-    const inner=el.querySelector('.menu-items-inner');
-    el.style.maxHeight=open?inner.scrollHeight+'px':'0px';
-  });
 
   /* closing the category that holds the currently open project closes it too */
   if(closing&&selectedIdx!==null){
@@ -1089,7 +1104,8 @@ function clearCenter(){
 /* clear the center column and deselect the active project, with a short fade-out */
 function closeProject(){
   selectedIdx=null;
-  document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('#menu .proj-body.open').forEach(el=>el.classList.remove('open'));
   if(cvOpen)toggleCV(false);
   nextLinkTarget=null;
   updateNextLinkVisibility();
@@ -1112,12 +1128,14 @@ function selectProject(i){
   if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
   centerPanel.classList.remove('center-hidden');
   selectedIdx=i;
-  document.querySelectorAll('.menu-items a.active').forEach(a=>a.classList.remove('active'));
-  const newActive=document.querySelector(`.menu-items a[data-idx="${i}"]`);
+  document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
+  const newActive=document.querySelector(`#menu a[data-idx="${i}"]`);
   if(newActive)newActive.classList.add('active');
   updateRingVisibility();
 
-  /* auto-open the category for this project if not already open */
+  /* auto-open the category for this project if not already open —
+     still drives the ring's focus/dim styling even without the menu
+     accordion it originally opened */
   const pCat=getProjectCategory(projects[i]);
   if(pCat&&openCat!==pCat)toggleCategory(pCat);
 
@@ -1125,47 +1143,36 @@ function selectProject(i){
 
   if(menuPanel.classList.contains('show'))closeMobileMenu();
 
+  const proj=projects[i];
+  const mobile=isMobile();
+
+  /* desktop/tablet — unfold this project's description inline in the
+     index, closing whichever other one was open */
+  if(!mobile){
+    document.querySelectorAll('#menu .proj-body.open').forEach(el=>{
+      if(el.dataset.idx!==String(i))el.classList.remove('open');
+    });
+    const body=document.querySelector(`#menu .proj-body[data-idx="${i}"]`);
+    if(body)requestAnimationFrame(()=>body.classList.add('open'));
+  }
+
   const center=document.getElementById('center');
   center.innerHTML='';
   center.scrollTop=0;
-  const proj=projects[i];
 
-  /* reveal info first */
-  const info=document.createElement('div');
-  info.className='proj-info';
-  const title=document.createElement('div');
-  title.className='proj-title';
-  title.textContent=proj.displayTitle||[proj.client,proj.title].filter(Boolean).join(' — ');
-  info.appendChild(title);
-
-  const body=document.createElement('div');
-  body.className='proj-body';
-  const bodyInner=document.createElement('div');
-  bodyInner.className='proj-body-inner';
-  if(proj.year||proj.description?.length){
-    const desc=document.createElement('div');
-    desc.className='proj-desc';
-    if(proj.year){const m=document.createElement('div');m.textContent=proj.year;desc.appendChild(m);}
-    proj.description?.forEach(line=>{const p=document.createElement('div');p.textContent=line;desc.appendChild(p);});
-    bodyInner.appendChild(desc);
+  /* mobile — title + description sit at the top of #center, same as before */
+  if(mobile){
+    const info=document.createElement('div');
+    info.className='proj-info';
+    const title=document.createElement('div');
+    title.className='proj-title';
+    title.textContent=proj.displayTitle||[proj.client,proj.title].filter(Boolean).join(' — ');
+    info.appendChild(title);
+    const body=buildProjBody(proj);
+    info.appendChild(body);
+    center.appendChild(info);
+    requestAnimationFrame(()=>{body.classList.add('open');});
   }
-  if(proj.tags?.length){
-    const t=document.createElement('div');
-    t.className='proj-tags';
-    t.textContent=proj.tags.join(', ');
-    bodyInner.appendChild(t);
-  }
-  if(proj.link){
-    const a=document.createElement('a');
-    a.href=proj.link;a.target='_blank';a.rel='noopener';
-    a.className='ext-link proj-link';
-    a.textContent='visit project';
-    bodyInner.appendChild(a);
-  }
-  body.appendChild(bodyInner);
-  info.appendChild(body);
-  center.appendChild(info);
-  requestAnimationFrame(()=>{body.classList.add('open');});
 
   /* then reveal media, stacked top to bottom, after the info */
   if(!proj.media?.length){
@@ -1392,7 +1399,7 @@ function buildRing(){
     tile.appendChild(sq);
     tile.addEventListener('mouseenter',()=>{
       ringHover=true;ringTiles[i].hovered=true;
-      const a=document.querySelector(`.menu-items a[data-idx="${i}"]`);
+      const a=document.querySelector(`#menu a[data-idx="${i}"]`);
       if(a)a.classList.add('hl');
       hoverInfo.innerHTML='';
       const ht=document.createElement('span');
@@ -1409,7 +1416,7 @@ function buildRing(){
     });
     tile.addEventListener('mouseleave',()=>{
       ringHover=false;ringTiles[i].hovered=false;
-      const a=document.querySelector(`.menu-items a[data-idx="${i}"]`);
+      const a=document.querySelector(`#menu a[data-idx="${i}"]`);
       if(a)a.classList.remove('hl');
       hoverInfo.classList.remove('show');
     });
