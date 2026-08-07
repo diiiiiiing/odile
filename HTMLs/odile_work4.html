@@ -15,7 +15,8 @@
        black, so it reads as grey on its own terms instead of only when
        composited over the exact background colour */
     --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
-    --pad:32px;
+    /* halved from 32px */
+    --pad:16px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
   }
@@ -26,7 +27,7 @@
     font-family:var(--font);font-weight:400;
     font-size:var(--fs);line-height:1;
     letter-spacing:.02em;text-transform:uppercase;
-    overflow:hidden;cursor:none;
+    overflow:hidden;
     transition:background-color .55s ease,color .55s ease;
   }
   body{animation:fadeIn .6s ease both;}
@@ -35,10 +36,6 @@
   /* a flat ground: the iridescent blob layer is gone, and with it a
      full-screen backgroundImage rewritten on every frame */
   .bg-iri{position:fixed;inset:0;z-index:0;background-color:var(--bg);}
-
-  #cur{position:fixed;width:5px;height:5px;background:#fff;
-    mix-blend-mode:difference;
-    pointer-events:none;z-index:9999;transform:translate(-50%,-50%);}
 
   #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
     opacity:0;pointer-events:none;transition:opacity .7s ease;}
@@ -59,11 +56,11 @@
   #info.show #infoInner{opacity:1;transition-delay:.1s;}
   #info .i-line{color:var(--fg);}
   #info a{
-    color:var(--fg);text-decoration:none;cursor:none;
+    color:var(--fg);text-decoration:none;
   }
   #info a:hover,#info a.active{font-weight:700;}
 
-  .ext-link{color:var(--fg);text-decoration:none;cursor:none;}
+  .ext-link{color:var(--fg);text-decoration:none;}
   .ext-link:hover{font-weight:700;}
 
   /* rotating ring of project thumbnails — sits centered behind the menu/info/
@@ -79,17 +76,16 @@
      sits on top of it and would otherwise eat the clicks meant for the ring */
   #ringStage.show~#center{pointer-events:none;}
   #ring{position:absolute;inset:0;overflow:visible;}
-  .ring-tile{position:absolute;cursor:none;overflow:visible;}
+  .ring-tile{position:absolute;overflow:visible;}
   .ring-tile-sq{
     width:100%;height:100%;background-color:var(--dim2);
     background-size:cover;background-position:center;
     display:block;will-change:transform,filter;
     transition:filter .3s ease,opacity .3s ease;
   }
-  .ring-tile:hover .ring-tile-sq,.ring-tile.highlight .ring-tile-sq,.ring-tile.cat-focus .ring-tile-sq{filter:brightness(1.2);}
-  /* with a category open, the projects outside it fade into the background —
-     unlike hover, this brings no movement, just a brightness/opacity shift */
-  #ring.focus .ring-tile:not(.highlight):not(.cat-focus) .ring-tile-sq{filter:brightness(.35);opacity:.5;}
+  .ring-tile:hover .ring-tile-sq,.ring-tile.highlight .ring-tile-sq{filter:brightness(1.2);}
+  /* every tile is equally bright at rest; only hovering one (directly, or
+     via its name in the index) dims the rest — there is no other state */
   #ring.name-hover .ring-tile:not(.highlight) .ring-tile-sq{filter:brightness(.35);opacity:.5;}
 
   /* LEFT COLUMN — Ding, info and the index menu stacked in normal flow:
@@ -100,7 +96,7 @@
 
   /* TOP-LEFT SITE TITLE — same size/format as the rest of the text,
      hidden on mobile where the "index" nav button sits in the same spot */
-  #siteTitle{color:var(--fg);cursor:none;}
+  #siteTitle{color:var(--fg);}
   #siteTitle:hover,#siteTitle.active{font-weight:700;}
   @media (max-width:640px){#siteTitle{display:none;}}
 
@@ -111,7 +107,7 @@
     background:none;border:none;
     color:var(--fg);font:inherit;
     text-transform:uppercase;letter-spacing:.02em;
-    padding:0;cursor:none;
+    padding:0;
   }
   #menuBtn{left:var(--pad);}
   #infoBtn{right:var(--pad);}
@@ -120,7 +116,7 @@
 
   /* bio/email shown inside the CV panel on mobile only */
   .mobile-info-header{display:none;flex-direction:column;gap:3px;}
-  .mobile-info-header a{color:var(--fg);text-decoration:none;cursor:none;}
+  .mobile-info-header a{color:var(--fg);text-decoration:none;}
   .mobile-info-header a:hover{font-weight:700;}
 
   /* INDEX MENU — flows below Ding/#info inside #leftCol; the extra top
@@ -135,18 +131,18 @@
   #menu::-webkit-scrollbar{width:0;}
   .menu-group{display:flex;flex-direction:column;gap:0;}
   .menu-group-archives{margin-top:28px;}
-  /* archive accordion — separate class so toggleCategory() doesn't collapse it */
+  /* archive accordion */
   .archive-items{max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;}
   .archive-items.open{margin-top:28px;margin-bottom:28px;}
   .archive-inner{display:flex;flex-direction:column;min-height:0;overflow:hidden;opacity:0;transition:opacity .25s ease;}
   .archive-items.open .archive-inner{opacity:1;transition-delay:.1s;}
   .menu-cat{
-    color:var(--fg);cursor:none;
+    color:var(--fg);
     width:fit-content;
   }
   .menu-cat:hover,.menu-cat.open{font-weight:700;}
   .menu-group a{
-    color:var(--fg);text-decoration:none;cursor:none;
+    color:var(--fg);text-decoration:none;
     width:fit-content;
   }
   .menu-group a:hover,.menu-group a.active,.menu-group a.hl{font-weight:700;}
@@ -156,11 +152,24 @@
      accordion) instead of behind a category header */
   .menu-projects{display:flex;flex-direction:column;gap:0;}
   .menu-proj{display:flex;flex-direction:column;gap:0;}
-  .menu-proj a{
-    color:var(--fg);text-decoration:none;cursor:none;
+  /* name + tags sit on one row; the tags are revealed only on hover —
+     of the name itself, or of its thumbnail in the ring (which adds .hl).
+     Scoped to direct children of the row (not ".menu-proj a", which is a
+     descendant selector — it would also reach into the description body
+     below and outrank .proj-desc-link's own colour there by specificity). */
+  .menu-proj-row{display:flex;align-items:baseline;gap:8px;}
+  .menu-proj-row a{
+    color:var(--fg);text-decoration:none;
     width:fit-content;
   }
-  .menu-proj a:hover,.menu-proj a.active,.menu-proj a.hl{font-weight:700;}
+  .menu-proj-row a:hover,.menu-proj-row a.active,.menu-proj-row a.hl{font-weight:700;}
+  .proj-tags-inline{
+    color:var(--dim1);opacity:0;
+    transition:opacity .2s ease;
+    pointer-events:none;
+  }
+  .menu-proj-row a:hover~.proj-tags-inline,
+  .menu-proj-row a.hl~.proj-tags-inline{opacity:1;}
 
   /* CENTER — media only; on desktop/tablet a project's name/description
      unfold inline in the index below its own entry, pushing the rest of
@@ -183,14 +192,18 @@
   }
   /* "next project" — fixed bottom-right, only shown once the project's
      media has been scrolled to the end */
+  /* plain .ext-link styling (black, bold on hover) — it used to be white
+     with mix-blend-mode:difference, which read as a near-invisible grey
+     smudge over the page's own flat grey once scrolled past the last
+     image, rather than the negative-space trick it was meant to be */
   .next-link{
     position:fixed;bottom:30px;right:var(--pad);z-index:60;
     opacity:0;pointer-events:none;transition:opacity .3s ease;
-    color:#fff;mix-blend-mode:difference;
   }
   .next-link.show{opacity:1;pointer-events:auto;}
 
-  /* media — a strict two-column grid: nothing spans, landscape included */
+  /* media — a strict two-column grid: nothing spans on its own, except the
+     one deliberate exception below for long videos */
   .media-grid{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -203,6 +216,9 @@
   .media-item.show{opacity:1;}
   video.media-item{cursor:auto;}
   .media-item.ph{aspect-ratio:4/5;background:#d9d9d9;opacity:1;}
+  /* a video running 25s or longer takes both columns — set once its
+     duration is known, see the loadedmetadata handler in createMediaEl */
+  .media-item.wide{grid-column:1/-1;}
 
   /* PROJECT INFO — mobile only now (title + description at the top of
      #center); on desktop/tablet the description lives inline in the
@@ -216,34 +232,33 @@
   .proj-info .proj-title{font-weight:700;}
   .proj-info .proj-link{width:fit-content;}
   /* accordion that pushes the rest of the list down — reused both inline
-     in the index (desktop/tablet) and under .proj-info (mobile) */
+     in the index (desktop/tablet) and under .proj-info (mobile). Timing
+     matches #info's own reveal (.4s ease) rather than the previous .55s
+     cubic-bezier, which felt noticeably more abrupt side by side. */
   .proj-body{
-    max-height:0;margin-top:0;overflow:hidden;
-    transition:max-height .55s cubic-bezier(0.16,1,0.3,1),margin-top .55s cubic-bezier(0.16,1,0.3,1);
+    max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;
+    transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;
   }
-  .proj-body.open{max-height:600px;margin-top:28px;}
+  /* margin-top (name → description) and margin-bottom (description → next
+     project's name) match, so the open block sits evenly spaced instead of
+     running straight into the entry below it */
+  .proj-body.open{max-height:600px;margin-top:28px;margin-bottom:28px;}
   .proj-body-inner{
-    display:flex;flex-direction:column;gap:28px;
+    display:flex;flex-direction:column;gap:12px;
     min-height:0;overflow:hidden;
     color:var(--dim1);
     opacity:0;transition:opacity .25s ease;
   }
   .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
   .proj-desc{display:flex;flex-direction:column;gap:6px;}
-
-  #hoverInfo{
-    position:fixed;top:30px;
-    left:calc(var(--pad) + 300px);
-    display:flex;flex-direction:column;gap:6px;
-    color:var(--fg);
-    pointer-events:none;z-index:55;
-    opacity:0;transition:opacity .15s ease;
-  }
-  #hoverInfo.show{opacity:1;}
-  #hoverInfo .hover-title{font-weight:700;}
-  #hoverInfo .hover-tags{opacity:.5;}
-  @media (max-width:1320px){#hoverInfo{left:calc(var(--pad) + 200px);}}
-  @media (max-width:640px){#hoverInfo{display:none;}}
+  /* the explanatory paragraph reads better in mixed case; the year above
+     it and the tags/link below stay in the page's usual caps */
+  .proj-desc-line{text-transform:none;}
+  /* inline links inside the description: no underline or colour change at
+     rest (indistinguishable from plain text until hovered), black on
+     hover like every other link on the page */
+  .proj-desc-link{color:inherit;text-decoration:none;}
+  .proj-desc-link:hover{color:var(--fg);}
 
   /* CV PANEL */
   #cv{
@@ -335,12 +350,6 @@
 
   }
 
-  /* no custom cursor on touch devices */
-  @media (hover:none){
-    #cur{display:none;}
-    *,*::before,*::after{cursor:auto!important;}
-  }
-
   /* ── LOADER — full-screen overlay; text/ring reveal after it fades ─ */
   #loader{
     position:fixed;inset:0;z-index:900;
@@ -395,7 +404,6 @@
 <div id="loader"></div>
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
-<div id="cur"></div>
 
 <div id="ringStage"><div id="ring"></div></div>
 
@@ -422,7 +430,6 @@
 
 
 <div id="center"></div>
-<div id="hoverInfo"></div>
 
 <a href="#" id="nextProject" class="ext-link next-link">next project</a>
 
@@ -521,10 +528,6 @@ function hideLoader(){
   },wait);
 }
 
-/* cursor */
-const cur=document.getElementById('cur');
-document.addEventListener('mousemove',e=>{cur.style.left=e.clientX+'px';cur.style.top=e.clientY+'px';});
-
 /* scroll the CV or the media column, no matter where the cursor is —
    on the "home" state (no project open), the wheel instead spins the ring */
 window.addEventListener('wheel',e=>{
@@ -560,7 +563,6 @@ let cvOpen=false;
 const cvBtn=document.getElementById('cvBtn');
 const cvPanel=document.getElementById('cv');
 const centerPanel=document.getElementById('center');
-const hoverInfo=document.getElementById('hoverInfo');
 
 /* "next project" link — fixed bottom-right, only appears once the current
    project's media has been scrolled to the end */
@@ -608,7 +610,6 @@ siteTitle.addEventListener('click',()=>{
   const wasCV=cvOpen;
   if(selectedIdx!==null)closeProject();
   if(cvOpen)toggleCV(false);
-  if(openCat!==null)toggleCategory(openCat);
   if(galleryOpen){closeGallery();clearCenter();}
   if(isDesktop()){
     if(wasProject||wasGallery){setInfoOpen(true);siteTitle.classList.add('active');}
@@ -684,7 +685,6 @@ function getProjectCategory(p){
 }
 
 let projects=[];
-let openCat=null;
 let selectedIdx=null;
 let galleryOpen=false;
 let archiveData=null;
@@ -711,6 +711,13 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+/* the CMS's inline-link field is free text, not a validated URL field —
+   "www.site.com" without a scheme resolves as a path on this site rather
+   than an external link, so one is added when none is present */
+function normalizeUrl(href){
+  return /^([a-z][a-z0-9+.-]*:|\/|#)/i.test(href)?href:'https://'+href;
+}
+
 /* projects are personal content: title/client/year/description + media (images, videos, or placeholders) */
 async function loadFromSanity(){
   try{
@@ -724,10 +731,19 @@ async function loadFromSanity(){
         year:p.year||'',
         favorite:!!p.favorite,
         link:p.link||'',
+        /* each line is an array of runs ({text, href}) rather than a flat
+           string, so an inline link mark from the CMS survives as a real
+           href instead of being flattened away with the rest of the markup */
         description:Array.isArray(p.description)
           ?p.description.filter(b=>b._type==='block'&&Array.isArray(b.children))
-            .map(b=>b.children.map(c=>c.text||'').join(''))
-            .filter(t=>t.trim())
+            .map(b=>{
+              const defs=Object.fromEntries((b.markDefs||[]).map(d=>[d._key,d]));
+              return(b.children||[]).map(c=>({
+                text:c.text||'',
+                href:(c.marks||[]).map(k=>defs[k]).find(d=>d&&d._type==='link')?.href||null,
+              }));
+            })
+            .filter(runs=>runs.some(r=>r.text.trim()))
           :[],
         tags:Array.isArray(p.tags)?p.tags.map(t=>(t?.title||'').toLowerCase().trim()).filter(Boolean):[],
         media:Array.isArray(p.media)?p.media.map(m=>{
@@ -765,7 +781,26 @@ function buildProjBody(proj){
     const desc=document.createElement('div');
     desc.className='proj-desc';
     if(proj.year){const m=document.createElement('div');m.textContent=proj.year;desc.appendChild(m);}
-    proj.description?.forEach(line=>{const p=document.createElement('div');p.textContent=line;desc.appendChild(p);});
+    /* each line is either a run array ({text,href}[], from Sanity) or a
+       plain string (fallback data) — either way, a link run becomes a
+       real <a>, grey like the rest of the text until hovered */
+    proj.description?.forEach(line=>{
+      const p=document.createElement('div');
+      p.className='proj-desc-line';
+      const runs=Array.isArray(line)?line:[{text:String(line)}];
+      runs.forEach(run=>{
+        if(run.href){
+          const link=document.createElement('a');
+          link.href=normalizeUrl(run.href);link.target='_blank';link.rel='noopener';
+          link.className='proj-desc-link';
+          link.textContent=run.text;
+          p.appendChild(link);
+        }else{
+          p.appendChild(document.createTextNode(run.text));
+        }
+      });
+      desc.appendChild(p);
+    });
     inner.appendChild(desc);
   }
   if(proj.tags?.length){
@@ -823,6 +858,9 @@ function buildMenu(){
     const wrap=document.createElement('div');
     wrap.className='menu-proj';
 
+    const row=document.createElement('div');
+    row.className='menu-proj-row';
+
     const a=document.createElement('a');
     a.href='#';
     a.textContent=proj.displayTitle||proj.client||proj.title;
@@ -836,7 +874,18 @@ function buildMenu(){
     /* hovering a project name rolls the ring so its thumbnail comes to the top */
     a.addEventListener('mouseenter',()=>ringFocusOn(i));
     a.addEventListener('mouseleave',()=>ringUnfocus(i));
-    wrap.appendChild(a);
+    row.appendChild(a);
+
+    /* tags surface to the right of the name on hover (of the name itself,
+       or of its thumbnail — see .hl in buildRing) instead of the old
+       floating title+tags box that used to appear at the top of the page */
+    if(proj.tags?.length){
+      const tags=document.createElement('span');
+      tags.className='proj-tags-inline';
+      tags.textContent=proj.tags.join(', ');
+      row.appendChild(tags);
+    }
+    wrap.appendChild(row);
 
     const body=buildProjBody(proj);
     body.dataset.idx=i;
@@ -946,52 +995,6 @@ function buildMobileHome(){
   }));
 }
 
-/* remove the ring highlight for every project in a given category */
-function clearCategoryFocus(cat){
-  projects.forEach((p,i)=>{
-    if(getProjectCategory(p)===cat&&ringTiles[i]){
-      ringTiles[i].tile.classList.remove('cat-focus');
-    }
-  });
-}
-
-/* open/close a category without rebuilding the menu, so the foldout transitions can play.
-   opening one category forces any other open category, and the scraps gallery, to close */
-function toggleCategory(cat){
-  const closing=(openCat===cat);
-  const prevCat=openCat;
-
-  if(!closing){
-    if(prevCat)clearCategoryFocus(prevCat);
-    if(galleryOpen){closeGallery();clearCenter();}
-    if(archiveAccOpen)closeArchiveAccordion();
-  }
-
-  openCat=closing?null:cat;
-  document.querySelectorAll('.menu-cat').forEach(el=>{
-    el.classList.toggle('open',el.dataset.cat===openCat);
-  });
-
-  /* closing the category that holds the currently open project closes it too */
-  if(closing&&selectedIdx!==null){
-    if(getProjectCategory(projects[selectedIdx])===cat)closeProject();
-  }
-
-  /* highlight the open category's projects and dim the rest, with no
-     movement (unlike the hover push-out) */
-  if(closing){
-    clearCategoryFocus(cat);
-    ringEl.classList.remove('focus');
-  }else{
-    projects.forEach((p,i)=>{
-      if(getProjectCategory(p)===cat&&ringTiles[i])ringTiles[i].tile.classList.add('cat-focus');
-    });
-    ringEl.classList.add('focus');
-  }
-
-  updateRingVisibility();
-}
-
 /* fade out and empty the center column */
 let closeTimer=null;
 function clearCenter(){
@@ -1036,12 +1039,6 @@ function selectProject(i){
   const newActive=document.querySelector(`#menu a[data-idx="${i}"]`);
   if(newActive)newActive.classList.add('active');
   updateRingVisibility();
-
-  /* auto-open the category for this project if not already open —
-     still drives the ring's focus/dim styling even without the menu
-     accordion it originally opened */
-  const pCat=getProjectCategory(projects[i]);
-  if(pCat&&openCat!==pCat)toggleCategory(pCat);
 
   if(cvOpen)toggleCV(false);
 
@@ -1152,6 +1149,7 @@ function createMediaEl(m){
     vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();});
     vid.addEventListener('loadedmetadata',()=>{
       if(vid.duration>=18)vid.controls=true;
+      if(vid.duration>=25)vid.classList.add('wide');
     });
     // lazy: load src only when near viewport
     const obs=new IntersectionObserver(entries=>{
@@ -1203,10 +1201,9 @@ function closeArchiveAccordion(){
   if(galleryOpen){closeGallery();clearCenter();}
 }
 
-/* toggle the archives accordion — mirrors toggleCategory() for project cats */
+/* toggle the archives accordion */
 function toggleArchiveAccordion(){
   if(archiveAccOpen){closeArchiveAccordion();updateRingVisibility();return;}
-  if(openCat!==null)toggleCategory(openCat);
   if(selectedIdx!==null)closeProject();
   if(cvOpen)toggleCV(false);
   if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
@@ -1289,28 +1286,17 @@ function buildRing(){
     sq.className='ring-tile-sq';
     if(p.thumb)sq.style.backgroundImage=`url(${p.thumb})`;
     tile.appendChild(sq);
+    /* bolds the name in the index and — via .hl in the CSS — reveals its
+       tags there too, in place of the old floating title box */
     tile.addEventListener('mouseenter',()=>{
       ringHover=true;ringTiles[i].hovered=true;
       const a=document.querySelector(`#menu a[data-idx="${i}"]`);
       if(a)a.classList.add('hl');
-      hoverInfo.innerHTML='';
-      const ht=document.createElement('span');
-      ht.className='hover-title';
-      ht.textContent=p.displayTitle||[p.client,p.title].filter(Boolean).join(' — ');
-      hoverInfo.appendChild(ht);
-      if(p.tags&&p.tags.length){
-        const htags=document.createElement('span');
-        htags.className='hover-tags';
-        htags.textContent=p.tags.join(', ');
-        hoverInfo.appendChild(htags);
-      }
-      hoverInfo.classList.add('show');
     });
     tile.addEventListener('mouseleave',()=>{
       ringHover=false;ringTiles[i].hovered=false;
       const a=document.querySelector(`#menu a[data-idx="${i}"]`);
       if(a)a.classList.remove('hl');
-      hoverInfo.classList.remove('show');
     });
     tile.addEventListener('click',()=>selectProject(i));
     ringEl.appendChild(tile);
