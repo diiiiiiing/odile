@@ -123,7 +123,7 @@
      margin plus its own scroll keeps it clear of Ding while filling the
      rest of #leftCol's height */
   #menu{
-    margin-top:23px;width:300px;
+    margin-top:23px;width:340px;
     flex:1;min-height:0;
     display:flex;flex-direction:column;gap:0;
     overflow-y:auto;
@@ -152,31 +152,38 @@
      accordion) instead of behind a category header */
   .menu-projects{display:flex;flex-direction:column;gap:0;}
   .menu-proj{display:flex;flex-direction:column;gap:0;}
-  /* name + tags sit on one row; the tags are revealed only on hover —
-     of the name itself, or of its thumbnail in the ring (which adds .hl).
-     Scoped to direct children of the row (not ".menu-proj a", which is a
-     descendant selector — it would also reach into the description body
-     below and outrank .proj-desc-link's own colour there by specificity). */
+  /* name + subtitle sit on one row; the subtitle is revealed only on
+     hover — of the name itself, or of its thumbnail in the ring (which
+     adds .hl). Scoped to direct children of the row (not ".menu-proj a",
+     which is a descendant selector — it would also reach into the
+     description body below and outrank .proj-desc-link's own colour
+     there by specificity). */
   .menu-proj-row{display:flex;align-items:baseline;gap:8px;}
   .menu-proj-row a{
     color:var(--fg);text-decoration:none;
     width:fit-content;
+    /* the name must never wrap or shrink: with the subtitle span still
+       taking up flex space while merely invisible (opacity, not display),
+       a long subtitle used to squeeze the name below its own content
+       width and wrap it — even though the subtitle itself stayed hidden */
+    white-space:nowrap;flex-shrink:0;
   }
   .menu-proj-row a:hover,.menu-proj-row a.active,.menu-proj-row a.hl{font-weight:700;}
-  .proj-tags-inline{
+  .proj-subtitle-inline{
     color:var(--dim1);opacity:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;
     transition:opacity .2s ease;
     pointer-events:none;
   }
-  .menu-proj-row a:hover~.proj-tags-inline,
-  .menu-proj-row a.hl~.proj-tags-inline{opacity:1;}
+  .menu-proj-row a:hover~.proj-subtitle-inline,
+  .menu-proj-row a.hl~.proj-subtitle-inline{opacity:1;}
 
   /* CENTER — media only; on desktop/tablet a project's name/description
      unfold inline in the index below its own entry, pushing the rest of
      the list down (see .proj-body below) */
   #center{
     position:fixed;top:0;bottom:0;
-    left:calc(var(--pad) + 300px);right:0;
+    left:calc(var(--pad) + 340px);right:0;
     overflow-y:auto;overflow-x:hidden;
     padding:0;
     display:flex;flex-direction:column;gap:0;
@@ -263,7 +270,7 @@
   /* CV PANEL */
   #cv{
     position:fixed;top:0;bottom:0;
-    left:calc(var(--pad) + 300px);
+    left:calc(var(--pad) + 340px);
     width:min(38vw,480px);
     overflow-y:hidden;
     padding:30px 0 60px;
@@ -286,9 +293,9 @@
      the menu ("commercial" list) and the top-right info ("currently
      designer at unveil®") — narrow everything down before that happens */
   @media (max-width:1320px){
-    #menu{width:200px;}
-    #center{left:calc(var(--pad) + 200px);right:0;width:auto;}
-    #cv{left:calc(var(--pad) + 200px);width:min(60vw,420px);}
+    #menu{width:230px;}
+    #center{left:calc(var(--pad) + 230px);right:0;width:auto;}
+    #cv{left:calc(var(--pad) + 230px);width:min(60vw,420px);}
     .mobile-info-header{display:flex;}
   }
 
@@ -695,7 +702,7 @@ let menuOrder=[];
 /* ── SANITY ── */
 const PID='zgrgr7sj',DS='production';
 const GROQ=`*[_type=="project"]|order(year desc){
-  _id,title,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
+  _id,title,subtitle,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
   "tags":tags[]->{title},
   "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
   "media":media[]{
@@ -726,6 +733,7 @@ async function loadFromSanity(){
     if(result?.length){
       projects=result.map(p=>({
         title:p.title||'(untitled)',
+        subtitle:p.subtitle||'',
         client:p.client||'',
         displayTitle:p.displayTitle||'',
         year:p.year||'',
@@ -876,14 +884,14 @@ function buildMenu(){
     a.addEventListener('mouseleave',()=>ringUnfocus(i));
     row.appendChild(a);
 
-    /* tags surface to the right of the name on hover (of the name itself,
-       or of its thumbnail — see .hl in buildRing) instead of the old
-       floating title+tags box that used to appear at the top of the page */
-    if(proj.tags?.length){
-      const tags=document.createElement('span');
-      tags.className='proj-tags-inline';
-      tags.textContent=proj.tags.join(', ');
-      row.appendChild(tags);
+    /* the subtitle surfaces to the right of the name on hover (of the name
+       itself, or of its thumbnail — see .hl in buildRing), in place of the
+       tags this used to show */
+    if(proj.subtitle){
+      const subtitle=document.createElement('span');
+      subtitle.className='proj-subtitle-inline';
+      subtitle.textContent=proj.subtitle;
+      row.appendChild(subtitle);
     }
     wrap.appendChild(row);
 

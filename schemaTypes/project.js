@@ -9,6 +9,13 @@ export default {
       type: 'string',
     },
     {
+      name: 'subtitle',
+      title: 'Sous-titre',
+      description:
+        "Petit texte affiché à côté du nom du projet dans l'index, au survol (remplace les tags à cet endroit).",
+      type: 'string',
+    },
+    {
       name: 'client',
       title: 'Client',
       type: 'string',
