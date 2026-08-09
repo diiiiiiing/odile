@@ -8,5 +8,6 @@ export default defineCliConfig({
   deployment: {
     autoUpdates: true,
     studioHost: 'odile',
+    appId: 'oein1lcbiqj86294hml1epq1',
   }
 })
