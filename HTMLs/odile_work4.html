@@ -17,6 +17,10 @@
     --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
     /* halved from 32px */
     --pad:16px;
+    /* deliberate breathing room between the index column and the media
+       column — previously the two sat flush, reserved-width-to-reserved-
+       width, with nothing but leftover space (if any) between them */
+    --colgap:56px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
   }
@@ -55,12 +59,17 @@
   }
   #info.show #infoInner{opacity:1;transition-delay:.1s;}
   #info .i-line{color:var(--fg);}
-  #info a{
+  #info a,#info a:visited{
     color:var(--fg);text-decoration:none;
   }
   #info a:hover,#info a.active{font-weight:700;}
 
-  .ext-link{color:var(--fg);text-decoration:none;}
+  /* :visited is included on purpose: the browser's own default
+     (a:visited{color:purple}, specificity 0,0,1,1) outranks a single-class
+     rule like .ext-link (0,0,1,0), so any link here the visitor has
+     actually clicked before — their own Instagram, say — would otherwise
+     go purple regardless of what .ext-link says */
+  .ext-link,.ext-link:visited{color:var(--fg);text-decoration:none;}
   .ext-link:hover{font-weight:700;}
 
   /* rotating ring of project thumbnails — sits centered behind the menu/info/
@@ -116,7 +125,7 @@
 
   /* bio/email shown inside the CV panel on mobile only */
   .mobile-info-header{display:none;flex-direction:column;gap:3px;}
-  .mobile-info-header a{color:var(--fg);text-decoration:none;}
+  .mobile-info-header a,.mobile-info-header a:visited{color:var(--fg);text-decoration:none;}
   .mobile-info-header a:hover{font-weight:700;}
 
   /* INDEX MENU — pinned to the bottom-left corner on its own, independent
@@ -186,7 +195,7 @@
      the list down (see .proj-body below) */
   #center{
     position:fixed;top:0;bottom:0;
-    left:calc(var(--pad) + 340px);right:0;
+    left:calc(var(--pad) + 340px + var(--colgap));right:0;
     overflow-y:auto;overflow-x:hidden;
     padding:0;
     display:flex;flex-direction:column;gap:0;
@@ -267,13 +276,13 @@
   /* inline links inside the description: no underline or colour change at
      rest (indistinguishable from plain text until hovered), black on
      hover like every other link on the page */
-  .proj-desc-link{color:inherit;text-decoration:none;}
+  .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
   .proj-desc-link:hover{color:var(--fg);}
 
   /* CV PANEL */
   #cv{
     position:fixed;top:0;bottom:0;
-    left:calc(var(--pad) + 340px);
+    left:calc(var(--pad) + 340px + var(--colgap));
     width:min(38vw,480px);
     overflow-y:hidden;
     padding:30px 0 60px;
@@ -297,8 +306,11 @@
      designer at unveil®") — narrow everything down before that happens */
   @media (max-width:1320px){
     #menu{width:230px;}
-    #center{left:calc(var(--pad) + 230px);right:0;width:auto;}
-    #cv{left:calc(var(--pad) + 230px);width:min(60vw,420px);}
+    /* a smaller gap here — the breakpoint exists precisely because width
+       is already tight, so the full desktop --colgap would eat back into
+       the room this narrowing is meant to free up */
+    #center{left:calc(var(--pad) + 230px + 32px);right:0;width:auto;}
+    #cv{left:calc(var(--pad) + 230px + 32px);width:min(60vw,420px);}
     .mobile-info-header{display:flex;}
   }
 
