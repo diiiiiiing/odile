@@ -88,10 +88,10 @@
      via its name in the index) dims the rest — there is no other state */
   #ring.name-hover .ring-tile:not(.highlight) .ring-tile-sq{filter:brightness(.35);opacity:.5;}
 
-  /* LEFT COLUMN — Ding, info and the index menu stacked in normal flow:
-     unfolding #info pushes #menu down instead of the two independently
-     fixed panels overlapping each other */
-  #leftCol{position:fixed;top:30px;left:var(--pad);z-index:70;display:flex;flex-direction:column;max-height:calc(100vh - 60px);}
+  /* LEFT COLUMN, TOP — Ding and its info bio only now; the index moved to
+     its own bottom-left anchor (#menu, below) and no longer needs to leave
+     room by flowing under these */
+  #leftCol{position:fixed;top:30px;left:var(--pad);z-index:70;display:flex;flex-direction:column;}
   @media (max-width:640px){#leftCol{display:contents;}}
 
   /* TOP-LEFT SITE TITLE — same size/format as the rest of the text,
@@ -119,12 +119,15 @@
   .mobile-info-header a{color:var(--fg);text-decoration:none;}
   .mobile-info-header a:hover{font-weight:700;}
 
-  /* INDEX MENU — flows below Ding/#info inside #leftCol; the extra top
-     margin plus its own scroll keeps it clear of Ding while filling the
-     rest of #leftCol's height */
+  /* INDEX MENU — pinned to the bottom-left corner on its own, independent
+     of Ding/#info at the top; it no longer needs to leave them room by
+     flowing below them. max-height plus its own scroll is a ceiling for
+     the rare case of many projects with one long description open — in
+     the ordinary case the column simply sits at its natural height above
+     the bottom-left anchor. */
   #menu{
-    margin-top:23px;width:340px;
-    flex:1;min-height:0;
+    position:fixed;left:var(--pad);bottom:30px;z-index:70;
+    width:340px;max-height:calc(100vh - 60px);
     display:flex;flex-direction:column;gap:0;
     overflow-y:auto;
   }
@@ -417,9 +420,7 @@
 <button id="menuBtn" class="nav-btn">index</button>
 <button id="infoBtn" class="nav-btn">ding</button>
 
-<!-- LEFT COLUMN — Ding, info, and the index menu stacked in normal flow,
-     so opening #info pushes #menu down the same way a menu category
-     pushes its own siblings, instead of two independently fixed panels -->
+<!-- TOP-LEFT — Ding and its info bio -->
 <div id="leftCol">
   <div id="siteTitle">Ding</div>
 
@@ -431,10 +432,10 @@
       <a href="#" id="cvBtn">CV</a>
     </div>
   </div>
-
-  <div id="menu"></div>
 </div>
 
+<!-- BOTTOM-LEFT — the project index, pinned independently of Ding/#info above -->
+<div id="menu"></div>
 
 <div id="center"></div>
 
@@ -590,8 +591,9 @@ nextLinkEl.addEventListener('click',e=>{
 const infoPanel=document.getElementById('info');
 const infoInnerEl=document.getElementById('infoInner');
 /* unfold/fold #info — animate max-height to the panel's measured content
-   height. #info sits in normal flow above #menu inside #leftCol, so this
-   alone already pushes #menu down. */
+   height, the same measured-height approach openProjBody/closeProjBody use
+   for the index below, rather than transitioning toward a generous fixed
+   cap that reaches its real height early and idles for the rest */
 function setInfoOpen(open){
   infoPanel.classList.toggle('show',open);
   infoPanel.style.maxHeight=open?infoInnerEl.scrollHeight+'px':'0px';
@@ -627,6 +629,8 @@ siteTitle.addEventListener('click',()=>{
 window.addEventListener('resize',()=>{
   if(infoPanel.classList.contains('show'))infoPanel.style.maxHeight=infoInnerEl.scrollHeight+'px';
   if(archiveAccOpen){const ai=document.querySelector('.archive-items');if(ai)ai.style.maxHeight=ai.querySelector('.archive-inner').scrollHeight+'px';}
+  const openBody=document.querySelector('.proj-body.open');
+  if(openBody)openBody.style.maxHeight=openBody.querySelector('.proj-body-inner').scrollHeight+'px';
 },{passive:true});
 function isDesktop(){return window.matchMedia('(min-width:1321px)').matches;}
 function isMobile(){return window.matchMedia('(max-width:640px)').matches;}
@@ -828,6 +832,25 @@ function buildProjBody(proj){
   return body;
 }
 
+/* open/close a .proj-body with its own measured height, exactly like
+   setInfoOpen does for #info — a fixed CSS cap (max-height:600px) meant
+   the box, whose real content is rarely more than ~150px, reached its true
+   rendered height in a small fraction of the transition and then animated
+   nothing for the rest: a sudden snap open, a long dead pause, then a
+   sudden snap shut. Measuring scrollHeight makes the whole .4s correspond
+   to real motion, the same way #info's reveal already does. */
+function openProjBody(body){
+  if(!body)return;
+  body.classList.add('open');
+  const inner=body.querySelector('.proj-body-inner');
+  body.style.maxHeight=(inner?inner.scrollHeight:0)+'px';
+}
+function closeProjBody(body){
+  if(!body)return;
+  body.classList.remove('open');
+  body.style.maxHeight='0px';
+}
+
 /* group projects by medium (video / images / graphic design), preserving year-desc order */
 function buildMenu(){
   const menu=document.getElementById('menu');
@@ -903,6 +926,14 @@ function buildMenu(){
     list.appendChild(wrap);
   });
   menu.appendChild(list);
+  /* a body restored open here (menu rebuilt while a project was already
+     selected) has no scrollHeight yet — it wasn't in the document a moment
+     ago. Correct its max-height once it is, so a later close still starts
+     from the real measured value instead of the CSS fallback. */
+  const restoredOpen=list.querySelector('.proj-body.open');
+  if(restoredOpen)requestAnimationFrame(()=>{
+    restoredOpen.style.maxHeight=restoredOpen.querySelector('.proj-body-inner').scrollHeight+'px';
+  });
 
   /* archives — accordion with one sub-item per gallery document */
   const gGroup=document.createElement('div');
@@ -987,7 +1018,6 @@ function buildMobileHome(){
   buildCopy();
 
   center.appendChild(wrap);
-  mobileBackBtn.classList.remove('show');
 
   /* jump to middle copy once layout is measured */
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
@@ -1020,7 +1050,7 @@ function clearCenter(){
 function closeProject(){
   selectedIdx=null;
   document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
-  document.querySelectorAll('#menu .proj-body.open').forEach(el=>el.classList.remove('open'));
+  document.querySelectorAll('#menu .proj-body.open').forEach(closeProjBody);
   if(cvOpen)toggleCV(false);
   nextLinkTarget=null;
   updateNextLinkVisibility();
@@ -1066,9 +1096,9 @@ function selectProject(i){
     const body=document.querySelector(`#menu .proj-body[data-idx="${i}"]`);
     requestAnimationFrame(()=>{
       document.querySelectorAll('#menu .proj-body.open').forEach(el=>{
-        if(el!==body)el.classList.remove('open');
+        if(el!==body)closeProjBody(el);
       });
-      if(body)body.classList.add('open');
+      openProjBody(body);
     });
   }
 
@@ -1087,7 +1117,7 @@ function selectProject(i){
     const body=buildProjBody(proj);
     info.appendChild(body);
     center.appendChild(info);
-    requestAnimationFrame(()=>{body.classList.add('open');});
+    requestAnimationFrame(()=>openProjBody(body));
   }
 
   /* then reveal media, stacked top to bottom, after the info */
