@@ -24,6 +24,11 @@
     font-size:var(--fs);line-height:1;
     letter-spacing:.02em;text-transform:uppercase;
     overflow:hidden;
+    /* a soft halo in the page's own background colour — invisible against
+       the plain grey backdrop, but keeps every bit of text legible on the
+       rare occasion it still ends up over a dark (or very light) piece of
+       media, without hand-picking which elements can end up there */
+    text-shadow:0 0 6px var(--bg),0 0 12px var(--bg),0 0 18px var(--bg);
     /* a touch device can flash a link's tap state from the same
        touch-drag that starts a scroll — this is decorative, not a focus
        indicator, so it's safe to drop everywhere */
