@@ -175,12 +175,11 @@
   .proj-desc-line{text-transform:none;max-width:60ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
 
-  /* text stays black everywhere — the moment a piece of it actually
-     overlaps the media (checked geometrically in JS, not just "a
-     project happens to be open"), it inverts instead of switching to a
-     fixed light colour, so it reads as a discreet negative against
-     whatever is directly behind it rather than a flat white */
-  .text-negative{filter:invert(.82);transition:filter .3s ease;}
+  /* text stays black (or the description's usual dark grey) everywhere
+     — the moment a piece of it actually overlaps the media (checked
+     geometrically in JS, not just "a project happens to be open"), it
+     steps up to a slightly lighter grey, never white */
+  .text-negative{color:#555!important;transition:color .3s ease;}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
