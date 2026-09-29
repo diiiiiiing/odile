@@ -175,11 +175,17 @@
   .proj-desc-line{text-transform:none;max-width:60ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
 
-  /* text stays black (or the description's usual dark grey) everywhere
-     — the moment a piece of it actually overlaps the media (checked
-     geometrically in JS, not just "a project happens to be open"), it
-     steps up to a slightly lighter grey, never white */
-  .text-negative{color:#555!important;transition:color .3s ease;}
+  /* other projects disappear while one is open — its own name+description
+     never has to share room with the rest of the list, so it never has
+     a reason to run into the media above it */
+  .menu-proj{overflow:hidden;transition:max-height .35s ease,opacity .3s ease,margin .35s ease;}
+  .menu-proj.hidden{opacity:0;margin-top:0;margin-bottom:0;pointer-events:none;}
+  .close-x{
+    display:inline-block;margin-top:16px;
+    opacity:0;max-height:0;overflow:hidden;pointer-events:none;
+    transition:opacity .3s ease,max-height .3s ease,margin-top .3s ease;
+  }
+  .close-x.show{opacity:1;max-height:40px;margin-top:16px;pointer-events:auto;}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
@@ -483,7 +489,6 @@ window.addEventListener('resize',()=>{
   const openBody=document.querySelector('.proj-body.open');
   if(openBody)openBody.style.maxHeight=openBody.querySelector('.proj-body-inner').scrollHeight+'px';
   updateNextLinkVisibility();
-  updateTextNegative();
 },{passive:true});
 
 /* ── FALLBACK DATA — used if the CMS is unreachable or empty ── */
@@ -743,6 +748,13 @@ function buildMenu(){
   if(restoredOpen)requestAnimationFrame(()=>{
     restoredOpen.style.maxHeight=restoredOpen.querySelector('.proj-body-inner').scrollHeight+'px';
   });
+
+  closeXEl=document.createElement('a');
+  closeXEl.href='#';
+  closeXEl.className='ext-link close-x'+(selectedIdx!==null?' show':'');
+  closeXEl.textContent='×';
+  closeXEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
+  menu.appendChild(closeXEl);
 }
 
 /* fade out and empty the strip */
@@ -766,7 +778,7 @@ function closeProject({pushUrl=true}={}){
   nextLinkTarget=null;
   updateNextLinkVisibility();
   clearStrip();
-  updateTextNegative();
+  updateProjectListVisibility();
   if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
 }
 
@@ -793,13 +805,10 @@ function selectProject(i,{pushUrl=true}={}){
       if(el!==body)closeProjBody(el);
     });
     openProjBody(body);
-    /* the description takes .4s to reach its full height, shifting
-       which rows actually end up over the media — recheck once it has */
-    if(body)body.addEventListener('transitionend',updateTextNegative,{once:true});
   });
+  updateProjectListVisibility();
 
   document.getElementById('stripZone').classList.add('show');
-  updateTextNegative();
   stripEl.innerHTML='';
   stripEl.scrollLeft=0;
   if(!proj.media?.length){
@@ -870,35 +879,41 @@ nextLinkEl.addEventListener('click',e=>{
   if(nextLinkTarget!==null)selectProject(nextLinkTarget);
 });
 
-/* text stays black; it only goes negative where it actually,
-   geometrically overlaps the media — checked against real layout
-   rather than just "is a project open", since most of the index sits
-   nowhere near the strip even when one is */
-const stripZoneEl=document.getElementById('stripZone');
-function updateTextNegative(){
-  const targets=document.querySelectorAll('.menu-proj-row a, .proj-body-inner, .next-link');
-  if(!stripZoneEl.classList.contains('show')){
-    targets.forEach(el=>el.classList.remove('text-negative'));
-    return;
-  }
-  const sr=stripZoneEl.getBoundingClientRect();
-  /* a closed .proj-body clips its child to nothing visually via
-     max-height:0+overflow:hidden, but the child's own layout box keeps
-     its full natural (unclipped) size — getBoundingClientRect doesn't
-     know it's invisible, so that has to be checked explicitly */
-  const isRendered=el=>{
-    const body=el.closest('.proj-body');
-    return !body||body.classList.contains('open');
-  };
-  targets.forEach(el=>{
-    if(!isRendered(el)){el.classList.remove('text-negative');return;}
-    const r=el.getBoundingClientRect();
-    const overlaps=r.width>0&&r.height>0&&
-      r.right>sr.left&&r.left<sr.right&&r.bottom>sr.top&&r.top<sr.bottom;
-    el.classList.toggle('text-negative',overlaps);
+/* while a project is open, every other entry disappears — only the
+   selected name + its description stay in the index, so there's never
+   enough text left for any of it to reach the media above. The "×"
+   appears in their place to get back to the full list. Built once by
+   buildMenu(), alongside the list it belongs to. */
+let closeXEl=null;
+function updateProjectListVisibility(){
+  document.querySelectorAll('.menu-proj').forEach(wrap=>{
+    const a=wrap.querySelector('a[data-idx]');
+    const idx=a?Number(a.dataset.idx):null;
+    /* the selected row is handled first and unconditionally: it must
+       never carry a height cap left over from an earlier hide/reveal,
+       no matter which state it's coming from, since its description is
+       either about to grow or already has */
+    if(idx===selectedIdx){
+      wrap.classList.remove('hidden');
+      wrap.style.maxHeight='none';
+      return;
+    }
+    const isHidden=wrap.classList.contains('hidden');
+    if(selectedIdx===null&&isHidden){
+      wrap.style.maxHeight=wrap.scrollHeight+'px';
+      wrap.classList.remove('hidden');
+    }else if(selectedIdx!==null&&!isHidden){
+      wrap.style.maxHeight=wrap.scrollHeight+'px';
+      /* a forced synchronous reflow, not requestAnimationFrame — rAF is
+         throttled to nothing on a backgrounded/unfocused tab, which
+         would leave this fixed at its full height, never collapsing */
+      void wrap.offsetHeight;
+      wrap.classList.add('hidden');
+      wrap.style.maxHeight='0px';
+    }
   });
+  closeXEl.classList.toggle('show',selectedIdx!==null);
 }
-menuEl.addEventListener('scroll',updateTextNegative,{passive:true});
 
 loadFromSanity();
 </script>
