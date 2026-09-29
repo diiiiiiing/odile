@@ -12,6 +12,9 @@
     /* one palette, no modes — same as work4 */
     --bg:#808080; --fg:#000;
     --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
+    /* text still reads as this dark near the media, in case it's dark
+       too — see the #stripZone.show-scoped overrides below */
+    --fg-media:#f2f2f2; --dim-media:#ccc;
     --pad:10px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
@@ -24,11 +27,6 @@
     font-size:var(--fs);line-height:1;
     letter-spacing:.02em;text-transform:uppercase;
     overflow:hidden;
-    /* a soft halo in the page's own background colour — invisible against
-       the plain grey backdrop, but keeps every bit of text legible on the
-       rare occasion it still ends up over a dark (or very light) piece of
-       media, without hand-picking which elements can end up there */
-    text-shadow:0 0 6px var(--bg),0 0 12px var(--bg),0 0 18px var(--bg);
     /* a touch device can flash a link's tap state from the same
        touch-drag that starts a scroll — this is decorative, not a focus
        indicator, so it's safe to drop everywhere */
@@ -144,8 +142,10 @@
     max-height:calc(100vh - 60px);
     display:flex;flex-direction:column;align-items:center;
     overflow-y:auto;
+    transition:opacity .6s ease;
   }
   #menu::-webkit-scrollbar{display:none;}
+  #menu.idle{opacity:.35;}
 
   .menu-projects{display:flex;flex-direction:column;align-items:center;gap:0;}
   .menu-proj{display:flex;flex-direction:column;align-items:center;gap:0;}
@@ -177,6 +177,13 @@
   .proj-desc{display:flex;flex-direction:column;align-items:center;gap:6px;}
   .proj-desc-line{text-transform:none;max-width:60ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
+
+  /* the index and the "next project" link sit right where the media can
+     be — lighten them the moment a project's media is showing, rather
+     than only once they happen to actually touch it */
+  #stripZone.show ~ #menu .menu-proj-row a{color:var(--fg-media);}
+  #stripZone.show ~ #menu .proj-body-inner{color:var(--dim-media);}
+  #stripZone.show .next-link{color:var(--fg-media);}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
@@ -414,6 +421,33 @@ emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);}
    vh guess doesn't know the index's height, so a long CV would run under
    it instead of stopping short and scrolling internally. */
 const menuEl=document.getElementById('menu');
+
+/* dims the index after 5s with the mouse off it, so it steps back once
+   someone's actually looking at the media/description rather than the
+   list itself — a real hover only, so touch devices (no persistent
+   hover to bring it back) are left alone entirely. Opacity is set
+   inline rather than through the .idle class alone: hideLoader() left
+   #menu with an inline style="opacity:1" when it revealed the page,
+   and an inline style always beats a stylesheet rule of any
+   specificity, class included. */
+if(matchMedia('(hover:hover)').matches){
+  let menuIdleTimer=null;
+  const scheduleMenuIdle=()=>{
+    clearTimeout(menuIdleTimer);
+    menuIdleTimer=setTimeout(()=>{
+      menuEl.classList.add('idle');
+      menuEl.style.opacity='.35';
+    },5000);
+  };
+  menuEl.addEventListener('mouseenter',()=>{
+    clearTimeout(menuIdleTimer);
+    menuEl.classList.remove('idle');
+    menuEl.style.opacity='1';
+  });
+  menuEl.addEventListener('mouseleave',scheduleMenuIdle);
+  scheduleMenuIdle();
+}
+
 /* menu's bottom edge is a fixed offset from the viewport — stable no
    matter how tall its content currently is — so the cap is derived from
    that instead of the live .top, which right after closeProject() would
