@@ -100,20 +100,15 @@
   .cv-row .cv-company{flex-shrink:0;width:150px;}
   .cv-row .cv-role{flex-shrink:0;}
 
-  /* ── MIDDLE — the open project's media, one horizontal row ──
-     height also yields to --strip-cap, set from JS to whatever room is
-     actually free between the CV/topZone above and the index (with its
-     own description open) below — the three zones are independently
-     fixed, so nothing else stops a long description from growing right
-     into a strip sized by a flat vh guess alone */
+  /* ── MIDDLE — the open project's media, one horizontal row ── */
   #stripZone{
     position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);
     z-index:40;
     display:flex;justify-content:center;align-items:center;
     flex-direction:column;gap:8px;
-    height:min(64vh,720px,var(--strip-cap,9999px));
+    height:min(64vh,720px);
     opacity:0;pointer-events:none;
-    transition:opacity .35s ease,height .35s ease,top .35s ease;
+    transition:opacity .35s ease;
   }
   #stripZone.show{opacity:1;pointer-events:auto;}
   #strip{
@@ -198,7 +193,7 @@
     #topZone,#menu{width:min(92vw,420px);}
     .cv-row{flex-wrap:wrap;justify-content:center;}
     .cv-row .cv-date,.cv-row .cv-company{text-align:center;width:auto;}
-    #stripZone{height:min(52vh,520px,var(--strip-cap,9999px));}
+    #stripZone{height:min(52vh,520px);}
   }
 
   /* ── PORTRAIT PHONE — same three centred zones, tuned for one-hand,
@@ -211,7 +206,7 @@
     html,body{line-height:1.2;}
     #topZone{top:calc(22px + env(safe-area-inset-top));width:min(88vw,380px);}
     #menu{bottom:calc(18px + env(safe-area-inset-bottom));width:min(88vw,380px);}
-    #stripZone{height:min(42vh,380px,var(--strip-cap,9999px));}
+    #stripZone{height:min(42vh,380px);}
 
     /* real tap targets on the index — a thumb needs more than a text
        baseline to land on, even if the type itself stays compact */
@@ -419,28 +414,6 @@ emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);}
    vh guess doesn't know the index's height, so a long CV would run under
    it instead of stopping short and scrolling internally. */
 const menuEl=document.getElementById('menu');
-const topZoneEl=document.getElementById('topZone');
-const stripZoneEl=document.getElementById('stripZone');
-/* the strip's CSS centres it on the viewport, independent of the index
-   below it — #menu grows upward whenever a description is open, and
-   without this the two would collide whenever the description is tall
-   enough (long text, small viewport). CV is always closed while a
-   project is open (see both click handlers below), so topZone's bottom
-   edge here is always just siteTitle's — no need to account for CV
-   height too. Capping the height alone isn't enough either: the box is
-   still centred on the *viewport*, which can sit nowhere near the
-   middle of the actual [topZone, menu] gap once one of those is
-   lopsided (a long description makes #menu tall) — so the top is
-   recomputed too, centring the strip in the real gap instead. */
-function capStripHeight(){
-  const availTop=siteTitle.getBoundingClientRect().bottom+20;
-  const availBottom=menuEl.getBoundingClientRect().top-20;
-  const availHeight=Math.max(160,availBottom-availTop);
-  stripZoneEl.style.setProperty('--strip-cap',availHeight+'px');
-  const resolvedHeight=parseFloat(getComputedStyle(stripZoneEl).height);
-  stripZoneEl.style.top=(availTop+Math.max(0,(availHeight-resolvedHeight)/2))+'px';
-  stripZoneEl.style.transform='none';
-}
 /* menu's bottom edge is a fixed offset from the viewport — stable no
    matter how tall its content currently is — so the cap is derived from
    that instead of the live .top, which right after closeProject() would
@@ -479,7 +452,6 @@ window.addEventListener('resize',()=>{
   if(cvPanel.classList.contains('show')){capCvInnerHeight();cvPanel.style.maxHeight=cvInnerEl.scrollHeight+'px';}
   const openBody=document.querySelector('.proj-body.open');
   if(openBody)openBody.style.maxHeight=openBody.querySelector('.proj-body-inner').scrollHeight+'px';
-  if(selectedIdx!==null)capStripHeight();
   updateNextLinkVisibility();
 },{passive:true});
 
@@ -784,16 +756,11 @@ function selectProject(i,{pushUrl=true}={}){
      quick succession could otherwise both end up open, if the first
      rAF lands after the second one's synchronous cleanup already ran */
   const body=document.querySelector(`#menu .proj-body[data-idx="${i}"]`);
-  capStripHeight();
   requestAnimationFrame(()=>{
     document.querySelectorAll('#menu .proj-body.open').forEach(el=>{
       if(el!==body)closeProjBody(el);
     });
     openProjBody(body);
-    /* the description takes .4s to reach its full height — the strip's
-       own cap re-settles right after, rather than sizing itself for a
-       description that hasn't finished growing yet */
-    if(body)body.addEventListener('transitionend',capStripHeight,{once:true});
   });
 
   document.getElementById('stripZone').classList.add('show');
