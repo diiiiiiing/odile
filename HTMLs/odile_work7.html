@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODILE — WORK</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  :root{
+    /* one palette, no modes — same as work4 */
+    --bg:#808080; --fg:#000;
+    --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
+    --pad:16px;
+    --font:-apple-system,'Helvetica Neue',sans-serif;
+    --fs:10px;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    width:100%;height:100%;
+    background:var(--bg);color:var(--fg);
+    font-family:var(--font);font-weight:400;
+    font-size:var(--fs);line-height:1;
+    letter-spacing:.02em;text-transform:uppercase;
+    overflow:hidden;
+  }
+  body{animation:fadeIn .6s ease both;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
+    opacity:0;pointer-events:none;transition:opacity .7s ease;}
+  #overlay.on{opacity:1;pointer-events:auto;}
+
+  /* :visited is stated explicitly everywhere a link appears: the browser's
+     own default (a:visited{color:purple}, specificity 0,0,1,1) outranks a
+     plain single-class rule, so a link the visitor has actually clicked
+     before — their own Instagram, say — would otherwise go purple */
+  .ext-link,.ext-link:visited{color:var(--fg);text-decoration:none;}
+  .ext-link:hover{font-weight:700;}
+
+  /* ══════════════════════════════════════════════════════
+     THREE ZONES, ALL CENTERED, EACH PINNED TO ITS OWN EDGE —
+     one design at every width, no separate mobile drawers.
+     TOP: Ding + the merged CV panel (opens directly, one click).
+     MIDDLE: a horizontal filmstrip of the open project's media.
+     BOTTOM: the project index, description opening inline.
+  ══════════════════════════════════════════════════════ */
+
+  /* ── TOP — Ding + CV ── */
+  #topZone{
+    position:fixed;top:30px;left:50%;transform:translateX(-50%);
+    z-index:70;
+    display:flex;flex-direction:column;align-items:center;
+    width:min(86vw,480px);
+    max-height:calc(100vh - 60px);
+  }
+  #siteTitle{color:var(--fg);cursor:pointer;flex-shrink:0;}
+  #siteTitle:hover,#siteTitle.active{font-weight:700;}
+
+  /* opens toward its own measured height, exactly like .proj-body below —
+     a fixed cap would reach its real height early and idle for the rest,
+     the one thing this whole rebuild was told to never let happen again */
+  #cv{
+    max-height:0;overflow:hidden;
+    transition:max-height .4s ease,margin-top .4s ease;
+  }
+  #cv.show{margin-top:28px;}
+  #cvInner{
+    display:flex;flex-direction:column;align-items:center;gap:20px;
+    overflow-y:auto;max-height:calc(100vh - 120px);
+    opacity:0;transition:opacity .25s ease;
+  }
+  #cv.show #cvInner{opacity:1;transition-delay:.1s;}
+  #cvInner::-webkit-scrollbar{display:none;}
+  .cv-bio{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .cv-bio a,.cv-bio a:visited,#cv a,#cv a:visited{color:var(--fg);text-decoration:none;}
+  .cv-bio a:hover{font-weight:700;}
+  .cv-section{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .cv-head{font-weight:700;margin-bottom:4px;}
+  .cv-loc{margin-top:-2px;margin-bottom:4px;}
+  /* each row keeps its own left-to-right rhythm (date / company / role)
+     but sits centered as a block, rather than stretching edge to edge */
+  .cv-row{display:flex;gap:12px;width:fit-content;max-width:100%;}
+  .cv-row .cv-date{flex-shrink:0;width:100px;text-align:right;}
+  .cv-row .cv-company{flex-shrink:0;width:150px;}
+  .cv-row .cv-role{flex-shrink:0;}
+
+  /* ── MIDDLE — the open project's media, one horizontal row ── */
+  #stripZone{
+    position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);
+    z-index:40;
+    display:flex;justify-content:center;align-items:center;
+    flex-direction:column;gap:18px;
+    height:min(58vh,640px);
+    opacity:0;pointer-events:none;
+    transition:opacity .35s ease;
+  }
+  #stripZone.show{opacity:1;pointer-events:auto;}
+  #strip{
+    display:flex;gap:3px;height:100%;max-width:calc(100vw - var(--pad)*2);
+    overflow-x:auto;overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  #strip::-webkit-scrollbar{display:none;}
+  .strip-item{
+    height:100%;width:auto;flex:0 0 auto;
+    display:block;cursor:auto;
+    opacity:0;transition:opacity .4s ease;
+  }
+  .strip-item.show{opacity:1;}
+  .strip-item.ph{aspect-ratio:1/1;background:#d9d9d9;opacity:1;}
+  #stripEmpty{color:var(--fg);opacity:0;animation:phIn .4s ease .25s forwards;}
+  @keyframes phIn{to{opacity:1;}}
+
+  .next-link{
+    opacity:0;pointer-events:none;transition:opacity .3s ease;
+  }
+  .next-link.show{opacity:1;pointer-events:auto;}
+
+  /* ── BOTTOM — the project index ── */
+  #menu{
+    position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+    z-index:70;
+    width:min(90vw,480px);
+    max-height:calc(100vh - 60px);
+    display:flex;flex-direction:column;align-items:center;
+    overflow-y:auto;
+  }
+  #menu::-webkit-scrollbar{display:none;}
+  .menu-group{display:flex;flex-direction:column;align-items:center;gap:0;}
+  .menu-group-archives{margin-top:28px;}
+  .archive-items{max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;}
+  .archive-items.open{margin-top:28px;margin-bottom:28px;}
+  .archive-inner{display:flex;flex-direction:column;align-items:center;min-height:0;overflow:hidden;opacity:0;transition:opacity .25s ease;}
+  .archive-items.open .archive-inner{opacity:1;transition-delay:.1s;}
+  .menu-cat{color:var(--fg);cursor:pointer;}
+  .menu-cat:hover,.menu-cat.open{font-weight:700;}
+  .archive-link{color:var(--fg);text-decoration:none;cursor:pointer;}
+  .archive-link:hover,.archive-link.active{font-weight:700;}
+
+  .menu-projects{display:flex;flex-direction:column;align-items:center;gap:0;}
+  .menu-proj{display:flex;flex-direction:column;align-items:center;gap:0;}
+  /* name + subtitle on one row; the subtitle only ever reveals on hovering
+     the name itself now — there is no ring thumbnail to hover instead.
+     subtitle is taken out of flow (position:absolute) so its width never
+     shifts the (visible) name off-centre — only the name determines the
+     row's centred position, per request */
+  .menu-proj-row{display:flex;align-items:baseline;justify-content:center;position:relative;}
+  .menu-proj-row a{
+    color:var(--fg);text-decoration:none;cursor:pointer;
+    white-space:nowrap;flex-shrink:0;
+  }
+  .menu-proj-row a:hover,.menu-proj-row a.active{font-weight:700;}
+  .proj-subtitle-inline{
+    position:absolute;left:100%;top:0;margin-left:8px;
+    color:var(--dim1);opacity:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;
+    transition:opacity .2s ease;pointer-events:none;
+  }
+  .menu-proj-row a:hover~.proj-subtitle-inline{opacity:1;}
+
+  /* description accordion — same measured-height approach as #cv, so both
+     ends of the page animate on identical, fully-used terms */
+  .proj-body{
+    max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;
+    transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;
+  }
+  .proj-body.open{max-height:600px;margin-top:28px;margin-bottom:28px;}
+  .proj-body-inner{
+    display:flex;flex-direction:column;align-items:center;gap:12px;
+    min-height:0;overflow:hidden;text-align:center;
+    color:var(--dim1);
+    opacity:0;transition:opacity .25s ease;
+  }
+  .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
+  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .proj-desc-line{text-transform:none;max-width:60ch;}
+  .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
+  .proj-desc-link:hover{color:var(--fg);}
+
+  @media (max-width:900px){
+    #topZone,#menu{width:min(92vw,420px);}
+    .cv-row{flex-wrap:wrap;justify-content:center;}
+    .cv-row .cv-date,.cv-row .cv-company{text-align:center;width:auto;}
+    #stripZone{height:min(46vh,460px);}
+  }
+  @media (max-width:640px){
+    :root{--pad:20px;--fs:11px;}
+    #stripZone{height:min(40vh,380px);}
+  }
+
+  /* ── LOADER — full-screen overlay; text reveal after it fades ─ */
+  #loader{
+    position:fixed;inset:0;z-index:900;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--bg);
+    opacity:1;transition:opacity 1.4s cubic-bezier(0.4,0,0.2,1);
+    pointer-events:auto;
+  }
+  #loader.loaded{opacity:0;pointer-events:none;}
+  @keyframes loader-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+  #loader svg{
+    width:min(74vw,74vh);height:min(74vw,74vh);
+    overflow:visible;
+    animation:loader-in 1.2s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  @media (max-width:640px){#loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}}
+  /* content hidden until loader reveals it */
+  #menu,#siteTitle{opacity:0;transition:opacity .5s ease;}
+  #loader .cls-1{fill:var(--fg)!important;}
+  #loader .cls-2{stroke:var(--fg)!important;fill:none!important;}
+
+  @keyframes spin-ccw {to{transform:rotate(-360deg);}}
+  @keyframes snap-in  {to{opacity:1}}
+  @keyframes snap-out {from{opacity:1}to{opacity:0}}
+  @keyframes ci-in{from{opacity:0}to{opacity:var(--ci-op,1)}}
+  @keyframes ci-out{from{opacity:var(--ci-op,1)}to{opacity:0}}
+  #lg-circles{transform-origin:570.86px 570.86px;animation:spin-ccw 40s linear infinite;}
+  #lg-circles circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
+  #lg-circles .ci-9{--ci-op:.7;animation:ci-in .4s ease 0.00s both;}
+  #lg-circles .ci-8{--ci-op:.6;animation:ci-in .4s ease 0.09s both;}
+  #lg-circles .ci-7{--ci-op:.7;animation:ci-in .4s ease 0.18s both;}
+  #lg-circles .ci-6{--ci-op:.6;animation:ci-in .4s ease 0.27s both;}
+  #lg-circles .ci-5{--ci-op:.7;animation:ci-in .4s ease 0.36s both;}
+  #lg-circles .ci-4{--ci-op:.6;animation:ci-in .4s ease 0.45s both;}
+  #lg-circles .ci-3{--ci-op:.7;animation:ci-in .4s ease 0.54s both;}
+  #lg-circles .ci-2{--ci-op:.6;animation:ci-in .4s ease 0.63s both;}
+  #lg-circles .ci-1{--ci-op:.7;animation:ci-in .4s ease 0.72s both;}
+</style>
+</head>
+<body>
+<div id="loader"></div>
+<div id="overlay"></div>
+<script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
+
+<!-- TOP — Ding + the merged CV panel -->
+<div id="topZone">
+  <div id="siteTitle">Ding</div>
+  <div id="cv">
+    <div id="cvInner">
+      <div class="cv-bio">
+        <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
+        <a href="#" id="emailCopy">thomasding227@gmail.com</a>
+        <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
+      </div>
+      <div class="cv-section">
+        <div class="cv-head">Thomas Ding</div>
+        <div class="cv-loc">B.2004 Paris, France</div>
+      </div>
+      <div class="cv-section">
+        <div class="cv-head">Experience</div>
+        <div class="cv-row"><span class="cv-date">2026 — now</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">multi-disciplinary designer</span></div>
+        <div class="cv-row"><span class="cv-date">2025 — 2026</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">creative intern</span></div>
+        <div class="cv-row"><span class="cv-date">2023 — 2025</span><span class="cv-company"><a href="https://www.womenmanagement.com/paris/home.web" target="_blank" rel="noopener" class="ext-link">Women Management</a></span><span class="cv-role">graphic designer &amp; image editor</span></div>
+        <div class="cv-row"><span class="cv-date">2022 — 2023</span><span class="cv-company">Dream Factory</span><span class="cv-role">graphic designer</span></div>
+      </div>
+      <div class="cv-section">
+        <div class="cv-head">Services</div>
+        <div>Art direction, graphic design, image, video, AI</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MIDDLE — the open project's media, scrolling horizontally -->
+<div id="stripZone">
+  <div id="strip"></div>
+  <a href="#" id="nextProject" class="ext-link next-link">next project</a>
+</div>
+
+<!-- BOTTOM — the project index -->
+<div id="menu"></div>
+
+<script>
+/* loader — fetch SVG, add group IDs for CSS animation, inject inline.
+   Unchanged from work4: page-agnostic chrome. */
+const loaderEl=document.getElementById('loader');
+const loaderStart=Date.now();
+// filled once the SVG is parsed, read back by hideLoader() to mirror the
+// entrance stagger (inside-out) on the way out
+let tickExitPaths=[];
+fetch('./loadersvg.svg')
+  .then(r=>r.text())
+  .then(text=>{
+    const doc=new DOMParser().parseFromString(text,'image/svg+xml');
+    const svg=doc.documentElement;
+    const groups=[...svg.children].filter(n=>n.tagName==='g');
+    if(groups[0]){
+      groups[0].id='lg-circles';
+      [...groups[0].children].forEach((c,i)=>c.classList.add('ci-'+(i+1)));
+    }
+    // groups[1] is the ring of mouse ornaments — dropped per request, never
+    // appended to the DOM at all
+    if(groups[1])groups[1].remove();
+    const CX=570.86,CY=570.86,TOL=18;
+    const paths=[...svg.children].filter(n=>n.tagName==='path');
+    svg.style.cssText='position:fixed;top:-9999px;width:1px;height:1px;overflow:visible;';
+    document.body.appendChild(svg);
+    const radii=paths.map(p=>{
+      const b=p.getBBox();
+      const cx=b.x+b.width/2, cy=b.y+b.height/2;
+      return Math.round(Math.sqrt((cx-CX)**2+(cy-CY)**2)/TOL)*TOL;
+    });
+    document.body.removeChild(svg);
+    svg.style.cssText='';
+    const sortedR=[...new Set(radii)].sort((a,b)=>a-b);
+    const stepMap=Object.fromEntries(sortedR.map((r,i)=>[r,i]));
+    const maxStep=sortedR.length-1;
+    const STEP=0.04, START=0.05;
+    const STEP_OUT=0.035, START_OUT=0;
+    paths.forEach((p,i)=>{
+      const delay=(START+stepMap[radii[i]]*STEP).toFixed(3);
+      p.style.opacity='0';
+      p.style.animation=`snap-in 0.12s ease ${delay}s both`;
+      // reversed order: the innermost ring of ticks (highest stepMap index
+      // is furthest out, so invert it) fades first, mirroring the entrance
+      const exitDelay=(START_OUT+(maxStep-stepMap[radii[i]])*STEP_OUT).toFixed(3);
+      tickExitPaths.push({el:p,delay:exitDelay});
+    });
+    loaderEl.appendChild(svg);
+  }).catch(()=>{});
+function hideLoader(){
+  const elapsed=Date.now()-loaderStart;
+  const wait=Math.max(0,2200-elapsed);
+  setTimeout(()=>{
+    // the target closes up from the centre outward — same order it opened
+    // in, just reversed to opacity 0 — while the grey backdrop behind it
+    // fades on its own, slightly slower timeline (#loader.loaded below)
+    document.querySelectorAll('#lg-circles circle').forEach(c=>{
+      const cls=[...c.classList].find(cl=>/^ci-\d$/.test(cl));
+      const idx=cls?parseInt(cls.slice(3),10):9;
+      const delay=((9-idx)*0.06).toFixed(2);
+      c.style.animation=`ci-out .3s ease ${delay}s both`;
+    });
+    tickExitPaths.forEach(({el,delay})=>{
+      el.style.animation=`snap-out .16s ease ${delay}s both`;
+    });
+    loaderEl.classList.add('loaded');
+    loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
+    setTimeout(()=>{
+      ['menu','siteTitle'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el)el.style.opacity='1';
+      });
+    },700);
+  },wait);
+}
+
+/* wheel: scrolls whichever panel is actually open. With no ring on this
+   page there is nothing for an idle wheel to do. */
+const cvPanel=document.getElementById('cv');
+const cvInnerEl=document.getElementById('cvInner');
+const stripEl=document.getElementById('strip');
+window.addEventListener('wheel',e=>{
+  if(cvOpen){cvInnerEl.scrollTop+=e.deltaY;return;}
+  if(selectedIdx!==null||galleryOpen){stripEl.scrollLeft+=e.deltaY;}
+},{passive:true});
+/* horizontal touch-panning on #strip and vertical on #cvInner both work
+   natively on a real overflow container — no custom remap needed here,
+   unlike the vertical mouse wheel above */
+
+/* email copy */
+function copyEmail(el){
+  navigator.clipboard.writeText('thomasding227@gmail.com');
+  const original=el.textContent;
+  el.textContent='copied';
+  setTimeout(()=>{el.textContent=original;},1200);
+}
+const emailCopy=document.getElementById('emailCopy');
+emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);});
+
+/* CV — opens directly on Ding, no intermediate bio-only step */
+let cvOpen=false;
+function toggleCV(force){
+  cvOpen=force!==undefined?force:!cvOpen;
+  cvPanel.classList.toggle('show',cvOpen);
+  cvPanel.style.maxHeight=cvOpen?cvInnerEl.scrollHeight+'px':'0px';
+  siteTitle.classList.toggle('active',cvOpen);
+}
+const siteTitle=document.getElementById('siteTitle');
+siteTitle.addEventListener('click',()=>{
+  if(selectedIdx!==null)closeProject();
+  if(galleryOpen){closeGallery();clearStrip();}
+  toggleCV();
+});
+
+window.addEventListener('resize',()=>{
+  if(cvPanel.classList.contains('show'))cvPanel.style.maxHeight=cvInnerEl.scrollHeight+'px';
+  if(archiveAccOpen){const ai=document.querySelector('.archive-items');if(ai)ai.style.maxHeight=ai.querySelector('.archive-inner').scrollHeight+'px';}
+  const openBody=document.querySelector('.proj-body.open');
+  if(openBody)openBody.style.maxHeight=openBody.querySelector('.proj-body-inner').scrollHeight+'px';
+  updateNextLinkVisibility();
+},{passive:true});
+
+/* ── FALLBACK DATA — used if the CMS is unreachable or empty ── */
+const FALLBACK_PROJECTS=[
+  {title:'Project Alpha',      tags:['commercial'], media:[[1,1],[4,5],[16,9]].map(toPh)},
+  {title:'Working Title 02',   tags:['commercial'], media:[[4,5],[4,5],[1,1],[16,9]].map(toPh)},
+  {title:'Concrete Study',     tags:['commercial'], media:[[1,1],[16,9]].map(toPh)},
+  {title:'Untitled Campaign',  tags:['commercial'], media:[[4,5],[1,1],[4,5]].map(toPh)},
+  {title:'Field Recordings',   tags:['personal'],   media:[[16,9],[1,1]].map(toPh)},
+  {title:'Notes on Light',     tags:['personal'],   media:[[1,1],[4,5],[1,1],[16,9]].map(toPh)},
+  {title:'Specimen 07',        tags:['editorial'],  media:[[4,5],[4,5]].map(toPh)},
+  {title:'Loop & Repeat',      tags:['editorial'],  media:[[16,9],[4,5],[1,1]].map(toPh)},
+];
+function toPh([w,h]){return{type:'ph',ar:w/h};}
+
+/* menu sections are sorted by medium rather than by raw CMS tags */
+const CAT_ORDER=['videos','images','graphic design'];
+const CATEGORY_OVERRIDE={"runner's high":'images'};
+function getProjectCategory(p){
+  const key=(p.title||'').toLowerCase();
+  if(CATEGORY_OVERRIDE[key])return CATEGORY_OVERRIDE[key];
+  const tags=(p.tags||[]).map(t=>t.toLowerCase());
+  if(tags.includes('film')||tags.includes('music video')||tags.includes('video'))return 'videos';
+  if(tags.includes('graphic design'))return 'graphic design';
+  return 'images';
+}
+
+let projects=[];
+let selectedIdx=null;
+let galleryOpen=false;
+let archiveData=null;
+let openArchiveId=null;
+let archiveAccOpen=false;
+let menuOrder=[];
+
+/* ── SANITY ── */
+const PID='zgrgr7sj',DS='production';
+const GROQ=`*[_type=="project"]|order(year desc){
+  _id,title,subtitle,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
+  "tags":tags[]->{title},
+  "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
+  "media":media[]{
+    _type,
+    _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+    _type=="file"=>{"url":asset->url,"mime":asset->mimeType},
+    _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
+    _type=="mediaVideo"=>{"url":video.asset->url,"mime":video.asset->mimeType}
+  }
+}`;
+
+/* the CMS's inline-link field is free text, not a validated URL field —
+   "www.site.com" without a scheme resolves as a path on this site rather
+   than an external link, so one is added when none is present */
+function normalizeUrl(href){
+  return /^([a-z][a-z0-9+.-]*:|\/|#)/i.test(href)?href:'https://'+href;
+}
+
+/* a URL-safe, human-readable id per project, so a link can point at one
+   directly ("keep a link to just one project") rather than only the home
+   state. Accents fold to plain letters, everything else to hyphens; a
+   collision (two projects reducing to the same slug) is disambiguated
+   with a numeric suffix rather than silently overwriting the first. */
+const SLUG_LETTERS={'ø':'o','œ':'oe','æ':'ae','ð':'d','þ':'th','ł':'l','ß':'ss'};
+function slugify(s){
+  return String(s||'').toLowerCase()
+    /* NFKD only decomposes an accented letter into base+mark (é → e + ´);
+       a handful of Latin letters are not compositions at all and pass
+       through untouched — Rønnenfelt's ø, say — so those are swapped by
+       hand before the fold rather than silently becoming a stray hyphen */
+    .replace(/[øœæðþłß]/g,c=>SLUG_LETTERS[c])
+    .normalize('NFKD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'')||'project';
+}
+function assignSlugs(){
+  const seen=new Set();
+  projects.forEach(p=>{
+    const base=slugify(p.displayTitle||p.client||p.title);
+    let slug=base,n=2;
+    while(seen.has(slug))slug=base+'-'+(n++);
+    seen.add(slug);
+    p.slug=slug;
+  });
+}
+
+/* projects are personal content: title/client/year/description + media (images, videos, or placeholders) */
+async function loadFromSanity(){
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(GROQ)}`);
+    const{result}=await res.json();
+    if(result?.length){
+      projects=result.map(p=>({
+        title:p.title||'(untitled)',
+        subtitle:p.subtitle||'',
+        client:p.client||'',
+        displayTitle:p.displayTitle||'',
+        year:p.year||'',
+        favorite:!!p.favorite,
+        link:p.link||'',
+        /* each line is an array of runs ({text, href}) rather than a flat
+           string, so an inline link mark from the CMS survives as a real
+           href instead of being flattened away with the rest of the markup */
+        description:Array.isArray(p.description)
+          ?p.description.filter(b=>b._type==='block'&&Array.isArray(b.children))
+            .map(b=>{
+              const defs=Object.fromEntries((b.markDefs||[]).map(d=>[d._key,d]));
+              return(b.children||[]).map(c=>({
+                text:c.text||'',
+                href:(c.marks||[]).map(k=>defs[k]).find(d=>d&&d._type==='link')?.href||null,
+              }));
+            })
+            .filter(runs=>runs.some(r=>r.text.trim()))
+          :[],
+        tags:Array.isArray(p.tags)?p.tags.map(t=>(t?.title||'').toLowerCase().trim()).filter(Boolean):[],
+        media:Array.isArray(p.media)?p.media.map(m=>{
+          if(m._type==='image'||m._type==='mediaImage')return{type:'image',url:m.url,ar:m.ar||1};
+          if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url};
+          return null;
+        }).filter(Boolean):[],
+        thumb:p.thumb?.url||'',
+        thumbAR:p.thumb?.ar||1,
+      }));
+    }
+  }catch(e){console.warn('[Sanity]',e.message);}
+  if(!projects.length)projects=FALLBACK_PROJECTS;
+  assignSlugs();
+  buildMenu();
+  hideLoader();
+  /* a link that already names a project opens it directly, without adding
+     a duplicate history entry for a state the URL already describes */
+  const hashSlug=decodeURIComponent(location.hash.slice(1));
+  if(hashSlug){
+    const idx=projects.findIndex(p=>p.slug===hashSlug);
+    if(idx!==-1)selectProject(idx,{pushUrl:false});
+  }
+}
+
+/* back/forward retraces the same project-by-project history selectProject
+   already writes via pushState */
+window.addEventListener('popstate',()=>{
+  const hashSlug=decodeURIComponent(location.hash.slice(1));
+  const idx=projects.findIndex(p=>p.slug===hashSlug);
+  if(idx!==-1){
+    if(selectedIdx!==idx)selectProject(idx,{pushUrl:false});
+  }else if(selectedIdx!==null){
+    closeProject({pushUrl:false});
+  }
+});
+
+/* build a project's description accordion (year, description lines, tags,
+   link) — reused under its name in the index */
+function buildProjBody(proj){
+  const body=document.createElement('div');
+  body.className='proj-body';
+  const inner=document.createElement('div');
+  inner.className='proj-body-inner';
+  if(proj.year||proj.description?.length){
+    const desc=document.createElement('div');
+    desc.className='proj-desc';
+    if(proj.year){const m=document.createElement('div');m.textContent=proj.year;desc.appendChild(m);}
+    proj.description?.forEach(line=>{
+      const p=document.createElement('div');
+      p.className='proj-desc-line';
+      const runs=Array.isArray(line)?line:[{text:String(line)}];
+      runs.forEach(run=>{
+        if(run.href){
+          const link=document.createElement('a');
+          link.href=normalizeUrl(run.href);link.target='_blank';link.rel='noopener';
+          link.className='proj-desc-link';
+          link.textContent=run.text;
+          p.appendChild(link);
+        }else{
+          p.appendChild(document.createTextNode(run.text));
+        }
+      });
+      desc.appendChild(p);
+    });
+    inner.appendChild(desc);
+  }
+  if(proj.tags?.length){
+    const t=document.createElement('div');
+    t.className='proj-tags';
+    t.textContent=proj.tags.join(', ');
+    inner.appendChild(t);
+  }
+  if(proj.link){
+    const a=document.createElement('a');
+    a.href=proj.link;a.target='_blank';a.rel='noopener';
+    a.className='ext-link proj-link';
+    a.textContent='visit project';
+    inner.appendChild(a);
+  }
+  body.appendChild(inner);
+  return body;
+}
+
+/* open/close a .proj-body with its own measured height, exactly like
+   toggleCV does for #cv — a fixed CSS cap reaches its real height early
+   and idles for the rest of the transition; measuring scrollHeight makes
+   the whole .4s correspond to real motion. */
+function openProjBody(body){
+  if(!body)return;
+  body.classList.add('open');
+  const inner=body.querySelector('.proj-body-inner');
+  body.style.maxHeight=(inner?inner.scrollHeight:0)+'px';
+}
+function closeProjBody(body){
+  if(!body)return;
+  body.classList.remove('open');
+  body.style.maxHeight='0px';
+}
+
+/* group projects by medium, then lay out the flat, centered index —
+   each project's description unfolds directly under its own name */
+function buildMenu(){
+  const menu=document.getElementById('menu');
+  menu.innerHTML='';
+  if(!projects.length)return;
+
+  const groups=new Map();
+  projects.forEach((p,i)=>{
+    const cat=getProjectCategory(p);
+    if(!groups.has(cat))groups.set(cat,[]);
+    groups.get(cat).push(i);
+  });
+  groups.forEach(idxs=>{
+    idxs.sort((a,b)=>(projects[b].favorite?1:0)-(projects[a].favorite?1:0));
+  });
+  const sortedGroups=[...groups.entries()].sort((a,b)=>{
+    const ai=CAT_ORDER.indexOf(a[0]),bi=CAT_ORDER.indexOf(b[0]);
+    return (ai===-1?CAT_ORDER.length:ai)-(bi===-1?CAT_ORDER.length:bi);
+  });
+  menuOrder=sortedGroups.flatMap(([,idxs])=>idxs);
+
+  const list=document.createElement('div');
+  list.className='menu-projects';
+  menuOrder.forEach(i=>{
+    const proj=projects[i];
+    const wrap=document.createElement('div');
+    wrap.className='menu-proj';
+
+    const row=document.createElement('div');
+    row.className='menu-proj-row';
+
+    const a=document.createElement('a');
+    a.href='#'+proj.slug;
+    a.textContent=proj.displayTitle||proj.client||proj.title;
+    a.dataset.idx=i;
+    if(selectedIdx===i)a.classList.add('active');
+    a.addEventListener('click',e=>{
+      e.preventDefault();
+      if(selectedIdx===i)closeProject();
+      else selectProject(i);
+    });
+    row.appendChild(a);
+
+    if(proj.subtitle){
+      const subtitle=document.createElement('span');
+      subtitle.className='proj-subtitle-inline';
+      subtitle.textContent=proj.subtitle;
+      row.appendChild(subtitle);
+    }
+    wrap.appendChild(row);
+
+    const body=buildProjBody(proj);
+    body.dataset.idx=i;
+    if(selectedIdx===i)body.classList.add('open');
+    wrap.appendChild(body);
+
+    list.appendChild(wrap);
+  });
+  menu.appendChild(list);
+  const restoredOpen=list.querySelector('.proj-body.open');
+  if(restoredOpen)requestAnimationFrame(()=>{
+    restoredOpen.style.maxHeight=restoredOpen.querySelector('.proj-body-inner').scrollHeight+'px';
+  });
+
+  /* archives — accordion with one sub-item per gallery document */
+  const gGroup=document.createElement('div');
+  gGroup.className='menu-group menu-group-archives';
+  const gHead=document.createElement('div');
+  gHead.className='menu-cat'+(archiveAccOpen?' open':'');
+  gHead.dataset.cat='archives';
+  gHead.textContent='archives';
+  gHead.addEventListener('click',toggleArchiveAccordion);
+  gGroup.appendChild(gHead);
+  const gItems=document.createElement('div');
+  gItems.className='archive-items'+(archiveAccOpen?' open':'');
+  const gInner=document.createElement('div');
+  gInner.className='archive-inner';
+  gItems.appendChild(gInner);
+  gGroup.appendChild(gItems);
+  menu.appendChild(gGroup);
+  loadArchiveData().then(data=>{
+    gInner.innerHTML='';
+    data.forEach(g=>{
+      const a=document.createElement('a');
+      a.href='#';
+      a.className='archive-link'+(openArchiveId===g.id?' active':'');
+      a.dataset.archiveId=g.id;
+      a.textContent=g.title;
+      a.addEventListener('click',e=>{e.preventDefault();openArchiveGallery(g.id);});
+      gInner.appendChild(a);
+    });
+    if(archiveAccOpen)gItems.style.maxHeight=gInner.scrollHeight+'px';
+  });
+}
+
+/* fade out and empty the strip */
+let closeTimer=null;
+function clearStrip(){
+  const zone=document.getElementById('stripZone');
+  zone.classList.remove('show');
+  if(closeTimer)clearTimeout(closeTimer);
+  closeTimer=setTimeout(()=>{
+    stripEl.innerHTML='';
+    closeTimer=null;
+  },350);
+}
+
+/* clear the strip and deselect the active project */
+function closeProject({pushUrl=true}={}){
+  selectedIdx=null;
+  document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('#menu .proj-body.open').forEach(closeProjBody);
+  if(cvOpen)toggleCV(false);
+  nextLinkTarget=null;
+  updateNextLinkVisibility();
+  clearStrip();
+  if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
+}
+
+/* show a project's media in the horizontal strip, and its description
+   inline under its own name in the index */
+function selectProject(i,{pushUrl=true}={}){
+  if(galleryOpen)closeGallery();
+  if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
+  selectedIdx=i;
+  document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
+  const newActive=document.querySelector(`#menu a[data-idx="${i}"]`);
+  if(newActive)newActive.classList.add('active');
+
+  if(cvOpen)toggleCV(false);
+
+  const proj=projects[i];
+
+  /* closing the others and opening this one happen inside the same rAF
+     tick rather than one now + one deferred — two selections made in
+     quick succession could otherwise both end up open, if the first
+     rAF lands after the second one's synchronous cleanup already ran */
+  const body=document.querySelector(`#menu .proj-body[data-idx="${i}"]`);
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('#menu .proj-body.open').forEach(el=>{
+      if(el!==body)closeProjBody(el);
+    });
+    openProjBody(body);
+  });
+
+  document.getElementById('stripZone').classList.add('show');
+  stripEl.innerHTML='';
+  stripEl.scrollLeft=0;
+  if(!proj.media?.length){
+    const empty=document.createElement('div');
+    empty.id='stripEmpty';
+    empty.textContent='no media';
+    stripEl.appendChild(empty);
+  }else{
+    renderStrip(proj.media);
+  }
+
+  const pos=menuOrder.indexOf(i);
+  nextLinkTarget=(pos!==-1&&menuOrder.length>1)?menuOrder[(pos+1)%menuOrder.length]:null;
+  nextLinkEl.classList.toggle('show',false);
+  updateNextLinkVisibility();
+
+  if(pushUrl&&proj.slug)history.pushState({idx:i},'','#'+proj.slug);
+}
+
+/* render media into #strip as a single horizontal row of square tiles */
+function renderStrip(media){
+  media.forEach(m=>stripEl.appendChild(createMediaEl(m)));
+}
+
+/* render a single media item */
+function createMediaEl(m){
+  if(m.type==='image'){
+    const img=document.createElement('img');
+    img.className='strip-item';
+    img.addEventListener('load',()=>{img.classList.add('show');updateNextLinkVisibility();});
+    img.src=m.url;
+    return img;
+  }
+  if(m.type==='video'){
+    const vid=document.createElement('video');
+    vid.className='strip-item';
+    vid.muted=true;vid.loop=true;vid.autoplay=true;vid.playsInline=true;
+    vid.disablePictureInPicture=true;
+    vid.controlsList='nodownload noremoteplayback';
+    vid.preload='none';
+    vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();});
+    vid.addEventListener('loadedmetadata',()=>{if(vid.duration>=18)vid.controls=true;});
+    // lazy: load src only when scrolled near, within the strip itself
+    // rather than the viewport, since this is a horizontally-scrolling
+    // container that can run well past the visible width
+    const obs=new IntersectionObserver(entries=>{
+      if(entries[0].isIntersecting){vid.src=m.url;obs.disconnect();}
+    },{root:stripEl,rootMargin:'0px 400px'});
+    obs.observe(vid);
+    return vid;
+  }
+  const ph=document.createElement('div');
+  ph.className='strip-item ph';
+  return ph;
+}
+
+/* "next project" — appears once the strip is scrolled to its end */
+const nextLinkEl=document.getElementById('nextProject');
+let nextLinkTarget=null;
+function updateNextLinkVisibility(){
+  if(nextLinkTarget===null){nextLinkEl.classList.remove('show');return;}
+  const atEnd=stripEl.scrollLeft+stripEl.clientWidth>=stripEl.scrollWidth-4;
+  nextLinkEl.classList.toggle('show',atEnd);
+}
+stripEl.addEventListener('scroll',updateNextLinkVisibility,{passive:true});
+nextLinkEl.addEventListener('click',e=>{
+  e.preventDefault();
+  if(nextLinkTarget!==null)selectProject(nextLinkTarget);
+});
+
+/* ── ARCHIVES — per-gallery sub-categories under the "archives" menu entry ── */
+const ARCHIVE_GROQ=`*[_type=="gallery"]|order(_createdAt asc){
+  _id,
+  "title":coalesce(title,"(sans titre)"),
+  "items":media[_type=="image"]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio}
+}`;
+
+async function loadArchiveData(){
+  if(archiveData)return archiveData;
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(ARCHIVE_GROQ)}`);
+    const{result}=await res.json();
+    archiveData=(result||[]).map(doc=>({
+      id:doc._id,
+      title:doc.title||'(sans titre)',
+      items:(doc.items||[]).filter(r=>r.url).map(r=>({type:'image',url:r.url,ar:r.ar||1}))
+    }));
+  }catch(e){console.warn('[Archive]',e.message);archiveData=[];}
+  return archiveData;
+}
+
+function closeGallery(){
+  if(!galleryOpen)return;
+  galleryOpen=false;
+  openArchiveId=null;
+  document.querySelectorAll('.archive-link.active').forEach(el=>el.classList.remove('active'));
+}
+
+function closeArchiveAccordion(){
+  archiveAccOpen=false;
+  document.querySelectorAll('.menu-cat[data-cat="archives"]').forEach(el=>el.classList.remove('open'));
+  const itemsEl=document.querySelector('.archive-items');
+  if(itemsEl){itemsEl.classList.remove('open');itemsEl.style.maxHeight='0px';}
+  if(galleryOpen){closeGallery();clearStrip();}
+}
+
+function toggleArchiveAccordion(){
+  if(archiveAccOpen){closeArchiveAccordion();return;}
+  if(selectedIdx!==null)closeProject();
+  if(cvOpen)toggleCV(false);
+  if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
+  archiveAccOpen=true;
+  document.querySelectorAll('.menu-cat[data-cat="archives"]').forEach(el=>el.classList.add('open'));
+  const itemsEl=document.querySelector('.archive-items');
+  if(itemsEl){
+    const inner=itemsEl.querySelector('.archive-inner');
+    itemsEl.classList.add('open');
+    itemsEl.style.maxHeight=(inner.scrollHeight||200)+'px';
+  }
+}
+
+async function openArchiveGallery(id){
+  if(openArchiveId===id){closeGallery();clearStrip();return;}
+  if(!archiveAccOpen)toggleArchiveAccordion();
+  openArchiveId=id;
+  galleryOpen=true;
+  document.querySelectorAll('.archive-link').forEach(el=>el.classList.toggle('active',el.dataset.archiveId===id));
+  document.getElementById('stripZone').classList.add('show');
+  stripEl.innerHTML='';
+  const loading=document.createElement('div');
+  loading.id='stripEmpty';loading.textContent='loading…';
+  stripEl.appendChild(loading);
+  const data=await loadArchiveData();
+  if(openArchiveId!==id)return;
+  const gallery=data.find(g=>g.id===id);
+  stripEl.innerHTML='';
+  if(!gallery||!gallery.items.length){
+    const empty=document.createElement('div');
+    empty.id='stripEmpty';empty.textContent='no images yet';
+    stripEl.appendChild(empty);
+  }else{
+    renderStrip(gallery.items);
+  }
+}
+
+loadFromSanity();
+loadArchiveData(); /* pre-fetch in parallel so sub-items are ready when user clicks archives */
+</script>
+</body>
+</html>
