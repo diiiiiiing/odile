@@ -12,9 +12,6 @@
     /* one palette, no modes — same as work4 */
     --bg:#808080; --fg:#000;
     --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
-    /* text still reads as this dark near the media, in case it's dark
-       too — see the #stripZone.show-scoped overrides below */
-    --fg-media:#f2f2f2; --dim-media:#ccc;
     --pad:10px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
@@ -178,12 +175,12 @@
   .proj-desc-line{text-transform:none;max-width:60ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
 
-  /* the index and the "next project" link sit right where the media can
-     be — lighten them the moment a project's media is showing, rather
-     than only once they happen to actually touch it */
-  #stripZone.show ~ #menu .menu-proj-row a{color:var(--fg-media);}
-  #stripZone.show ~ #menu .proj-body-inner{color:var(--dim-media);}
-  #stripZone.show .next-link{color:var(--fg-media);}
+  /* text stays black everywhere — the moment a piece of it actually
+     overlaps the media (checked geometrically in JS, not just "a
+     project happens to be open"), it inverts instead of switching to a
+     fixed light colour, so it reads as a discreet negative against
+     whatever is directly behind it rather than a flat white */
+  .text-negative{filter:invert(.82);transition:filter .3s ease;}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
@@ -487,6 +484,7 @@ window.addEventListener('resize',()=>{
   const openBody=document.querySelector('.proj-body.open');
   if(openBody)openBody.style.maxHeight=openBody.querySelector('.proj-body-inner').scrollHeight+'px';
   updateNextLinkVisibility();
+  updateTextNegative();
 },{passive:true});
 
 /* ── FALLBACK DATA — used if the CMS is unreachable or empty ── */
@@ -769,6 +767,7 @@ function closeProject({pushUrl=true}={}){
   nextLinkTarget=null;
   updateNextLinkVisibility();
   clearStrip();
+  updateTextNegative();
   if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
 }
 
@@ -795,9 +794,13 @@ function selectProject(i,{pushUrl=true}={}){
       if(el!==body)closeProjBody(el);
     });
     openProjBody(body);
+    /* the description takes .4s to reach its full height, shifting
+       which rows actually end up over the media — recheck once it has */
+    if(body)body.addEventListener('transitionend',updateTextNegative,{once:true});
   });
 
   document.getElementById('stripZone').classList.add('show');
+  updateTextNegative();
   stripEl.innerHTML='';
   stripEl.scrollLeft=0;
   if(!proj.media?.length){
@@ -867,6 +870,36 @@ nextLinkEl.addEventListener('click',e=>{
   e.preventDefault();
   if(nextLinkTarget!==null)selectProject(nextLinkTarget);
 });
+
+/* text stays black; it only goes negative where it actually,
+   geometrically overlaps the media — checked against real layout
+   rather than just "is a project open", since most of the index sits
+   nowhere near the strip even when one is */
+const stripZoneEl=document.getElementById('stripZone');
+function updateTextNegative(){
+  const targets=document.querySelectorAll('.menu-proj-row a, .proj-body-inner, .next-link');
+  if(!stripZoneEl.classList.contains('show')){
+    targets.forEach(el=>el.classList.remove('text-negative'));
+    return;
+  }
+  const sr=stripZoneEl.getBoundingClientRect();
+  /* a closed .proj-body clips its child to nothing visually via
+     max-height:0+overflow:hidden, but the child's own layout box keeps
+     its full natural (unclipped) size — getBoundingClientRect doesn't
+     know it's invisible, so that has to be checked explicitly */
+  const isRendered=el=>{
+    const body=el.closest('.proj-body');
+    return !body||body.classList.contains('open');
+  };
+  targets.forEach(el=>{
+    if(!isRendered(el)){el.classList.remove('text-negative');return;}
+    const r=el.getBoundingClientRect();
+    const overlaps=r.width>0&&r.height>0&&
+      r.right>sr.left&&r.left<sr.right&&r.bottom>sr.top&&r.top<sr.bottom;
+    el.classList.toggle('text-negative',overlaps);
+  });
+}
+menuEl.addEventListener('scroll',updateTextNegative,{passive:true});
 
 loadFromSanity();
 </script>
