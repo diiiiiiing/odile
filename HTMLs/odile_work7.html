@@ -159,19 +159,21 @@
     max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;
     transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;
   }
-  .proj-body.open{max-height:600px;margin-top:28px;margin-bottom:16px;}
+  .proj-body.open{max-height:600px;margin-top:14px;margin-bottom:10px;}
   /* the selected project reads as its own block, set apart from the rest
      of the list on both sides by the same amount its description is set
-     apart from the projects following it */
-  .menu-proj:has(.menu-proj-row a.active){margin-top:16px;}
+     apart from the projects following it. Every gap here is kept tight
+     on purpose: with the rest of the list gone, this block's own total
+     height is what decides whether it still fits below the media. */
+  .menu-proj:has(.menu-proj-row a.active){margin-top:10px;}
   .proj-body-inner{
-    display:flex;flex-direction:column;align-items:center;gap:12px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
     min-height:0;overflow:hidden;text-align:center;
     color:var(--dim1);
     opacity:0;transition:opacity .25s ease;
   }
   .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
-  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:4px;}
   .proj-desc-line{text-transform:none;max-width:60ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
 
@@ -181,11 +183,11 @@
   .menu-proj{overflow:hidden;transition:max-height .35s ease,opacity .3s ease,margin .35s ease;}
   .menu-proj.hidden{opacity:0;margin-top:0;margin-bottom:0;pointer-events:none;}
   .close-x{
-    display:inline-block;margin-top:16px;
+    display:inline-block;margin-top:10px;
     opacity:0;max-height:0;overflow:hidden;pointer-events:none;
     transition:opacity .3s ease,max-height .3s ease,margin-top .3s ease;
   }
-  .close-x.show{opacity:1;max-height:40px;margin-top:16px;pointer-events:auto;}
+  .close-x.show{opacity:1;max-height:40px;margin-top:10px;pointer-events:auto;}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
