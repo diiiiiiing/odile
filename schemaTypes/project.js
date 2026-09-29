@@ -50,8 +50,31 @@ export default {
       title: 'Médias',
       type: 'array',
       of: [
-        { type: 'image', options: { hotspot: true } },
-        { type: 'file' },
+        {
+          type: 'image',
+          options: { hotspot: true },
+          fields: [
+            {
+              name: 'hidden',
+              title: 'Masqué',
+              description: "Masquer ce média : il n'apparaîtra plus sur le site, sans avoir à le supprimer.",
+              type: 'boolean',
+              initialValue: false,
+            },
+          ],
+        },
+        {
+          type: 'file',
+          fields: [
+            {
+              name: 'hidden',
+              title: 'Masqué',
+              description: "Masquer ce média : il n'apparaîtra plus sur le site, sans avoir à le supprimer.",
+              type: 'boolean',
+              initialValue: false,
+            },
+          ],
+        },
         {
           type: 'object',
           name: 'mediaImage',
@@ -69,11 +92,19 @@ export default {
               type: 'boolean',
               initialValue: false,
             },
+            {
+              name: 'hidden',
+              title: 'Masqué',
+              description: "Masquer ce média : il n'apparaîtra plus sur le site, sans avoir à le supprimer.",
+              type: 'boolean',
+              initialValue: false,
+            },
           ],
           preview: {
-            select: { media: 'image', wide: 'wide' },
-            prepare({ media, wide }) {
-              return { title: wide ? 'Image — 2 slots' : 'Image', media }
+            select: { media: 'image', wide: 'wide', hidden: 'hidden' },
+            prepare({ media, wide, hidden }) {
+              const bits = [wide ? '2 slots' : null, hidden ? 'masqué' : null].filter(Boolean)
+              return { title: bits.length ? `Image — ${bits.join(', ')}` : 'Image', media }
             },
           },
         },
@@ -94,11 +125,19 @@ export default {
               type: 'boolean',
               initialValue: false,
             },
+            {
+              name: 'hidden',
+              title: 'Masqué',
+              description: "Masquer ce média : il n'apparaîtra plus sur le site, sans avoir à le supprimer.",
+              type: 'boolean',
+              initialValue: false,
+            },
           ],
           preview: {
-            select: { wide: 'wide' },
-            prepare({ wide }) {
-              return { title: wide ? 'Vidéo — 2 slots' : 'Vidéo' }
+            select: { wide: 'wide', hidden: 'hidden' },
+            prepare({ wide, hidden }) {
+              const bits = [wide ? '2 slots' : null, hidden ? 'masqué' : null].filter(Boolean)
+              return { title: bits.length ? `Vidéo — ${bits.join(', ')}` : 'Vidéo' }
             },
           },
         },

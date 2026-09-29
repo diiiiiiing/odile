@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ODILE — WORK</title>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" href="favicon.png">
@@ -12,7 +12,7 @@
     /* one palette, no modes — same as work4 */
     --bg:#808080; --fg:#000;
     --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
-    --pad:16px;
+    --pad:10px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
   }
@@ -24,6 +24,10 @@
     font-size:var(--fs);line-height:1;
     letter-spacing:.02em;text-transform:uppercase;
     overflow:hidden;
+    /* a touch device can flash a link's tap state from the same
+       touch-drag that starts a scroll — this is decorative, not a focus
+       indicator, so it's safe to drop everywhere */
+    -webkit-tap-highlight-color:transparent;
   }
   body{animation:fadeIn .6s ease both;}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -37,7 +41,6 @@
      plain single-class rule, so a link the visitor has actually clicked
      before — their own Instagram, say — would otherwise go purple */
   .ext-link,.ext-link:visited{color:var(--fg);text-decoration:none;}
-  .ext-link:hover{font-weight:700;}
 
   /* ══════════════════════════════════════════════════════
      THREE ZONES, ALL CENTERED, EACH PINNED TO ITS OWN EDGE —
@@ -56,7 +59,7 @@
     max-height:calc(100vh - 60px);
   }
   #siteTitle{color:var(--fg);cursor:pointer;flex-shrink:0;}
-  #siteTitle:hover,#siteTitle.active{font-weight:700;}
+  #siteTitle.active{font-weight:700;}
 
   /* opens toward its own measured height, exactly like .proj-body below —
      a fixed cap would reach its real height early and idle for the rest,
@@ -68,37 +71,48 @@
   #cv.show{margin-top:28px;}
   #cvInner{
     display:flex;flex-direction:column;align-items:center;gap:20px;
-    overflow-y:auto;max-height:calc(100vh - 120px);
+    overflow-y:auto;
+    /* capped in JS to the real gap above #menu — a flat vh guess can't
+       know where the (variable-height) index actually starts, and the
+       two fixed panels would overlap whenever the CV runs long */
+    max-height:calc(100vh - 120px);
     opacity:0;transition:opacity .25s ease;
   }
   #cv.show #cvInner{opacity:1;transition-delay:.1s;}
   #cvInner::-webkit-scrollbar{display:none;}
   .cv-bio{display:flex;flex-direction:column;align-items:center;gap:3px;}
   .cv-bio a,.cv-bio a:visited,#cv a,#cv a:visited{color:var(--fg);text-decoration:none;}
-  .cv-bio a:hover{font-weight:700;}
   .cv-section{display:flex;flex-direction:column;align-items:center;gap:2px;}
   .cv-head{font-weight:700;margin-bottom:4px;}
   .cv-loc{margin-top:-2px;margin-bottom:4px;}
-  /* each row keeps its own left-to-right rhythm (date / company / role)
-     but sits centered as a block, rather than stretching edge to edge */
-  .cv-row{display:flex;gap:12px;width:fit-content;max-width:100%;}
+  /* the rows share one block, sized to the widest row and centered as a
+     unit, so every row stretches to that same width — date/company then
+     land in identical columns instead of each row centering on its own
+     (different) content width and drifting sideways row to row */
+  .cv-rows{display:flex;flex-direction:column;gap:2px;}
+  .cv-row{display:flex;gap:12px;max-width:100%;}
   .cv-row .cv-date{flex-shrink:0;width:100px;text-align:right;}
   .cv-row .cv-company{flex-shrink:0;width:150px;}
   .cv-row .cv-role{flex-shrink:0;}
 
-  /* ── MIDDLE — the open project's media, one horizontal row ── */
+  /* ── MIDDLE — the open project's media, one horizontal row ──
+     height also yields to --strip-cap, set from JS to whatever room is
+     actually free between the CV/topZone above and the index (with its
+     own description open) below — the three zones are independently
+     fixed, so nothing else stops a long description from growing right
+     into a strip sized by a flat vh guess alone */
   #stripZone{
     position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);
     z-index:40;
     display:flex;justify-content:center;align-items:center;
-    flex-direction:column;gap:18px;
-    height:min(58vh,640px);
+    flex-direction:column;gap:8px;
+    height:min(64vh,720px,var(--strip-cap,9999px));
     opacity:0;pointer-events:none;
-    transition:opacity .35s ease;
+    transition:opacity .35s ease,height .35s ease,top .35s ease;
   }
   #stripZone.show{opacity:1;pointer-events:auto;}
   #strip{
-    display:flex;gap:3px;height:100%;max-width:calc(100vw - var(--pad)*2);
+    display:flex;gap:var(--pad);height:100%;max-width:calc(100vw - var(--pad)*2);
     overflow-x:auto;overflow-y:hidden;
     -webkit-overflow-scrolling:touch;
     scrollbar-width:none;
@@ -114,7 +128,10 @@
   #stripEmpty{color:var(--fg);opacity:0;animation:phIn .4s ease .25s forwards;}
   @keyframes phIn{to{opacity:1;}}
 
+  /* sits right under the media, flush toward the right edge rather than
+     centred under the strip like a caption */
   .next-link{
+    align-self:flex-end;margin-right:var(--pad);
     opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
   .next-link.show{opacity:1;pointer-events:auto;}
@@ -130,36 +147,24 @@
   }
   #menu::-webkit-scrollbar{display:none;}
   .menu-group{display:flex;flex-direction:column;align-items:center;gap:0;}
-  .menu-group-archives{margin-top:28px;}
+  .menu-group-archives{margin-top:0;}
   .archive-items{max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;}
   .archive-items.open{margin-top:28px;margin-bottom:28px;}
   .archive-inner{display:flex;flex-direction:column;align-items:center;min-height:0;overflow:hidden;opacity:0;transition:opacity .25s ease;}
   .archive-items.open .archive-inner{opacity:1;transition-delay:.1s;}
   .menu-cat{color:var(--fg);cursor:pointer;}
-  .menu-cat:hover,.menu-cat.open{font-weight:700;}
+  .menu-cat.open{font-weight:700;}
   .archive-link{color:var(--fg);text-decoration:none;cursor:pointer;}
-  .archive-link:hover,.archive-link.active{font-weight:700;}
+  .archive-link.active{font-weight:700;}
 
   .menu-projects{display:flex;flex-direction:column;align-items:center;gap:0;}
   .menu-proj{display:flex;flex-direction:column;align-items:center;gap:0;}
-  /* name + subtitle on one row; the subtitle only ever reveals on hovering
-     the name itself now — there is no ring thumbnail to hover instead.
-     subtitle is taken out of flow (position:absolute) so its width never
-     shifts the (visible) name off-centre — only the name determines the
-     row's centred position, per request */
-  .menu-proj-row{display:flex;align-items:baseline;justify-content:center;position:relative;}
+  .menu-proj-row{display:flex;align-items:baseline;justify-content:center;}
   .menu-proj-row a{
     color:var(--fg);text-decoration:none;cursor:pointer;
     white-space:nowrap;flex-shrink:0;
   }
-  .menu-proj-row a:hover,.menu-proj-row a.active{font-weight:700;}
-  .proj-subtitle-inline{
-    position:absolute;left:100%;top:0;margin-left:8px;
-    color:var(--dim1);opacity:0;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;
-    transition:opacity .2s ease;pointer-events:none;
-  }
-  .menu-proj-row a:hover~.proj-subtitle-inline{opacity:1;}
+  .menu-proj-row a.active{font-weight:700;}
 
   /* description accordion — same measured-height approach as #cv, so both
      ends of the page animate on identical, fully-used terms */
@@ -167,7 +172,11 @@
     max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;
     transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;
   }
-  .proj-body.open{max-height:600px;margin-top:28px;margin-bottom:28px;}
+  .proj-body.open{max-height:600px;margin-top:28px;margin-bottom:16px;}
+  /* the selected project reads as its own block, set apart from the rest
+     of the list on both sides by the same amount its description is set
+     apart from the projects following it */
+  .menu-proj:has(.menu-proj-row a.active){margin-top:16px;}
   .proj-body-inner{
     display:flex;flex-direction:column;align-items:center;gap:12px;
     min-height:0;overflow:hidden;text-align:center;
@@ -178,17 +187,56 @@
   .proj-desc{display:flex;flex-direction:column;align-items:center;gap:6px;}
   .proj-desc-line{text-transform:none;max-width:60ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
-  .proj-desc-link:hover{color:var(--fg);}
+
+  /* hover only for devices that actually have one — on touch, :hover can
+     fire (and stick) from the same tap-drag that starts a scroll, making
+     project names/links flash bold mid-scroll */
+  @media (hover:hover){
+    .ext-link:hover{font-weight:700;}
+    #siteTitle:hover{font-weight:700;}
+    .cv-bio a:hover{font-weight:700;}
+    .menu-cat:hover{font-weight:700;}
+    .archive-link:hover{font-weight:700;}
+    .menu-proj-row a:hover{font-weight:700;}
+    .proj-desc-link:hover{color:var(--fg);}
+  }
 
   @media (max-width:900px){
     #topZone,#menu{width:min(92vw,420px);}
     .cv-row{flex-wrap:wrap;justify-content:center;}
     .cv-row .cv-date,.cv-row .cv-company{text-align:center;width:auto;}
-    #stripZone{height:min(46vh,460px);}
+    #stripZone{height:min(52vh,520px,var(--strip-cap,9999px));}
   }
-  @media (max-width:640px){
-    :root{--pad:20px;--fs:11px;}
-    #stripZone{height:min(40vh,380px);}
+
+  /* ── PORTRAIT PHONE — same three centred zones, tuned for one-hand,
+     one-thumb use: bigger type, real tap targets, safe-area padding so
+     nothing sits under the notch or the home indicator, and the filmstrip
+     snaps like a native card carousel. Landscape keeps the tablet rules
+     above instead — this is deliberately portrait-only. ── */
+  @media (max-width:640px) and (orientation:portrait){
+    :root{--pad:10px;--fs:13px;}
+    html,body{line-height:1.2;}
+    #topZone{top:calc(22px + env(safe-area-inset-top));width:min(88vw,380px);}
+    #menu{bottom:calc(18px + env(safe-area-inset-bottom));width:min(88vw,380px);}
+    #stripZone{height:min(42vh,380px,var(--strip-cap,9999px));}
+
+    /* real tap targets on the index — a thumb needs more than a text
+       baseline to land on, even if the type itself stays compact */
+    .menu-proj-row a{display:inline-block;padding:7px 0;}
+    .menu-cat,.archive-link{display:inline-block;padding:7px 0;}
+    .cv-bio a{display:inline-block;padding:3px 0;}
+
+    /* each role becomes one clean stacked entry — date, then company,
+       then role — instead of forcing a 3-column row into a narrow
+       screen where it wraps unpredictably mid-word */
+    .cv-rows{gap:16px;}
+    .cv-row{flex-direction:column;align-items:center;gap:2px;}
+    .cv-row .cv-role{color:var(--dim1);}
+
+    /* the filmstrip reads like a native card carousel, one media
+       centring under a thumb per swipe rather than free-scrolling */
+    #strip{scroll-snap-type:x mandatory;}
+    .strip-item{scroll-snap-align:center;}
   }
 
   /* ── LOADER — full-screen overlay; text reveal after it fades ─ */
@@ -206,7 +254,7 @@
     overflow:visible;
     animation:loader-in 1.2s cubic-bezier(0.22,1,0.36,1) both;
   }
-  @media (max-width:640px){#loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}}
+  @media (max-width:640px) and (orientation:portrait){#loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}}
   /* content hidden until loader reveals it */
   #menu,#siteTitle{opacity:0;transition:opacity .5s ease;}
   #loader .cls-1{fill:var(--fg)!important;}
@@ -251,10 +299,12 @@
       </div>
       <div class="cv-section">
         <div class="cv-head">Experience</div>
-        <div class="cv-row"><span class="cv-date">2026 — now</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">multi-disciplinary designer</span></div>
-        <div class="cv-row"><span class="cv-date">2025 — 2026</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">creative intern</span></div>
-        <div class="cv-row"><span class="cv-date">2023 — 2025</span><span class="cv-company"><a href="https://www.womenmanagement.com/paris/home.web" target="_blank" rel="noopener" class="ext-link">Women Management</a></span><span class="cv-role">graphic designer &amp; image editor</span></div>
-        <div class="cv-row"><span class="cv-date">2022 — 2023</span><span class="cv-company">Dream Factory</span><span class="cv-role">graphic designer</span></div>
+        <div class="cv-rows">
+          <div class="cv-row"><span class="cv-date">2026 — now</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">multi-disciplinary designer</span></div>
+          <div class="cv-row"><span class="cv-date">2025 — 2026</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">creative intern</span></div>
+          <div class="cv-row"><span class="cv-date">2023 — 2025</span><span class="cv-company"><a href="https://www.womenmanagement.com/paris/home.web" target="_blank" rel="noopener" class="ext-link">Women Management</a></span><span class="cv-role">graphic designer &amp; image editor</span></div>
+          <div class="cv-row"><span class="cv-date">2022 — 2023</span><span class="cv-company">Dream Factory</span><span class="cv-role">graphic designer</span></div>
+        </div>
       </div>
       <div class="cv-section">
         <div class="cv-head">Services</div>
@@ -371,26 +421,75 @@ function copyEmail(el){
 const emailCopy=document.getElementById('emailCopy');
 emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);});
 
-/* CV — opens directly on Ding, no intermediate bio-only step */
+/* CV — opens directly on Ding, no intermediate bio-only step.
+   #cvInner gets its own real cap: the actual gap between where it starts
+   and where the (fixed, independently-positioned) #menu starts — a flat
+   vh guess doesn't know the index's height, so a long CV would run under
+   it instead of stopping short and scrolling internally. */
+const menuEl=document.getElementById('menu');
+const topZoneEl=document.getElementById('topZone');
+const stripZoneEl=document.getElementById('stripZone');
+/* the strip's CSS centres it on the viewport, independent of the index
+   below it — #menu grows upward whenever a description is open, and
+   without this the two would collide whenever the description is tall
+   enough (long text, small viewport). CV is always closed while a
+   project is open (see both click handlers below), so topZone's bottom
+   edge here is always just siteTitle's — no need to account for CV
+   height too. Capping the height alone isn't enough either: the box is
+   still centred on the *viewport*, which can sit nowhere near the
+   middle of the actual [topZone, menu] gap once one of those is
+   lopsided (a long description makes #menu tall) — so the top is
+   recomputed too, centring the strip in the real gap instead. */
+function capStripHeight(){
+  const availTop=siteTitle.getBoundingClientRect().bottom+20;
+  const availBottom=menuEl.getBoundingClientRect().top-20;
+  const availHeight=Math.max(160,availBottom-availTop);
+  stripZoneEl.style.setProperty('--strip-cap',availHeight+'px');
+  const resolvedHeight=parseFloat(getComputedStyle(stripZoneEl).height);
+  stripZoneEl.style.top=(availTop+Math.max(0,(availHeight-resolvedHeight)/2))+'px';
+  stripZoneEl.style.transform='none';
+}
+/* menu's bottom edge is a fixed offset from the viewport — stable no
+   matter how tall its content currently is — so the cap is derived from
+   that instead of the live .top, which right after closeProject() would
+   still be reporting the about-to-collapse project description's old
+   (pre-transition) height, understating the room actually available */
+function capCvInnerHeight(closingExtra=0){
+  const top=siteTitle.getBoundingClientRect().bottom+28;
+  const menuRect=menuEl.getBoundingClientRect();
+  const menuMaxH=parseFloat(getComputedStyle(menuEl).maxHeight)||Infinity;
+  const renderedMenuHeight=Math.min(menuEl.scrollHeight-closingExtra,menuMaxH);
+  const menuTop=menuRect.bottom-renderedMenuHeight;
+  cvInnerEl.style.maxHeight=Math.max(80,menuTop-top-20)+'px';
+}
 let cvOpen=false;
-function toggleCV(force){
+function toggleCV(force,closingExtra=0){
   cvOpen=force!==undefined?force:!cvOpen;
   cvPanel.classList.toggle('show',cvOpen);
+  if(cvOpen)capCvInnerHeight(closingExtra);
   cvPanel.style.maxHeight=cvOpen?cvInnerEl.scrollHeight+'px':'0px';
   siteTitle.classList.toggle('active',cvOpen);
 }
 const siteTitle=document.getElementById('siteTitle');
 siteTitle.addEventListener('click',()=>{
-  if(selectedIdx!==null)closeProject();
+  let closingExtra=0;
+  if(selectedIdx!==null){
+    const openBody=document.querySelector('.proj-body.open');
+    /* 56 = the 28px top + 28px bottom margin .proj-body.open adds, which
+       drops away the moment it closes, same as its own max-height */
+    if(openBody)closingExtra=openBody.getBoundingClientRect().height+56;
+    closeProject();
+  }
   if(galleryOpen){closeGallery();clearStrip();}
-  toggleCV();
+  toggleCV(undefined,closingExtra);
 });
 
 window.addEventListener('resize',()=>{
-  if(cvPanel.classList.contains('show'))cvPanel.style.maxHeight=cvInnerEl.scrollHeight+'px';
+  if(cvPanel.classList.contains('show')){capCvInnerHeight();cvPanel.style.maxHeight=cvInnerEl.scrollHeight+'px';}
   if(archiveAccOpen){const ai=document.querySelector('.archive-items');if(ai)ai.style.maxHeight=ai.querySelector('.archive-inner').scrollHeight+'px';}
   const openBody=document.querySelector('.proj-body.open');
   if(openBody)openBody.style.maxHeight=openBody.querySelector('.proj-body-inner').scrollHeight+'px';
+  if(selectedIdx!==null)capStripHeight();
   updateNextLinkVisibility();
 },{passive:true});
 
@@ -434,7 +533,7 @@ const GROQ=`*[_type=="project"]|order(year desc){
   "tags":tags[]->{title},
   "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
   "media":media[]{
-    _type,
+    _type,"hidden":hidden==true,
     _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
     _type=="file"=>{"url":asset->url,"mime":asset->mimeType},
     _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
@@ -485,7 +584,6 @@ async function loadFromSanity(){
     if(result?.length){
       projects=result.map(p=>({
         title:p.title||'(untitled)',
-        subtitle:p.subtitle||'',
         client:p.client||'',
         displayTitle:p.displayTitle||'',
         year:p.year||'',
@@ -507,6 +605,7 @@ async function loadFromSanity(){
           :[],
         tags:Array.isArray(p.tags)?p.tags.map(t=>(t?.title||'').toLowerCase().trim()).filter(Boolean):[],
         media:Array.isArray(p.media)?p.media.map(m=>{
+          if(m.hidden)return null;
           if(m._type==='image'||m._type==='mediaImage')return{type:'image',url:m.url,ar:m.ar||1};
           if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url};
           return null;
@@ -570,12 +669,6 @@ function buildProjBody(proj){
       desc.appendChild(p);
     });
     inner.appendChild(desc);
-  }
-  if(proj.tags?.length){
-    const t=document.createElement('div');
-    t.className='proj-tags';
-    t.textContent=proj.tags.join(', ');
-    inner.appendChild(t);
   }
   if(proj.link){
     const a=document.createElement('a');
@@ -647,13 +740,6 @@ function buildMenu(){
       else selectProject(i);
     });
     row.appendChild(a);
-
-    if(proj.subtitle){
-      const subtitle=document.createElement('span');
-      subtitle.className='proj-subtitle-inline';
-      subtitle.textContent=proj.subtitle;
-      row.appendChild(subtitle);
-    }
     wrap.appendChild(row);
 
     const body=buildProjBody(proj);
@@ -743,11 +829,16 @@ function selectProject(i,{pushUrl=true}={}){
      quick succession could otherwise both end up open, if the first
      rAF lands after the second one's synchronous cleanup already ran */
   const body=document.querySelector(`#menu .proj-body[data-idx="${i}"]`);
+  capStripHeight();
   requestAnimationFrame(()=>{
     document.querySelectorAll('#menu .proj-body.open').forEach(el=>{
       if(el!==body)closeProjBody(el);
     });
     openProjBody(body);
+    /* the description takes .4s to reach its full height — the strip's
+       own cap re-settles right after, rather than sizing itself for a
+       description that hasn't finished growing yet */
+    if(body)body.addEventListener('transitionend',capStripHeight,{once:true});
   });
 
   document.getElementById('stripZone').classList.add('show');

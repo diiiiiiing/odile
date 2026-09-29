@@ -722,7 +722,7 @@ const GROQ=`*[_type=="project"]|order(year desc){
   "tags":tags[]->{title},
   "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
   "media":media[]{
-    _type,
+    _type,"hidden":hidden==true,
     _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
     _type=="file"=>{"url":asset->url,"mime":asset->mimeType},
     _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
@@ -771,6 +771,7 @@ async function loadFromSanity(){
           :[],
         tags:Array.isArray(p.tags)?p.tags.map(t=>(t?.title||'').toLowerCase().trim()).filter(Boolean):[],
         media:Array.isArray(p.media)?p.media.map(m=>{
+          if(m.hidden)return null;
           if(m._type==='image'||m._type==='mediaImage')return{type:'image',url:m.url,ar:m.ar||1};
           if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url};
           return null;
