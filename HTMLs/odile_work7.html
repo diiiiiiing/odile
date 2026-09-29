@@ -146,16 +146,6 @@
     overflow-y:auto;
   }
   #menu::-webkit-scrollbar{display:none;}
-  .menu-group{display:flex;flex-direction:column;align-items:center;gap:0;}
-  .menu-group-archives{margin-top:0;}
-  .archive-items{max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;}
-  .archive-items.open{margin-top:28px;margin-bottom:28px;}
-  .archive-inner{display:flex;flex-direction:column;align-items:center;min-height:0;overflow:hidden;opacity:0;transition:opacity .25s ease;}
-  .archive-items.open .archive-inner{opacity:1;transition-delay:.1s;}
-  .menu-cat{color:var(--fg);cursor:pointer;}
-  .menu-cat.open{font-weight:700;}
-  .archive-link{color:var(--fg);text-decoration:none;cursor:pointer;}
-  .archive-link.active{font-weight:700;}
 
   .menu-projects{display:flex;flex-direction:column;align-items:center;gap:0;}
   .menu-proj{display:flex;flex-direction:column;align-items:center;gap:0;}
@@ -195,8 +185,6 @@
     .ext-link:hover{font-weight:700;}
     #siteTitle:hover{font-weight:700;}
     .cv-bio a:hover{font-weight:700;}
-    .menu-cat:hover{font-weight:700;}
-    .archive-link:hover{font-weight:700;}
     .menu-proj-row a:hover{font-weight:700;}
     .proj-desc-link:hover{color:var(--fg);}
   }
@@ -223,7 +211,6 @@
     /* real tap targets on the index — a thumb needs more than a text
        baseline to land on, even if the type itself stays compact */
     .menu-proj-row a{display:inline-block;padding:7px 0;}
-    .menu-cat,.archive-link{display:inline-block;padding:7px 0;}
     .cv-bio a{display:inline-block;padding:3px 0;}
 
     /* each role becomes one clean stacked entry — date, then company,
@@ -405,7 +392,7 @@ const cvInnerEl=document.getElementById('cvInner');
 const stripEl=document.getElementById('strip');
 window.addEventListener('wheel',e=>{
   if(cvOpen){cvInnerEl.scrollTop+=e.deltaY;return;}
-  if(selectedIdx!==null||galleryOpen){stripEl.scrollLeft+=e.deltaY;}
+  if(selectedIdx!==null){stripEl.scrollLeft+=e.deltaY;}
 },{passive:true});
 /* horizontal touch-panning on #strip and vertical on #cvInner both work
    natively on a real overflow container — no custom remap needed here,
@@ -480,13 +467,11 @@ siteTitle.addEventListener('click',()=>{
     if(openBody)closingExtra=openBody.getBoundingClientRect().height+56;
     closeProject();
   }
-  if(galleryOpen){closeGallery();clearStrip();}
   toggleCV(undefined,closingExtra);
 });
 
 window.addEventListener('resize',()=>{
   if(cvPanel.classList.contains('show')){capCvInnerHeight();cvPanel.style.maxHeight=cvInnerEl.scrollHeight+'px';}
-  if(archiveAccOpen){const ai=document.querySelector('.archive-items');if(ai)ai.style.maxHeight=ai.querySelector('.archive-inner').scrollHeight+'px';}
   const openBody=document.querySelector('.proj-body.open');
   if(openBody)openBody.style.maxHeight=openBody.querySelector('.proj-body-inner').scrollHeight+'px';
   if(selectedIdx!==null)capStripHeight();
@@ -520,10 +505,6 @@ function getProjectCategory(p){
 
 let projects=[];
 let selectedIdx=null;
-let galleryOpen=false;
-let archiveData=null;
-let openArchiveId=null;
-let archiveAccOpen=false;
 let menuOrder=[];
 
 /* ── SANITY ── */
@@ -754,36 +735,6 @@ function buildMenu(){
   if(restoredOpen)requestAnimationFrame(()=>{
     restoredOpen.style.maxHeight=restoredOpen.querySelector('.proj-body-inner').scrollHeight+'px';
   });
-
-  /* archives — accordion with one sub-item per gallery document */
-  const gGroup=document.createElement('div');
-  gGroup.className='menu-group menu-group-archives';
-  const gHead=document.createElement('div');
-  gHead.className='menu-cat'+(archiveAccOpen?' open':'');
-  gHead.dataset.cat='archives';
-  gHead.textContent='archives';
-  gHead.addEventListener('click',toggleArchiveAccordion);
-  gGroup.appendChild(gHead);
-  const gItems=document.createElement('div');
-  gItems.className='archive-items'+(archiveAccOpen?' open':'');
-  const gInner=document.createElement('div');
-  gInner.className='archive-inner';
-  gItems.appendChild(gInner);
-  gGroup.appendChild(gItems);
-  menu.appendChild(gGroup);
-  loadArchiveData().then(data=>{
-    gInner.innerHTML='';
-    data.forEach(g=>{
-      const a=document.createElement('a');
-      a.href='#';
-      a.className='archive-link'+(openArchiveId===g.id?' active':'');
-      a.dataset.archiveId=g.id;
-      a.textContent=g.title;
-      a.addEventListener('click',e=>{e.preventDefault();openArchiveGallery(g.id);});
-      gInner.appendChild(a);
-    });
-    if(archiveAccOpen)gItems.style.maxHeight=gInner.scrollHeight+'px';
-  });
 }
 
 /* fade out and empty the strip */
@@ -813,7 +764,6 @@ function closeProject({pushUrl=true}={}){
 /* show a project's media in the horizontal strip, and its description
    inline under its own name in the index */
 function selectProject(i,{pushUrl=true}={}){
-  if(galleryOpen)closeGallery();
   if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
   selectedIdx=i;
   document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
@@ -912,83 +862,7 @@ nextLinkEl.addEventListener('click',e=>{
   if(nextLinkTarget!==null)selectProject(nextLinkTarget);
 });
 
-/* ── ARCHIVES — per-gallery sub-categories under the "archives" menu entry ── */
-const ARCHIVE_GROQ=`*[_type=="gallery"]|order(_createdAt asc){
-  _id,
-  "title":coalesce(title,"(sans titre)"),
-  "items":media[_type=="image"]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio}
-}`;
-
-async function loadArchiveData(){
-  if(archiveData)return archiveData;
-  try{
-    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(ARCHIVE_GROQ)}`);
-    const{result}=await res.json();
-    archiveData=(result||[]).map(doc=>({
-      id:doc._id,
-      title:doc.title||'(sans titre)',
-      items:(doc.items||[]).filter(r=>r.url).map(r=>({type:'image',url:r.url,ar:r.ar||1}))
-    }));
-  }catch(e){console.warn('[Archive]',e.message);archiveData=[];}
-  return archiveData;
-}
-
-function closeGallery(){
-  if(!galleryOpen)return;
-  galleryOpen=false;
-  openArchiveId=null;
-  document.querySelectorAll('.archive-link.active').forEach(el=>el.classList.remove('active'));
-}
-
-function closeArchiveAccordion(){
-  archiveAccOpen=false;
-  document.querySelectorAll('.menu-cat[data-cat="archives"]').forEach(el=>el.classList.remove('open'));
-  const itemsEl=document.querySelector('.archive-items');
-  if(itemsEl){itemsEl.classList.remove('open');itemsEl.style.maxHeight='0px';}
-  if(galleryOpen){closeGallery();clearStrip();}
-}
-
-function toggleArchiveAccordion(){
-  if(archiveAccOpen){closeArchiveAccordion();return;}
-  if(selectedIdx!==null)closeProject();
-  if(cvOpen)toggleCV(false);
-  if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
-  archiveAccOpen=true;
-  document.querySelectorAll('.menu-cat[data-cat="archives"]').forEach(el=>el.classList.add('open'));
-  const itemsEl=document.querySelector('.archive-items');
-  if(itemsEl){
-    const inner=itemsEl.querySelector('.archive-inner');
-    itemsEl.classList.add('open');
-    itemsEl.style.maxHeight=(inner.scrollHeight||200)+'px';
-  }
-}
-
-async function openArchiveGallery(id){
-  if(openArchiveId===id){closeGallery();clearStrip();return;}
-  if(!archiveAccOpen)toggleArchiveAccordion();
-  openArchiveId=id;
-  galleryOpen=true;
-  document.querySelectorAll('.archive-link').forEach(el=>el.classList.toggle('active',el.dataset.archiveId===id));
-  document.getElementById('stripZone').classList.add('show');
-  stripEl.innerHTML='';
-  const loading=document.createElement('div');
-  loading.id='stripEmpty';loading.textContent='loading…';
-  stripEl.appendChild(loading);
-  const data=await loadArchiveData();
-  if(openArchiveId!==id)return;
-  const gallery=data.find(g=>g.id===id);
-  stripEl.innerHTML='';
-  if(!gallery||!gallery.items.length){
-    const empty=document.createElement('div');
-    empty.id='stripEmpty';empty.textContent='no images yet';
-    stripEl.appendChild(empty);
-  }else{
-    renderStrip(gallery.items);
-  }
-}
-
 loadFromSanity();
-loadArchiveData(); /* pre-fetch in parallel so sub-items are ready when user clicks archives */
 </script>
 </body>
 </html>
