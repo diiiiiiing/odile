@@ -52,11 +52,11 @@
 
   /* ── TOP — Ding + CV ── */
   #topZone{
-    position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    position:fixed;top:var(--pad);left:50%;transform:translateX(-50%);
     z-index:70;
     display:flex;flex-direction:column;align-items:center;
     width:min(86vw,480px);
-    max-height:calc(100vh - 40px);
+    max-height:calc(100vh - var(--pad)*2);
   }
   #siteTitle{color:var(--fg);cursor:pointer;flex-shrink:0;}
   #siteTitle.active{font-weight:700;}
@@ -95,9 +95,12 @@
   .cv-row .cv-company{flex-shrink:0;width:150px;}
   .cv-row .cv-role{flex-shrink:0;}
 
-  /* ── MIDDLE — the open project's media, one horizontal row ── */
+  /* ── MIDDLE — the open project's media, one horizontal row ──
+     raised above dead-centre: #topZone rarely needs the space above,
+     so it's given to the open project's text below instead, which is
+     what actually risks running out of room */
   #stripZone{
-    position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);
+    position:fixed;left:0;right:0;top:44%;transform:translateY(-50%);
     z-index:40;
     display:flex;justify-content:center;align-items:center;
     height:min(64vh,720px);
@@ -126,17 +129,17 @@
      spot, same as #menu's bottom padding, rather than tied to the
      media's position */
   .next-link{
-    position:fixed;right:var(--pad);bottom:20px;z-index:70;
+    position:fixed;right:var(--pad);bottom:var(--pad);z-index:70;
     opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
   .next-link.show{opacity:1;pointer-events:auto;}
 
   /* ── BOTTOM — the project index ── */
   #menu{
-    position:fixed;left:50%;bottom:20px;transform:translateX(-50%);
+    position:fixed;left:50%;bottom:var(--pad);transform:translateX(-50%);
     z-index:70;
     width:min(90vw,640px);
-    max-height:calc(100vh - 40px);
+    max-height:calc(100vh - var(--pad)*2);
     display:flex;flex-direction:column;align-items:center;
     overflow-y:auto;
     transition:opacity .6s ease;
@@ -210,9 +213,9 @@
   @media (max-width:640px) and (orientation:portrait){
     :root{--pad:10px;--fs:13px;}
     html,body{line-height:1.2;}
-    #topZone{top:calc(20px + env(safe-area-inset-top));width:min(88vw,380px);}
-    #menu{bottom:calc(20px + env(safe-area-inset-bottom));width:min(88vw,380px);}
-    .next-link{bottom:calc(20px + env(safe-area-inset-bottom));}
+    #topZone{top:calc(var(--pad) + env(safe-area-inset-top));width:min(88vw,380px);}
+    #menu{bottom:calc(var(--pad) + env(safe-area-inset-bottom));width:min(88vw,380px);}
+    .next-link{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
     #stripZone{height:min(42vh,380px);}
 
     /* real tap targets on the index — a thumb needs more than a text
@@ -948,10 +951,11 @@ function updateMenuPosition(){
     menuEl.style.top='';
     menuEl.style.bottom='';
   }else{
-    const top=stripEl.getBoundingClientRect().bottom+20;
+    const screenPad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||10;
+    const top=stripEl.getBoundingClientRect().bottom+20; // the media→title gap, unrelated to screen padding
     menuEl.style.bottom='auto';
     menuEl.style.top=Math.max(0,top)+'px';
-    capHeight=Math.max(80,window.innerHeight-top-20);
+    capHeight=Math.max(80,window.innerHeight-top-screenPad);
   }
   menuEl.style.maxHeight=capHeight?capHeight+'px':'';
   void menuEl.offsetHeight; // commit the new anchor instantly, transition-free
