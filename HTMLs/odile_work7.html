@@ -180,12 +180,15 @@
      a reason to run into the media above it */
   .menu-proj{overflow:hidden;transition:max-height .35s ease,opacity .3s ease,margin .35s ease;}
   .menu-proj.hidden{opacity:0;margin-top:0;margin-bottom:0;pointer-events:none;}
+  /* pinned to the bottom-left corner — same fixed spot regardless of how
+     tall the open description is, mirroring "next project" on the
+     right, rather than trailing the text and landing wherever a short
+     description happens to end */
   .close-link{
-    display:inline-block;margin-top:6px;
-    opacity:0;max-height:0;overflow:hidden;pointer-events:none;
-    transition:opacity .3s ease,max-height .3s ease,margin-top .3s ease;
+    position:fixed;left:var(--pad);bottom:var(--pad);z-index:70;
+    opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
-  .close-link.show{opacity:1;max-height:40px;margin-top:6px;pointer-events:auto;}
+  .close-link.show{opacity:1;pointer-events:auto;}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
@@ -215,7 +218,7 @@
     html,body{line-height:1.2;}
     #topZone{top:calc(var(--pad) + env(safe-area-inset-top));width:min(88vw,380px);}
     #menu{bottom:calc(var(--pad) + env(safe-area-inset-bottom));width:min(88vw,380px);}
-    .next-link{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
+    .next-link,.close-link{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
     #stripZone{height:min(42vh,380px);}
 
     /* real tap targets on the index — a thumb needs more than a text
@@ -319,6 +322,9 @@
      #stripZone, whose transform would otherwise become the containing
      block for this fixed-position link instead of the viewport -->
 <a href="#" id="nextProject" class="ext-link next-link">next project</a>
+<!-- bottom-left counterpart, same reason: a fixed spot regardless of
+     the open description's length, not part of #menu's own flow -->
+<a href="#" id="backBtn" class="ext-link close-link">back</a>
 
 <!-- BOTTOM — the project index -->
 <div id="menu"></div>
@@ -752,13 +758,7 @@ function buildMenu(){
   if(restoredOpen)requestAnimationFrame(()=>{
     restoredOpen.style.maxHeight=restoredOpen.querySelector('.proj-body-inner').scrollHeight+'px';
   });
-
-  closeBtnEl=document.createElement('a');
-  closeBtnEl.href='#';
-  closeBtnEl.className='ext-link close-link'+(selectedIdx!==null?' show':'');
-  closeBtnEl.textContent='back';
-  closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
-  menu.appendChild(closeBtnEl);
+  closeBtnEl.classList.toggle('show',selectedIdx!==null);
 }
 
 /* fade out and empty the strip */
@@ -898,10 +898,11 @@ nextLinkEl.addEventListener('click',e=>{
 
 /* while a project is open, every other entry disappears — only the
    selected name + its description stay in the index, so there's never
-   enough text left for any of it to reach the media above. "back"
-   appears in their place to get back to the full list. Built once by
-   buildMenu(), alongside the list it belongs to. */
-let closeBtnEl=null;
+   enough text left for any of it to reach the media above. "back" is
+   static HTML (like "next project"), pinned to its own corner rather
+   than part of #menu's flow, so it's toggled here, not rebuilt. */
+const closeBtnEl=document.getElementById('backBtn');
+closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
 function updateProjectListVisibility(){
   document.querySelectorAll('.menu-proj').forEach(wrap=>{
     const a=wrap.querySelector('a[data-idx]');
