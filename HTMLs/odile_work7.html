@@ -103,7 +103,6 @@
     position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);
     z-index:40;
     display:flex;justify-content:center;align-items:center;
-    flex-direction:column;gap:8px;
     height:min(64vh,720px);
     opacity:0;pointer-events:none;
     transition:opacity .35s ease;
@@ -126,10 +125,11 @@
   #stripEmpty{color:var(--fg);opacity:0;animation:phIn .4s ease .25s forwards;}
   @keyframes phIn{to{opacity:1;}}
 
-  /* sits right under the media, flush toward the right edge rather than
-     centred under the strip like a caption */
+  /* pinned to the bottom-right corner of the screen — its own fixed
+     spot, same as #menu's bottom padding, rather than tied to the
+     media's position */
   .next-link{
-    align-self:flex-end;margin-right:var(--pad);
+    position:fixed;right:var(--pad);bottom:30px;z-index:70;
     opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
   .next-link.show{opacity:1;pointer-events:auto;}
@@ -138,7 +138,7 @@
   #menu{
     position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
     z-index:70;
-    width:min(90vw,480px);
+    width:min(90vw,640px);
     max-height:calc(100vh - 60px);
     display:flex;flex-direction:column;align-items:center;
     overflow-y:auto;
@@ -179,7 +179,7 @@
   }
   .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
   .proj-desc{display:flex;flex-direction:column;align-items:center;gap:var(--gap-b,4px);}
-  .proj-desc-line{text-transform:none;max-width:60ch;}
+  .proj-desc-line{text-transform:none;max-width:90ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
 
   /* other projects disappear while one is open — its own name+description
@@ -187,12 +187,12 @@
      a reason to run into the media above it */
   .menu-proj{overflow:hidden;transition:max-height .35s ease,opacity .3s ease,margin .35s ease;}
   .menu-proj.hidden{opacity:0;margin-top:0;margin-bottom:0;pointer-events:none;}
-  .close-x{
+  .close-link{
     display:inline-block;margin-top:6px;
     opacity:0;max-height:0;overflow:hidden;pointer-events:none;
     transition:opacity .3s ease,max-height .3s ease,margin-top .3s ease;
   }
-  .close-x.show{opacity:1;max-height:40px;margin-top:6px;pointer-events:auto;}
+  .close-link.show{opacity:1;max-height:40px;margin-top:6px;pointer-events:auto;}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
@@ -206,7 +206,7 @@
   }
 
   @media (max-width:900px){
-    #topZone,#menu{width:min(92vw,420px);}
+    #topZone,#menu{width:min(92vw,520px);}
     .cv-row{flex-wrap:wrap;justify-content:center;}
     .cv-row .cv-date,.cv-row .cv-company{text-align:center;width:auto;}
     #stripZone{height:min(52vh,520px);}
@@ -222,6 +222,7 @@
     html,body{line-height:1.2;}
     #topZone{top:calc(22px + env(safe-area-inset-top));width:min(88vw,380px);}
     #menu{bottom:calc(18px + env(safe-area-inset-bottom));width:min(88vw,380px);}
+    .next-link{bottom:calc(18px + env(safe-area-inset-bottom));}
     #stripZone{height:min(42vh,380px);}
 
     /* real tap targets on the index — a thumb needs more than a text
@@ -320,8 +321,11 @@
 <!-- MIDDLE — the open project's media, scrolling horizontally -->
 <div id="stripZone">
   <div id="strip"></div>
-  <a href="#" id="nextProject" class="ext-link next-link">next project</a>
 </div>
+<!-- pinned to the screen's own bottom-right corner — kept outside
+     #stripZone, whose transform would otherwise become the containing
+     block for this fixed-position link instead of the viewport -->
+<a href="#" id="nextProject" class="ext-link next-link">next project</a>
 
 <!-- BOTTOM — the project index -->
 <div id="menu"></div>
@@ -756,12 +760,12 @@ function buildMenu(){
     restoredOpen.style.maxHeight=restoredOpen.querySelector('.proj-body-inner').scrollHeight+'px';
   });
 
-  closeXEl=document.createElement('a');
-  closeXEl.href='#';
-  closeXEl.className='ext-link close-x'+(selectedIdx!==null?' show':'');
-  closeXEl.textContent='×';
-  closeXEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
-  menu.appendChild(closeXEl);
+  closeBtnEl=document.createElement('a');
+  closeBtnEl.href='#';
+  closeBtnEl.className='ext-link close-link'+(selectedIdx!==null?' show':'');
+  closeBtnEl.textContent='back';
+  closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
+  menu.appendChild(closeBtnEl);
 }
 
 /* fade out and empty the strip */
@@ -894,10 +898,10 @@ nextLinkEl.addEventListener('click',e=>{
 
 /* while a project is open, every other entry disappears — only the
    selected name + its description stay in the index, so there's never
-   enough text left for any of it to reach the media above. The "×"
+   enough text left for any of it to reach the media above. "back"
    appears in their place to get back to the full list. Built once by
    buildMenu(), alongside the list it belongs to. */
-let closeXEl=null;
+let closeBtnEl=null;
 function updateProjectListVisibility(){
   document.querySelectorAll('.menu-proj').forEach(wrap=>{
     const a=wrap.querySelector('a[data-idx]');
@@ -925,7 +929,7 @@ function updateProjectListVisibility(){
       wrap.style.maxHeight='0px';
     }
   });
-  closeXEl.classList.toggle('show',selectedIdx!==null);
+  closeBtnEl.classList.toggle('show',selectedIdx!==null);
 }
 
 /* #menu (bottom-anchored) and #strip (independently centred) don't know
