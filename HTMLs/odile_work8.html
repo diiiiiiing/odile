@@ -74,7 +74,6 @@
     max-height:calc(100vh - var(--pad)*2);
   }
   #siteTitle{color:var(--fg);cursor:pointer;flex-shrink:0;}
-  #siteTitle.active{font-weight:700;}
 
   /* ── INFO — opened from Ding, home only: the CV broken into fragments,
      all in the page's own type size, landing somewhere new on every
@@ -101,7 +100,6 @@
   }
   #tabs a,#tabs a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
   #tabs a.on{font-weight:700;}
-  #tabs .soon{opacity:.4;cursor:default;}
   body:not(.home) #tabs{opacity:0!important;pointer-events:none;}
   /* the gallery is the same band with no index under it */
   body.gallery #menu{opacity:0!important;pointer-events:none;}
@@ -341,9 +339,8 @@
 
 <!-- TOP — Ding + the merged CV panel -->
 <nav id="tabs">
-  <a href="#" data-tab="project" class="on">Project</a>
+  <a href="#" data-tab="project" class="on">Projects</a>
   <a href="#gallery" data-tab="gallery">Gallery</a>
-  <span class="soon" aria-disabled="true">Coming soon</span>
 </nav>
 <div id="topZone">
   <div id="siteTitle">Ding</div>
@@ -357,7 +354,7 @@
   <div class="frag">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></div>
   <div class="frag">B.2004 Paris, France</div>
   <div class="frag vert">
-    <span class="h">Experience</span>
+    <span class="h">Experiences</span>
     <div class="rows">
       <span>2026 — now</span><a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a><span>multi-disciplinary designer</span>
       <span>2025 — 2026</span><a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a><span>creative intern</span>
