@@ -698,6 +698,7 @@ function closeProjBody(body){
   if(!body)return;
   body.classList.remove('open');
   body.style.maxHeight='0px';
+  body.style.marginTop=''; // clear the centering offset updateMenuPosition set while open
 }
 
 /* group projects by medium, then lay out the flat, centered index —
