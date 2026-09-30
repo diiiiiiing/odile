@@ -180,12 +180,11 @@
      a reason to run into the media above it */
   .menu-proj{overflow:hidden;transition:max-height .35s ease,opacity .3s ease,margin .35s ease;}
   .menu-proj.hidden{opacity:0;margin-top:0;margin-bottom:0;pointer-events:none;}
-  /* pinned to the bottom-left corner — same fixed spot regardless of how
-     tall the open description is, mirroring "next project" on the
-     right, rather than trailing the text and landing wherever a short
-     description happens to end */
+  /* pinned to the bottom, centred — same fixed spot regardless of how
+     tall the open description is, rather than trailing the text and
+     landing wherever a short description happens to end */
   .close-link{
-    position:fixed;left:var(--pad);bottom:var(--pad);z-index:70;
+    position:fixed;left:50%;bottom:var(--pad);transform:translateX(-50%);z-index:70;
     opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
   .close-link.show{opacity:1;pointer-events:auto;}
@@ -956,7 +955,11 @@ function updateMenuPosition(){
     const top=stripEl.getBoundingClientRect().bottom+20; // the media→title gap, unrelated to screen padding
     menuEl.style.bottom='auto';
     menuEl.style.top=Math.max(0,top)+'px';
-    capHeight=Math.max(80,window.innerHeight-top-screenPad);
+    /* "back" sits centred in that same bottom padding, independent of
+       #menu's own flow — its height has to be reserved here too, or a
+       long description can grow straight down into it */
+    const backRoom=closeBtnEl.getBoundingClientRect().height+16;
+    capHeight=Math.max(80,window.innerHeight-top-screenPad-backRoom);
   }
   menuEl.style.maxHeight=capHeight?capHeight+'px':'';
   void menuEl.offsetHeight; // commit the new anchor instantly, transition-free
