@@ -76,24 +76,19 @@
   #siteTitle{color:var(--fg);cursor:pointer;flex-shrink:0;}
   #siteTitle.active{font-weight:700;}
 
-  /* ── INFO — opened from Ding: the CV broken into fragments that land
-     somewhere new on every opening, some of them turned on their side,
-     drifting a few pixels; the images and the index step back behind */
-  /* a veil of the page's own grey settles behind the fragments, so
-     whatever is underneath recedes evenly, hidden things stay hidden */
-  #info{position:fixed;inset:0;z-index:95;pointer-events:none;background:rgba(128,128,128,0);transition:background-color .5s ease;}
-  #info.on{pointer-events:auto;cursor:pointer;background:rgba(128,128,128,.9);}
-  body.info #topZone{z-index:96;}
+  /* ── INFO — opened from Ding, home only: the CV broken into fragments,
+     all in the page's own type size, landing somewhere new on every
+     opening, some turned on their side, drifting a few pixels. No veil:
+     the page underneath stays fully usable */
+  #info{position:fixed;inset:0;z-index:95;pointer-events:none;}
   #info .frag{
     position:absolute;left:0;top:0;white-space:nowrap;
     opacity:0;transition:opacity .6s ease;
   }
-  #info.on .frag{opacity:1;animation:drift var(--dur,10s) ease-in-out var(--del,0s) infinite alternate;}
+  #info.on .frag{opacity:1;pointer-events:auto;animation:drift var(--dur,10s) ease-in-out var(--del,0s) infinite alternate;}
   @keyframes drift{from{translate:0 0}to{translate:var(--dx,0) var(--dy,0)}}
   #info a,#info a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
   #info a:hover{text-decoration:underline;text-underline-offset:.12em;text-decoration-thickness:1px;}
-  #info .big{font-size:min(4.2vw,56px);line-height:.98;letter-spacing:-.015em;}
-  #info .big>*{display:block;}
   #info .h{font-weight:700;}
   #info .vert{writing-mode:vertical-rl;transform:rotate(180deg);}
   #info .rows{display:grid;grid-template-columns:auto auto auto;gap:0 14px;margin-left:10px;}
@@ -136,8 +131,8 @@
      spot, same as #menu's bottom padding, rather than tied to the
      media's position */
   .next-link{
-    position:fixed;right:var(--pad);top:50%;z-index:70;
-    writing-mode:vertical-rl;transform:translateY(-50%);background:var(--bg);padding:6px 3px;
+    position:fixed;right:var(--pad);bottom:var(--pad);z-index:70;
+    writing-mode:vertical-rl;
     opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
   .next-link.show{opacity:1;pointer-events:auto;}
@@ -210,10 +205,9 @@
     opacity:0;pointer-events:none;transition:opacity .5s ease;
   }
   .corner.on{opacity:1;}
-  /* off the centre axis: the counter reads up the left edge, "next
-     project" down the right one, each on a patch of the page's grey so
-     it stays legible over the full-bleed media */
-  .corner.bl{left:var(--pad);top:50%;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:var(--bg);padding:6px 3px;}
+  /* off the centre axis, turned on their side in the bottom corners —
+     always over the page's own grey, never over the media */
+  .corner.bl{left:var(--pad);bottom:var(--pad);writing-mode:vertical-rl;transform:rotate(180deg);}
 
   /* ── INDEX — category heads in the same type as the names, only bold ── */
   .menu-cat{font-weight:700;padding:2px 0;margin-top:14px;}
@@ -227,7 +221,7 @@
   #cursorLabel{
     position:fixed;left:0;top:0;z-index:80;pointer-events:none;
     white-space:nowrap;opacity:0;transition:opacity .2s ease;
-    background:var(--bg);padding:3px 5px 2px;
+    color:#fff;mix-blend-mode:difference; /* inverts over the media instead of sitting on a patch */
   }
   #cursorLabel.on{opacity:1;}
   #strip.steppable{cursor:pointer;}
@@ -257,15 +251,17 @@
     html,body{line-height:1.2;}
     #topZone{top:calc(var(--pad) + env(safe-area-inset-top));width:min(88vw,380px);}
     #menu{bottom:calc(var(--pad) + env(safe-area-inset-bottom));width:min(88vw,380px);}
-    .close-link{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
+    .close-link,.next-link,.corner.bl{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
+    .next-link,.corner.bl{writing-mode:horizontal-tb;transform:none;} /* flat on a phone, clear of the description */
     .menu-cat{padding:7px 0;margin-top:8px;}
     #stripZone{height:min(42vh,380px);}
 
     /* real tap targets on the index — a thumb needs more than a text
        baseline to land on, even if the type itself stays compact */
     .menu-proj-row a{padding:7px 0;}
+    body.home .menu-proj-row a{padding:3px 0;}
+    body.home .menu-cat{padding:3px 0;margin-top:6px;}
 
-    #info .big{font-size:6.4vw;}
 
     /* the filmstrip reads like a native card carousel, one media
        centring under a thumb per swipe rather than free-scrolling */
@@ -321,7 +317,7 @@
   }
 </style>
 </head>
-<body>
+<body class="home">
 <div id="loader"></div>
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
@@ -333,11 +329,9 @@
 
 <!-- INFO — the CV as floating fragments, placed anew on each opening -->
 <div id="info" aria-hidden="true">
-  <div class="frag big">
-    <span>Thomas Ding</span>
-    <a href="#" id="emailCopy">thomasding227@gmail.com</a>
-    <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a>
-  </div>
+  <div class="frag">Thomas Ding</div>
+  <div class="frag"><a href="#" id="emailCopy">thomasding227@gmail.com</a></div>
+  <div class="frag"><a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a></div>
   <div class="frag">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></div>
   <div class="frag">B.2004 Paris, France</div>
   <div class="frag vert">
@@ -580,16 +574,20 @@ const infoEl=document.getElementById('info');
 const frags=[...infoEl.querySelectorAll('.frag')];
 function scatter(){
   const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||24;
-  const top=siteTitle.getBoundingClientRect().bottom+18;
-  const placed=[];
-  const gap=16;
+  const top=pad;
+  const gap=14;
+  const box=el=>{const r=el.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height};};
   const hit=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)+gap-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)+gap-Math.max(a.y,b.y));
+  const list=menuEl.querySelector('.menu-projects');
+  const blocked=[box(siteTitle),...(list?[{...box(list),y:innerHeight-pad-menuEl.offsetHeight,h:menuEl.offsetHeight}]:[])];
+  const placed=[];
+  const band=box(stripZoneEl);
   [...frags].sort((a,b)=>b.offsetWidth*b.offsetHeight-a.offsetWidth*a.offsetHeight).forEach(f=>{
     const w=f.offsetWidth,h=f.offsetHeight;
     let best=null,worst=Infinity;
-    for(let t=0;t<80&&worst>0;t++){
+    for(let t=0;t<160&&worst>0;t++){
       const c={x:pad+Math.random()*Math.max(0,innerWidth-2*pad-w),y:top+Math.random()*Math.max(0,innerHeight-top-pad-h),w,h};
-      const o=placed.reduce((n,p)=>n+hit(c,p),0);
+      const o=[...blocked,...placed].reduce((n,p)=>n+hit(c,p),0)*1e6+hit(c,band);
       if(o<worst){worst=o;best=c;}
     }
     placed.push(best);
@@ -611,7 +609,7 @@ function toggleCV(force){
   document.body.classList.toggle('info',cvOpen);
   siteTitle.classList.toggle('active',cvOpen);
 }
-infoEl.addEventListener('click',e=>{if(!e.target.closest('a'))toggleCV(false);});
+
 const siteTitle=document.getElementById('siteTitle');
 siteTitle.tabIndex=0;
 siteTitle.setAttribute('role','button');
@@ -625,7 +623,7 @@ siteTitle.addEventListener('click',()=>{
   if(selectedIdx!==null){
     closeProject();
     const token=navToken;
-    setTimeout(()=>{if(token===navToken)toggleCV(true);},FADE+40);
+    setTimeout(()=>{if(token===navToken)toggleCV(true);},FADE+90);
     return;
   }
   toggleCV();
@@ -986,16 +984,19 @@ function showHome(delay){swapStrip(fillHome,delay);}
 /* at home the band sits in the free space between Ding and the index;
    with a project open it goes back to the centred strip of the stylesheet */
 function placeStripZone(){
-  if(selectedIdx!==null||!homeMode){
-    stripZoneEl.style.top='';stripZoneEl.style.height='';stripZoneEl.style.transform='';
-    return;
-  }
+  stripZoneEl.style.top='';stripZoneEl.style.height='';stripZoneEl.style.transform='';
+  if(selectedIdx!==null||!homeMode)return;
+  /* the home band stays centred on the screen like a project's strip; it
+     only gives up height, symmetrically, to clear Ding and the index. The
+     index's top is taken from its layout (bottom-anchored), not its box,
+     which may still be gliding back into place */
+  const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||24;
+  const css=stripZoneEl.getBoundingClientRect().height;
+  const c=innerHeight/2;
   const top=siteTitle.getBoundingClientRect().bottom+24;
-  const bottom=menuEl.getBoundingClientRect().top-24;
-  const h=Math.max(120,bottom-top);
-  stripZoneEl.style.top=top+'px';
-  stripZoneEl.style.height=h+'px';
-  stripZoneEl.style.transform='none';
+  const bottom=innerHeight-pad-menuEl.offsetHeight-24;
+  const h=Math.max(140,Math.min(css,2*(c-top),2*(bottom-c)));
+  stripZoneEl.style.height=Math.floor(h)+'px';
 }
 
 /* #menu's layout is only ever changed while its transform is cleared and
@@ -1020,6 +1021,7 @@ function playFlip(row,beforeTop){
    20px under the media, its description capped to the room above "back"
    (scrolling internally past that) and centred in whatever room is left */
 function layoutMenuOpen(){
+  document.body.classList.remove('home');
   const wrap=rowOf(selectedIdx);
   document.querySelectorAll('#menu .menu-proj').forEach(w=>{
     const own=w===wrap;
@@ -1058,6 +1060,7 @@ function layoutMenuOpen(){
   if(gap/2>14)body.style.marginTop=gap/2+'px';
 }
 function layoutMenuClosed(){
+  document.body.classList.add('home'); // before the FLIP measures, so the tighter phone index is part of the commit
   document.querySelectorAll('#menu .menu-proj').forEach(w=>{
     w.classList.remove('gone');
     const b=w.querySelector('.proj-body');
