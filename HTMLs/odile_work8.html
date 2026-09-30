@@ -86,11 +86,27 @@
   }
   #info.on .frag{opacity:1;pointer-events:auto;animation:drift var(--dur,10s) ease-in-out var(--del,0s) infinite alternate;}
   @keyframes drift{from{translate:0 0}to{translate:var(--dx,0) var(--dy,0)}}
-  #info a,#info a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
-  #info a:hover{text-decoration:underline;text-underline-offset:.12em;text-decoration-thickness:1px;}
+  /* every state spelled out — visited, active and focused links otherwise
+     pick up the browser's own tint (a pink/purple/red highlight) */
+  #info a,#info a:link,#info a:visited,#info a:hover,#info a:active,#info a:focus{
+    color:#000;background:none;outline:none;cursor:pointer;
+    text-decoration:underline;text-decoration-color:#000;
+    text-underline-offset:.12em;text-decoration-thickness:1px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #info a::selection,#info .frag::selection{background:#000;color:#fff;}
   #info .h{font-weight:700;}
   #info .vert{writing-mode:vertical-rl;transform:rotate(180deg);}
   #info .rows{display:grid;grid-template-columns:auto auto auto;gap:0 14px;margin-left:10px;}
+
+  /* ── POP-UPS — a small image dropped wherever the home is clicked in
+     the void ── */
+  .popup{
+    position:fixed;z-index:90;translate:-50% -50%;pointer-events:none;
+    display:block;height:auto;opacity:0;scale:.86;
+    transition:opacity .25s ease,scale .45s cubic-bezier(.2,.9,.3,1.35);
+  }
+  .popup.on{opacity:1;scale:1;}
 
   /* ── TABS — under Ding, home only: the project index, the gallery, and
      a third room not open yet ── */
@@ -772,6 +788,15 @@ async function loadFromSanity(){
       }));
     }
   }catch(e){console.warn('[Sanity]',e.message);}
+  /* the gallery page and the pop-up images are single documents in the
+     CMS (Galerie, Assets ▸ Pop-up) */
+  try{
+    const q=`{"gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"popups":*[_id=="popups"][0].images[]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio}}`;
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(q)}`);
+    const{result}=await res.json();
+    GALLERY=(result?.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});
+    POPUPS=(result?.popups||[]).filter(m=>m&&m.url);
+  }catch(e){console.warn('[Sanity gallery/popups]',e.message);}
   if(!projects.length)projects=FALLBACK_PROJECTS;
   assignSlugs();
   buildMenu();
@@ -971,7 +996,11 @@ function homeList(){
 }
 /* gallery: placeholders until its images are in the CMS */
 const GALLERY_AR=[1,4/5,16/9,3/4,3/2,2/3,1,5/4,9/16,4/3,1,3/4];
-function galleryList(){return Array.from({length:24},(_,n)=>({m:{type:'ph',ar:GALLERY_AR[n%GALLERY_AR.length]},i:-1,k:n}));}
+let GALLERY=[],POPUPS=[];
+function galleryList(){
+  if(GALLERY.length)return GALLERY.map((m,n)=>({m,i:-1,k:n}));
+  return Array.from({length:24},(_,n)=>({m:{type:'ph',ar:GALLERY_AR[n%GALLERY_AR.length]},i:-1,k:n}));
+}
 let tab='project';
 function fillHome(){
   releaseStripMedia();
@@ -1008,6 +1037,21 @@ stripEl.addEventListener('scroll',()=>{
 },{passive:true});
 function showHome(delay){swapStrip(fillHome,delay);}
 
+document.addEventListener('click',e=>{
+  if(selectedIdx!==null||!POPUPS.length)return;
+  if(e.target.closest?.('a,button,video,[data-p],#menu,#tabs,#topZone,#info .frag,.next-link,.close-link'))return;
+  const m=POPUPS[Math.random()*POPUPS.length|0];
+  const w=Math.round(110+Math.random()*90);
+  const img=document.createElement('img');
+  img.className='popup';img.alt='';img.decoding='async';
+  img.style.width=w+'px';
+  img.style.left=e.clientX+'px';img.style.top=e.clientY+'px';
+  img.addEventListener('load',()=>requestAnimationFrame(()=>img.classList.add('on')),{once:true});
+  img.src=sizedUrl(m.url,w/(m.ar||1));
+  document.body.appendChild(img);
+  setTimeout(()=>{img.classList.remove('on');setTimeout(()=>img.remove(),450);},2600);
+});
+
 function setTab(t,{push=true}={}){
   if(t===tab&&selectedIdx===null)return;
   if(selectedIdx!==null)closeProject({pushUrl:false});
@@ -1041,10 +1085,14 @@ function placeStripZone(){
   const css=stripZoneEl.getBoundingClientRect().height;
   const c=innerHeight/2;
   const tabsEl=document.getElementById('tabs');
-  const top=Math.max(siteTitle.getBoundingClientRect().bottom,tabsEl.getBoundingClientRect().bottom)+24;
+  const dingBottom=siteTitle.getBoundingClientRect().bottom;
+  const tabsH=tabsEl.offsetHeight;
+  const top=dingBottom+24+tabsH+24;   // room for the tabs between Ding and the band
   const bottom=tab==='gallery'?innerHeight-pad-24:innerHeight-pad-menuEl.offsetHeight-24;
-  const h=Math.max(140,Math.min(css,2*(c-top),2*(bottom-c)));
-  stripZoneEl.style.height=Math.floor(h)+'px';
+  const h=Math.floor(Math.max(140,Math.min(css,2*(c-top),2*(bottom-c))));
+  stripZoneEl.style.height=h+'px';
+  /* the tabs sit halfway between Ding and the band, not at a fixed gap */
+  tabsEl.style.top=Math.round((dingBottom+(c-h/2))/2-tabsH/2)+'px';
 }
 
 /* #menu's layout is only ever changed while its transform is cleared and

@@ -1,3 +1,5 @@
+import {videoThumb, videoFilePreview} from './mediaPreview'
+
 export default {
   name: 'project',
   title: 'Projet',
@@ -48,7 +50,9 @@ export default {
     {
       name: 'media',
       title: 'Médias',
+      description: 'Glisser-déposer pour changer l’ordre. Les vidéos se lancent au survol.',
       type: 'array',
+      options: { layout: 'grid' },
       of: [
         {
           type: 'image',
@@ -65,6 +69,8 @@ export default {
         },
         {
           type: 'file',
+          title: 'Vidéo',
+          options: { accept: 'video/*' },
           fields: [
             {
               name: 'hidden',
@@ -74,6 +80,7 @@ export default {
               initialValue: false,
             },
           ],
+          preview: videoFilePreview,
         },
         {
           type: 'object',
@@ -134,10 +141,10 @@ export default {
             },
           ],
           preview: {
-            select: { wide: 'wide', hidden: 'hidden' },
-            prepare({ wide, hidden }) {
+            select: { wide: 'wide', hidden: 'hidden', url: 'video.asset.url', name: 'video.asset.originalFilename' },
+            prepare({ wide, hidden, url, name }) {
               const bits = [wide ? '2 slots' : null, hidden ? 'masqué' : null].filter(Boolean)
-              return { title: bits.length ? `Vidéo — ${bits.join(', ')}` : 'Vidéo' }
+              return { title: name || 'Vidéo', subtitle: bits.join(', ') || undefined, media: videoThumb(url) }
             },
           },
         },
