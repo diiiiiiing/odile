@@ -13,6 +13,9 @@
     --bg:#808080; --fg:#000;
     --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
     --pad:10px;
+    /* default spacing inside the open project block — tightened further
+       from JS (ensureTitleGap) only when needed, see its comment */
+    --gap-a:14px; --gap-b:6px; --gap-c:10px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
   }
@@ -159,21 +162,23 @@
     max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;
     transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;
   }
-  .proj-body.open{max-height:600px;margin-top:14px;margin-bottom:10px;}
+  .proj-body.open{max-height:600px;margin-top:var(--gap-a,14px);margin-bottom:var(--gap-c,10px);}
   /* the selected project reads as its own block, set apart from the rest
      of the list on both sides by the same amount its description is set
-     apart from the projects following it. Every gap here is kept tight
-     on purpose: with the rest of the list gone, this block's own total
-     height is what decides whether it still fits below the media. */
+     apart from the projects following it. --gap-a/b/c are tightened
+     further from JS (ensureTitleGap) when even this default spacing
+     isn't enough to clear the media by the required margin — shrinking
+     the gaps *within* the block instead of moving #menu itself, so its
+     bottom (where the "×" sits) always stays at its normal padding. */
   .menu-proj:has(.menu-proj-row a.active){margin-top:10px;}
   .proj-body-inner{
-    display:flex;flex-direction:column;align-items:center;gap:6px;
+    display:flex;flex-direction:column;align-items:center;gap:var(--gap-b,6px);
     min-height:0;overflow:hidden;text-align:center;
     color:var(--dim1);
-    opacity:0;transition:opacity .25s ease;
+    opacity:0;transition:opacity .25s ease,gap .3s ease;
   }
   .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
-  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:4px;}
+  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:var(--gap-b,4px);}
   .proj-desc-line{text-transform:none;max-width:60ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
 
@@ -183,11 +188,11 @@
   .menu-proj{overflow:hidden;transition:max-height .35s ease,opacity .3s ease,margin .35s ease;}
   .menu-proj.hidden{opacity:0;margin-top:0;margin-bottom:0;pointer-events:none;}
   .close-x{
-    display:inline-block;margin-top:10px;
+    display:inline-block;margin-top:6px;
     opacity:0;max-height:0;overflow:hidden;pointer-events:none;
     transition:opacity .3s ease,max-height .3s ease,margin-top .3s ease;
   }
-  .close-x.show{opacity:1;max-height:40px;margin-top:10px;pointer-events:auto;}
+  .close-x.show{opacity:1;max-height:40px;margin-top:6px;pointer-events:auto;}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
@@ -781,6 +786,7 @@ function closeProject({pushUrl=true}={}){
   updateNextLinkVisibility();
   clearStrip();
   updateProjectListVisibility();
+  ensureTitleGap();
   if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
 }
 
@@ -809,6 +815,11 @@ function selectProject(i,{pushUrl=true}={}){
     openProjBody(body);
   });
   updateProjectListVisibility();
+  /* the description takes .4s to reach full height, shifting the title's
+     own position — recheck the gap once it (and the media) have settled.
+     setTimeout rather than transitionend/rAF alone: both are suspended
+     on a backgrounded tab, and this still has to run there too. */
+  setTimeout(ensureTitleGap,450);
 
   document.getElementById('stripZone').classList.add('show');
   stripEl.innerHTML='';
@@ -840,7 +851,7 @@ function createMediaEl(m){
   if(m.type==='image'){
     const img=document.createElement('img');
     img.className='strip-item';
-    img.addEventListener('load',()=>{img.classList.add('show');updateNextLinkVisibility();});
+    img.addEventListener('load',()=>{img.classList.add('show');updateNextLinkVisibility();ensureTitleGap();});
     img.src=m.url;
     return img;
   }
@@ -851,7 +862,7 @@ function createMediaEl(m){
     vid.disablePictureInPicture=true;
     vid.controlsList='nodownload noremoteplayback';
     vid.preload='none';
-    vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();});
+    vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();ensureTitleGap();});
     vid.addEventListener('loadedmetadata',()=>{if(vid.duration>=18)vid.controls=true;});
     // lazy: load src only when scrolled near, within the strip itself
     // rather than the viewport, since this is a horizontally-scrolling
@@ -916,6 +927,47 @@ function updateProjectListVisibility(){
   });
   closeXEl.classList.toggle('show',selectedIdx!==null);
 }
+
+/* #menu (bottom-anchored) and #strip (independently centred) don't know
+   about each other. Shifting #menu itself to buy clearance would work
+   for the title, but #menu's *bottom* — where the "×" sits — is the
+   page's actual bottom padding, and pushing the whole box down blows
+   through it. So the fix works the other way: shrink the gaps *within*
+   the open block (title→description, between paragraphs,
+   description→"×") until the now-shorter block naturally clears the
+   media, without #menu (or its floor, the "×") ever moving. */
+const GAP_DEFAULTS={a:14,b:6,c:10};
+const GAP_FLOORS={a:4,b:2,c:4};
+function ensureTitleGap(){
+  const root=document.documentElement.style;
+  root.setProperty('--gap-a',GAP_DEFAULTS.a+'px');
+  root.setProperty('--gap-b',GAP_DEFAULTS.b+'px');
+  root.setProperty('--gap-c',GAP_DEFAULTS.c+'px');
+  if(selectedIdx===null)return;
+  const wrap=document.querySelector('.menu-proj-row a.active')?.closest('.menu-proj');
+  if(!wrap)return;
+  let need=20-(wrap.getBoundingClientRect().top-stripEl.getBoundingClientRect().bottom);
+  if(need<=0)return;
+  let a=GAP_DEFAULTS.a,c=GAP_DEFAULTS.c;
+  const takeA=Math.min(need,a-GAP_FLOORS.a); a-=takeA; need-=takeA;
+  const takeC=Math.min(need,c-GAP_FLOORS.c); c-=takeC; need-=takeC;
+  root.setProperty('--gap-a',a+'px');
+  root.setProperty('--gap-c',c+'px');
+  if(need>0){
+    /* --gap-b also drives .proj-desc's own line spacing now, so every
+       gap it touches counts here, not just proj-body-inner's direct
+       children */
+    const inner=wrap.querySelector('.proj-body-inner');
+    const desc=wrap.querySelector('.proj-desc');
+    const gapCount=(inner?Math.max(0,inner.children.length-1):0)+
+                    (desc?Math.max(0,desc.children.length-1):0);
+    if(gapCount>0){
+      const perGap=Math.min(GAP_DEFAULTS.b-GAP_FLOORS.b,need/gapCount);
+      root.setProperty('--gap-b',(GAP_DEFAULTS.b-perGap)+'px');
+    }
+  }
+}
+window.addEventListener('resize',ensureTitleGap,{passive:true});
 
 loadFromSanity();
 </script>
