@@ -13,9 +13,6 @@
     --bg:#808080; --fg:#000;
     --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
     --pad:10px;
-    /* default spacing inside the open project block — tightened further
-       from JS (ensureTitleGap) only when needed, see its comment */
-    --gap-a:14px; --gap-b:6px; --gap-c:10px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
   }
@@ -55,11 +52,11 @@
 
   /* ── TOP — Ding + CV ── */
   #topZone{
-    position:fixed;top:30px;left:50%;transform:translateX(-50%);
+    position:fixed;top:20px;left:50%;transform:translateX(-50%);
     z-index:70;
     display:flex;flex-direction:column;align-items:center;
     width:min(86vw,480px);
-    max-height:calc(100vh - 60px);
+    max-height:calc(100vh - 40px);
   }
   #siteTitle{color:var(--fg);cursor:pointer;flex-shrink:0;}
   #siteTitle.active{font-weight:700;}
@@ -129,17 +126,17 @@
      spot, same as #menu's bottom padding, rather than tied to the
      media's position */
   .next-link{
-    position:fixed;right:var(--pad);bottom:30px;z-index:70;
+    position:fixed;right:var(--pad);bottom:20px;z-index:70;
     opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
   .next-link.show{opacity:1;pointer-events:auto;}
 
   /* ── BOTTOM — the project index ── */
   #menu{
-    position:fixed;left:50%;bottom:30px;transform:translateX(-50%);
+    position:fixed;left:50%;bottom:20px;transform:translateX(-50%);
     z-index:70;
     width:min(90vw,640px);
-    max-height:calc(100vh - 60px);
+    max-height:calc(100vh - 40px);
     display:flex;flex-direction:column;align-items:center;
     overflow-y:auto;
     transition:opacity .6s ease;
@@ -162,23 +159,15 @@
     max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;
     transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;
   }
-  .proj-body.open{max-height:600px;margin-top:var(--gap-a,14px);margin-bottom:var(--gap-c,10px);}
-  /* the selected project reads as its own block, set apart from the rest
-     of the list on both sides by the same amount its description is set
-     apart from the projects following it. --gap-a/b/c are tightened
-     further from JS (ensureTitleGap) when even this default spacing
-     isn't enough to clear the media by the required margin — shrinking
-     the gaps *within* the block instead of moving #menu itself, so its
-     bottom (where the "×" sits) always stays at its normal padding. */
-  .menu-proj:has(.menu-proj-row a.active){margin-top:10px;}
+  .proj-body.open{max-height:600px;margin-top:14px;margin-bottom:10px;}
   .proj-body-inner{
-    display:flex;flex-direction:column;align-items:center;gap:var(--gap-b,6px);
+    display:flex;flex-direction:column;align-items:center;gap:6px;
     min-height:0;overflow:hidden;text-align:center;
     color:var(--dim1);
-    opacity:0;transition:opacity .25s ease,gap .3s ease;
+    opacity:0;transition:opacity .25s ease;
   }
   .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
-  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:var(--gap-b,4px);scrollbar-width:none;}
+  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:4px;scrollbar-width:none;}
   .proj-desc::-webkit-scrollbar{display:none;}
   .proj-desc-line{text-transform:none;max-width:90ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
@@ -221,9 +210,9 @@
   @media (max-width:640px) and (orientation:portrait){
     :root{--pad:10px;--fs:13px;}
     html,body{line-height:1.2;}
-    #topZone{top:calc(22px + env(safe-area-inset-top));width:min(88vw,380px);}
-    #menu{bottom:calc(18px + env(safe-area-inset-bottom));width:min(88vw,380px);}
-    .next-link{bottom:calc(18px + env(safe-area-inset-bottom));}
+    #topZone{top:calc(20px + env(safe-area-inset-top));width:min(88vw,380px);}
+    #menu{bottom:calc(20px + env(safe-area-inset-bottom));width:min(88vw,380px);}
+    .next-link{bottom:calc(20px + env(safe-area-inset-bottom));}
     #stripZone{height:min(42vh,380px);}
 
     /* real tap targets on the index — a thumb needs more than a text
@@ -791,7 +780,7 @@ function closeProject({pushUrl=true}={}){
   updateNextLinkVisibility();
   clearStrip();
   updateProjectListVisibility();
-  ensureTitleGap();
+  updateMenuPosition();
   if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
 }
 
@@ -820,6 +809,7 @@ function selectProject(i,{pushUrl=true}={}){
     openProjBody(body);
   });
   updateProjectListVisibility();
+  updateMenuPosition();
   /* the description takes .4s to reach full height, shifting the title's
      own position — recheck the gap once it (and the media) have settled.
      setTimeout rather than transitionend/rAF alone: both are suspended
@@ -829,8 +819,8 @@ function selectProject(i,{pushUrl=true}={}){
      can still be in flight at 450ms and throw off the first reading —
      switching projects quickly is a real interaction, not just a test
      artifact. */
-  setTimeout(ensureTitleGap,450);
-  setTimeout(ensureTitleGap,950);
+  setTimeout(updateMenuPosition,450);
+  setTimeout(updateMenuPosition,950);
 
   document.getElementById('stripZone').classList.add('show');
   stripEl.innerHTML='';
@@ -862,7 +852,7 @@ function createMediaEl(m){
   if(m.type==='image'){
     const img=document.createElement('img');
     img.className='strip-item';
-    img.addEventListener('load',()=>{img.classList.add('show');updateNextLinkVisibility();ensureTitleGap();});
+    img.addEventListener('load',()=>{img.classList.add('show');updateNextLinkVisibility();updateMenuPosition();});
     img.src=m.url;
     return img;
   }
@@ -873,7 +863,7 @@ function createMediaEl(m){
     vid.disablePictureInPicture=true;
     vid.controlsList='nodownload noremoteplayback';
     vid.preload='none';
-    vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();ensureTitleGap();});
+    vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();updateMenuPosition();});
     vid.addEventListener('loadedmetadata',()=>{if(vid.duration>=18)vid.controls=true;});
     // lazy: load src only when scrolled near, within the strip itself
     // rather than the viewport, since this is a horizontally-scrolling
@@ -939,74 +929,63 @@ function updateProjectListVisibility(){
   closeBtnEl.classList.toggle('show',selectedIdx!==null);
 }
 
-/* #menu (bottom-anchored) and #strip (independently centred) don't know
-   about each other. Shifting #menu itself to buy clearance would work
-   for the title, but #menu's *bottom* — where the "×" sits — is the
-   page's actual bottom padding, and pushing the whole box down blows
-   through it. So the fix works the other way: shrink the gaps *within*
-   the open block (title→description, between paragraphs,
-   description→"×") until the now-shorter block naturally clears the
-   media, without #menu (or its floor, the "×") ever moving. */
-const GAP_DEFAULTS={a:14,b:6,c:10};
-const GAP_FLOORS={a:4,b:2,c:4};
-function ensureTitleGap(){
-  const root=document.documentElement.style;
-  /* margin-top/bottom and gap all carry their own CSS transition, so a
-     single before/after estimate is measuring against a value that's
-     still animating toward its target, not the target itself — instead
-     this disables those transitions for the duration of the check,
-     re-measuring after every single change (forcing a synchronous
-     reflow each time) until 20px is actually reached or every gap is
-     at its floor, then hands control back to the real transitions */
-  const animated=[...document.querySelectorAll('.proj-body,.proj-body-inner,.proj-desc')];
-  animated.forEach(el=>{el.dataset._prevTransition=el.style.transition;el.style.transition='none';});
+/* the index is always top-anchored to a fixed point when a project is
+   open — the name always lands exactly 20px under the media, instead
+   of floating at whatever height a bottom-anchored, upward-growing box
+   happens to put it at for that particular description's length.
+   Closed (the full list), it reverts to its normal CSS bottom anchor.
+   Switching between the two — a different anchor edge entirely — can't
+   itself be transitioned, so this uses FLIP: jump to the new position
+   instantly, then undo that jump with a transform that *does*
+   transition, so it plays as one continuous move. */
+function updateMenuPosition(){
+  const beforeTop=menuEl.getBoundingClientRect().top;
+  const prevTransition=menuEl.style.transition;
+  menuEl.style.transition='none';
 
-  root.setProperty('--gap-a',GAP_DEFAULTS.a+'px');
-  root.setProperty('--gap-b',GAP_DEFAULTS.b+'px');
-  root.setProperty('--gap-c',GAP_DEFAULTS.c+'px');
+  let capHeight=null;
+  if(selectedIdx===null){
+    menuEl.style.top='';
+    menuEl.style.bottom='';
+  }else{
+    const top=stripEl.getBoundingClientRect().bottom+20;
+    menuEl.style.bottom='auto';
+    menuEl.style.top=Math.max(0,top)+'px';
+    capHeight=Math.max(80,window.innerHeight-top-20);
+  }
+  menuEl.style.maxHeight=capHeight?capHeight+'px':'';
+  void menuEl.offsetHeight; // commit the new anchor instantly, transition-free
+
+  /* the description is the one part with no natural ceiling — if even
+     the capped #menu still can't fit it (the longest description on
+     the narrowest real phone), it scrolls internally rather than
+     pushing "back" past the bottom of the screen */
   const wrap=selectedIdx===null?null:document.querySelector('.menu-proj-row a.active')?.closest('.menu-proj');
   const desc=wrap?wrap.querySelector('.proj-desc'):null;
-  if(desc){desc.style.maxHeight='';desc.style.overflowY='';}
-  if(wrap){
-    void wrap.offsetHeight;
-    const inner=wrap.querySelector('.proj-body-inner');
-    const gapCount=(inner?Math.max(0,inner.children.length-1):0)+
-                    (desc?Math.max(0,desc.children.length-1):0);
-    let a=GAP_DEFAULTS.a,b=GAP_DEFAULTS.b,c=GAP_DEFAULTS.c;
-    for(let i=0;i<12;i++){
-      const need=20-(wrap.getBoundingClientRect().top-stripEl.getBoundingClientRect().bottom);
-      if(need<=0)break;
-      if(a>GAP_FLOORS.a){
-        a=Math.max(GAP_FLOORS.a,a-need);
-        root.setProperty('--gap-a',a+'px');
-      }else if(c>GAP_FLOORS.c){
-        c=Math.max(GAP_FLOORS.c,c-need);
-        root.setProperty('--gap-c',c+'px');
-      }else if(b>GAP_FLOORS.b&&gapCount>0){
-        b=Math.max(GAP_FLOORS.b,b-need/gapCount);
-        root.setProperty('--gap-b',b+'px');
-      }else{
-        break; // every compressible gap is already at its floor
-      }
-      void wrap.offsetHeight;
-    }
-    /* every gap is already at its floor and it's still not enough (the
-       longest description on the narrowest real phone) — the description
-       text itself is the one part with no natural ceiling, so it's what
-       gives: capped to whatever height actually closes the remaining
-       shortfall, scrolling internally rather than pushing the title
-       into the media */
-    const stillNeed=20-(wrap.getBoundingClientRect().top-stripEl.getBoundingClientRect().bottom);
-    if(stillNeed>0&&desc){
-      const newHeight=Math.max(40,desc.getBoundingClientRect().height-stillNeed);
+  if(desc){
+    desc.style.transition='none';
+    desc.style.maxHeight='';desc.style.overflowY='';
+    void desc.offsetHeight;
+    const overflow=menuEl.scrollHeight-menuEl.clientHeight;
+    if(overflow>0){
+      const newHeight=Math.max(40,desc.getBoundingClientRect().height-overflow);
       desc.style.maxHeight=newHeight+'px';
       desc.style.overflowY='auto';
     }
+    void desc.offsetHeight;
+    desc.style.transition='';
   }
 
-  animated.forEach(el=>{el.style.transition=el.dataset._prevTransition||'';delete el.dataset._prevTransition;});
+  const afterTop=menuEl.getBoundingClientRect().top;
+  const delta=beforeTop-afterTop;
+  menuEl.style.transform=delta?`translateX(-50%) translateY(${delta}px)`:'translateX(-50%)';
+  void menuEl.offsetHeight; // commit the FLIP offset, still transition-free
+
+  menuEl.style.transition=prevTransition||'opacity .6s ease';
+  if(!menuEl.style.transition.includes('transform'))menuEl.style.transition+=',transform .4s ease';
+  menuEl.style.transform='translateX(-50%)';
 }
-window.addEventListener('resize',ensureTitleGap,{passive:true});
+window.addEventListener('resize',updateMenuPosition,{passive:true});
 
 loadFromSanity();
 </script>
