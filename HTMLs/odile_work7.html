@@ -7,6 +7,8 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
+<link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
 <style>
   :root{
     /* one palette, no modes — same as work4 */
@@ -41,6 +43,19 @@
      plain single-class rule, so a link the visitor has actually clicked
      before — their own Instagram, say — would otherwise go purple */
   .ext-link,.ext-link:visited{color:var(--fg);text-decoration:none;}
+
+  /* bold on hover/active without the text changing width: an invisible
+     bold copy (data-label) sits in the same grid column, so the box is
+     always as wide as the bold version and centred/right-pinned text
+     never twitches sideways */
+  .bold-safe{display:inline-grid;justify-items:center;text-align:center;}
+  .bold-safe::after{
+    content:attr(data-label);font-weight:700;
+    height:0;overflow:hidden;visibility:hidden;
+    pointer-events:none;user-select:none;
+  }
+
+  a:focus-visible,#siteTitle:focus-visible{outline:1px solid var(--fg);outline-offset:3px;}
 
   /* ══════════════════════════════════════════════════════
      THREE ZONES, ALL CENTERED, EACH PINNED TO ITS OWN EDGE —
@@ -93,6 +108,7 @@
   .cv-row{display:flex;gap:12px;max-width:100%;}
   .cv-row .cv-date{flex-shrink:0;width:100px;text-align:right;}
   .cv-row .cv-company{flex-shrink:0;width:150px;}
+  .cv-row .cv-company .bold-safe{justify-items:start;text-align:left;}
   .cv-row .cv-role{flex-shrink:0;}
 
   /* ── MIDDLE — the open project's media, one horizontal row ──
@@ -119,7 +135,9 @@
     height:100%;width:auto;flex:0 0 auto;
     display:block;cursor:auto;
     opacity:0;transition:opacity .4s ease;
+    -webkit-user-drag:none;user-select:none;
   }
+  video.strip-item{aspect-ratio:16/9;}
   .strip-item.show{opacity:1;}
   .strip-item.ph{aspect-ratio:1/1;background:#d9d9d9;opacity:1;}
   #stripEmpty{color:var(--fg);opacity:0;animation:phIn .4s ease .25s forwards;}
@@ -221,8 +239,8 @@
 
     /* real tap targets on the index — a thumb needs more than a text
        baseline to land on, even if the type itself stays compact */
-    .menu-proj-row a{display:inline-block;padding:7px 0;}
-    .cv-bio a{display:inline-block;padding:3px 0;}
+    .menu-proj-row a{padding:7px 0;}
+    .cv-bio a{padding:3px 0;}
 
     /* each role becomes one clean stacked entry — date, then company,
        then role — instead of forcing a 3-column row into a narrow
@@ -275,6 +293,13 @@
   #lg-circles .ci-3{--ci-op:.7;animation:ci-in .4s ease 0.54s both;}
   #lg-circles .ci-2{--ci-op:.6;animation:ci-in .4s ease 0.63s both;}
   #lg-circles .ci-1{--ci-op:.7;animation:ci-in .4s ease 0.72s both;}
+
+  /* motion-sensitive visitors keep every fade, but the title jumps to its
+     new place instead of gliding and the loader target stops spinning */
+  @media (prefers-reduced-motion:reduce){
+    #menu{transition:opacity .5s ease;}
+    #lg-circles{animation:none;}
+  }
 </style>
 </head>
 <body>
@@ -399,6 +424,8 @@ function hideLoader(){
         const el=document.getElementById(id);
         if(el)el.style.opacity='1';
       });
+      menuRevealed=true;
+      scheduleMenuIdle(); // the 5s idle clock starts once the index is actually visible
     },700);
   },wait);
 }
@@ -415,18 +442,71 @@ let selectedIdx=null;
    clicks never interleave two half-finished layouts */
 const FADE=260;
 let navToken=0;
-window.addEventListener('wheel',e=>{
-  if(cvOpen){cvInnerEl.scrollTop+=e.deltaY;return;}
-  if(selectedIdx!==null){stripEl.scrollLeft+=e.deltaY;}
-},{passive:true});
-/* horizontal touch-panning on #strip and vertical on #cvInner both work
-   natively on a real overflow container — no custom remap needed here,
-   unlike the vertical mouse wheel above */
+const BASE_TITLE=document.title;
+function projName(p){return p.displayTitle||p.client||p.title;}
+function boldSafe(el){el.dataset.label=el.textContent;el.classList.add('bold-safe');}
+let menuRevealed=false;
 
-/* escape closes an open project and returns to the index — closeProject
-   is a hoisted function declaration, so this can sit above it */
+/* the strip eases toward a target instead of jumping a whole wheel notch
+   at a time; wheel notches and arrow keys both just move the target */
+let stripTarget=null,stripRaf=0;
+function stopStripScroll(){
+  cancelAnimationFrame(stripRaf);
+  stripRaf=0;stripTarget=null;
+}
+function stripStep(){
+  const d=stripTarget-stripEl.scrollLeft;
+  if(Math.abs(d)<1){stripEl.scrollLeft=stripTarget;stopStripScroll();return;}
+  const prev=stripEl.scrollLeft;
+  stripEl.scrollLeft=prev+Math.sign(d)*Math.max(1,Math.abs(d)*.18);
+  if(stripEl.scrollLeft===prev){stopStripScroll();return;} // pinned at an edge
+  stripRaf=requestAnimationFrame(stripStep);
+}
+function scrollStripBy(delta){
+  const max=stripEl.scrollWidth-stripEl.clientWidth;
+  if(max<=0)return;
+  const from=stripTarget??stripEl.scrollLeft;
+  stripTarget=Math.max(0,Math.min(max,from+delta));
+  if(!stripRaf)stripRaf=requestAnimationFrame(stripStep);
+}
+/* one media per arrow press, each landing flush on its own left edge;
+   past the last one, → moves on to the next project */
+function stepStrip(dir){
+  const base=stripTarget??stripEl.scrollLeft;
+  const max=stripEl.scrollWidth-stripEl.clientWidth;
+  if(dir>0&&base>=max-2&&nextLinkTarget!==null){selectProject(nextLinkTarget);return;}
+  const origin=stripEl.getBoundingClientRect().left-stripEl.scrollLeft;
+  const lefts=[...stripEl.children].map(c=>c.getBoundingClientRect().left-origin);
+  let t=dir>0?lefts.find(x=>x>base+2):[...lefts].reverse().find(x=>x<base-2);
+  if(t===undefined)t=dir>0?max:0;
+  scrollStripBy(t-base);
+}
+
+window.addEventListener('wheel',e=>{
+  const dy=e.deltaMode===1?e.deltaY*40:e.deltaY;
+  if(cvOpen){
+    if(!cvInnerEl.contains(e.target))cvInnerEl.scrollTop+=dy; // over the CV itself it already scrolls natively
+    return;
+  }
+  if(selectedIdx===null)return;
+  if(Math.abs(e.deltaX)>Math.abs(dy)){stopStripScroll();return;} // a horizontal trackpad swipe scrolls the strip natively
+  const desc=e.target.closest?.('.proj-desc');
+  if(desc&&desc.scrollHeight>desc.clientHeight+1)return; // a long description scrolls itself
+  scrollStripBy(dy);
+},{passive:true});
+stripEl.addEventListener('pointerdown',stopStripScroll,{passive:true});
+stripEl.addEventListener('touchstart',stopStripScroll,{passive:true});
+
+/* escape closes an open project and returns to the index; ←/→ step
+   through its media. closeProject/selectProject are hoisted function
+   declarations, so this can sit above them */
 window.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&selectedIdx!==null)closeProject();
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='Escape'&&selectedIdx!==null){closeProject();return;}
+  if(selectedIdx!==null&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){
+    e.preventDefault();
+    stepStrip(e.key==='ArrowRight'?1:-1);
+  }
 });
 
 /* email copy */
@@ -466,11 +546,11 @@ if(matchMedia('(hover:hover)').matches){
   const wake=()=>{
     clearTimeout(menuIdleTimer);
     menuEl.classList.remove('idle');
-    menuEl.style.opacity='1';
+    if(menuRevealed)menuEl.style.opacity='1'; // before the loader reveals it, #menu stays at its CSS opacity:0
   };
   scheduleMenuIdle=()=>{
     wake();
-    if(selectedIdx!==null)return;
+    if(selectedIdx!==null||!menuRevealed)return;
     menuIdleTimer=setTimeout(()=>{
       menuEl.classList.add('idle');
       menuEl.style.opacity='.35';
@@ -478,14 +558,10 @@ if(matchMedia('(hover:hover)').matches){
   };
   menuEl.addEventListener('mouseenter',wake);
   menuEl.addEventListener('mouseleave',scheduleMenuIdle);
-  scheduleMenuIdle();
 }
 
-/* menu's bottom edge is a fixed offset from the viewport — stable no
-   matter how tall its content currently is — so the cap is derived from
-   that instead of the live .top, which right after closeProject() would
-   still be reporting the about-to-collapse project description's old
-   (pre-transition) height, understating the room actually available */
+/* the CV scrolls internally within the real gap above the index — only
+   ever measured with the list in its settled, closed layout */
 function capCvInnerHeight(){
   const top=siteTitle.getBoundingClientRect().bottom+28;
   const menuTop=menuEl.getBoundingClientRect().top;
@@ -500,6 +576,11 @@ function toggleCV(force){
   siteTitle.classList.toggle('active',cvOpen);
 }
 const siteTitle=document.getElementById('siteTitle');
+siteTitle.tabIndex=0;
+siteTitle.setAttribute('role','button');
+siteTitle.addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();siteTitle.click();}
+});
 siteTitle.addEventListener('click',()=>{
   /* with a project open, the CV waits for the index to settle back into
      its list layout, so its height cap is measured against the real
@@ -736,7 +817,8 @@ function buildMenu(){
 
     const a=document.createElement('a');
     a.href='#'+proj.slug;
-    a.textContent=proj.displayTitle||proj.client||proj.title;
+    a.textContent=projName(proj);
+    boldSafe(a);
     a.dataset.idx=i;
     if(selectedIdx===i)a.classList.add('active');
     a.addEventListener('click',e=>{
@@ -763,6 +845,7 @@ const isShowing=row=>!!row&&!row.classList.contains('gone')&&!row.classList.cont
 /* the strip only ever swaps its content while fully transparent */
 let stripTimer=null;
 function fillStrip(proj){
+  releaseStripMedia();
   stripEl.innerHTML='';
   stripEl.scrollLeft=0;
   if(!proj.media?.length){
@@ -778,7 +861,7 @@ function fillStrip(proj){
 function clearStrip(){
   stripZoneEl.classList.remove('show');
   clearTimeout(stripTimer);
-  stripTimer=setTimeout(()=>{stripEl.innerHTML='';stripTimer=null;},FADE);
+  stripTimer=setTimeout(()=>{releaseStripMedia();stripEl.innerHTML='';stripTimer=null;},FADE);
 }
 function showStrip(proj){
   clearTimeout(stripTimer);
@@ -884,6 +967,7 @@ function closeProject({pushUrl=true}={}){
   document.querySelectorAll('#menu .proj-body.shown').forEach(b=>b.classList.remove('shown'));
   scheduleMenuIdle(); // "back" sits outside #menu, so closing via it never fires mouseenter/leave on #menu itself
   if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
+  document.title=BASE_TITLE;
 
   setTimeout(()=>{
     if(token!==navToken)return;
@@ -926,6 +1010,7 @@ function selectProject(i,{pushUrl=true}={}){
   nextLinkEl.classList.remove('show');
 
   if(pushUrl&&proj.slug)history.pushState({idx:i},'','#'+proj.slug);
+  document.title=`${projName(proj)} — ${BASE_TITLE}`.toUpperCase();
 
   setTimeout(()=>{
     if(token!==navToken||!row)return;
@@ -943,18 +1028,68 @@ function selectProject(i,{pushUrl=true}={}){
   },FADE);
 }
 
-/* render media into #strip as a single horizontal row of square tiles */
-function renderStrip(media){
-  media.forEach(m=>stripEl.appendChild(createMediaEl(m)));
+/* media load lazily as the strip scrolls near them — measured against the
+   strip itself, since it runs far past the visible width — and videos
+   only play while actually on screen */
+const nearJobs=new WeakMap();
+const makeNear=margin=>new IntersectionObserver((entries,obs)=>{
+  entries.forEach(en=>{
+    if(!en.isIntersecting)return;
+    obs.unobserve(en.target);
+    nearJobs.get(en.target)?.();
+    nearJobs.delete(en.target);
+  });
+},{root:stripEl,rootMargin:`0px ${margin}px`});
+const imgNear=makeNear(1200);
+const vidNear=makeNear(400);
+const vidVis=new IntersectionObserver(entries=>{
+  entries.forEach(({target:v,isIntersecting})=>{
+    v._vis=isIntersecting;
+    if(isIntersecting){
+      if(v._held){v._held=false;v.play().catch(()=>{});}
+    }else if(!v.paused){v.pause();v._held=true;}
+  });
+},{root:stripEl});
+function whenNear(el,obs,job){nearJobs.set(el,job);obs.observe(el);}
+function releaseStripMedia(){
+  [imgNear,vidNear,vidVis].forEach(o=>o.disconnect());
+  stopStripScroll();
 }
 
-/* render a single media item */
-function createMediaEl(m){
+/* Sanity serves the originals by default — ask for the height the strip
+   actually shows (×DPR, bucketed so the CDN cache is shared) in the best
+   format the browser takes. GIFs are left alone to keep their animation */
+function sizedUrl(url){
+  if(!/^https:\/\/cdn\.sanity\.io\/images\//.test(url)||/\.gif(\?|$)/i.test(url))return url;
+  const px=stripZoneEl.clientHeight*(window.devicePixelRatio||1);
+  const h=Math.min(2400,Math.max(400,Math.ceil(px/200)*200));
+  return `${url}${url.includes('?')?'&':'?'}h=${h}&fit=max&auto=format&q=85`;
+}
+
+/* render media into #strip as a single horizontal row */
+function renderStrip(media){
+  media.forEach((m,k)=>stripEl.appendChild(createMediaEl(m,k)));
+}
+
+/* render a single media item — its width is reserved from its aspect
+   ratio before it loads, so nothing beside it shifts when it arrives */
+function createMediaEl(m,k){
   if(m.type==='image'){
     const img=document.createElement('img');
     img.className='strip-item';
-    img.addEventListener('load',()=>{img.classList.add('show');updateNextLinkVisibility();});
-    img.src=m.url;
+    img.alt='';
+    img.decoding='async';
+    img.draggable=false;
+    if(m.ar)img.style.aspectRatio=String(m.ar);
+    img.addEventListener('load',()=>{
+      /* decoded before it fades in, so the fade never starts on a
+         half-painted frame */
+      (img.decode?img.decode():Promise.resolve()).catch(()=>{}).then(()=>img.classList.add('show'));
+      updateNextLinkVisibility();
+    });
+    const src=sizedUrl(m.url);
+    if(k<3)img.src=src;
+    else whenNear(img,imgNear,()=>{img.src=src;});
     return img;
   }
   if(m.type==='video'){
@@ -965,18 +1100,20 @@ function createMediaEl(m){
     vid.controlsList='nodownload noremoteplayback';
     vid.preload='none';
     vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();});
-    vid.addEventListener('loadedmetadata',()=>{if(vid.duration>=18)vid.controls=true;});
-    // lazy: load src only when scrolled near, within the strip itself
-    // rather than the viewport, since this is a horizontally-scrolling
-    // container that can run well past the visible width
-    const obs=new IntersectionObserver(entries=>{
-      if(entries[0].isIntersecting){vid.src=m.url;obs.disconnect();}
-    },{root:stripEl,rootMargin:'0px 400px'});
-    obs.observe(vid);
+    vid.addEventListener('loadedmetadata',()=>{
+      if(vid.videoWidth&&vid.videoHeight)vid.style.aspectRatio=`${vid.videoWidth}/${vid.videoHeight}`;
+      if(vid.duration>=18)vid.controls=true;
+      updateNextLinkVisibility();
+    });
+    /* autoplay can start while it's still just off screen */
+    vid.addEventListener('play',()=>{if(vid._vis===false){vid.pause();vid._held=true;}});
+    whenNear(vid,vidNear,()=>{vid.src=m.url;});
+    vidVis.observe(vid);
     return vid;
   }
   const ph=document.createElement('div');
   ph.className='strip-item ph';
+  if(m.ar)ph.style.aspectRatio=String(m.ar);
   return ph;
 }
 
@@ -998,6 +1135,8 @@ nextLinkEl.addEventListener('click',e=>{
    rather than part of #menu's flow */
 const closeBtnEl=document.getElementById('backBtn');
 closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
+
+[siteTitle,closeBtnEl,nextLinkEl,...document.querySelectorAll('#cv a')].forEach(boldSafe);
 
 loadFromSanity();
 </script>
