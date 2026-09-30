@@ -97,7 +97,7 @@
 
   /* ── MIDDLE — the open project's media, one horizontal row ──
      dead-centre: the room a long description needs below is protected
-     separately, by updateMenuPosition()'s own internal-scroll fallback,
+     separately, by layoutMenuOpen()'s own internal-scroll fallback,
      not by nudging the media off-centre */
   #stripZone{
     position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);
@@ -105,7 +105,7 @@
     display:flex;justify-content:center;align-items:center;
     height:min(64vh,720px);
     opacity:0;pointer-events:none;
-    transition:opacity .35s ease;
+    transition:opacity .26s ease;
   }
   #stripZone.show{opacity:1;pointer-events:auto;}
   #strip{
@@ -142,7 +142,7 @@
     max-height:calc(100vh - var(--pad)*2);
     display:flex;flex-direction:column;align-items:center;
     overflow-y:auto;
-    transition:opacity .6s ease;
+    transition:opacity .5s ease,transform .55s cubic-bezier(.22,1,.36,1);
   }
   #menu::-webkit-scrollbar{display:none;}
   #menu.idle{opacity:.35;}
@@ -156,20 +156,18 @@
   }
   .menu-proj-row a.active{font-weight:700;}
 
-  /* description accordion — same measured-height approach as #cv, so both
-     ends of the page animate on identical, fully-used terms */
-  .proj-body{
-    max-height:0;margin-top:0;margin-bottom:0;overflow:hidden;
-    transition:max-height .4s ease,margin-top .4s ease,margin-bottom .4s ease;
-  }
-  .proj-body.open{max-height:600px;margin-top:14px;margin-bottom:10px;}
+  /* the description is laid out at its final size in one go and only
+     fades — no height animation, so nothing around it ever re-flows
+     mid-transition */
+  .proj-body{display:none;margin-top:14px;}
+  .proj-body.open{display:block;}
   .proj-body-inner{
     display:flex;flex-direction:column;align-items:center;gap:6px;
-    min-height:0;overflow:hidden;text-align:center;
+    text-align:center;
     color:var(--dim1);
-    opacity:0;transition:opacity .25s ease;
+    opacity:0;transition:opacity .35s ease;
   }
-  .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
+  .proj-body.shown .proj-body-inner{opacity:1;}
   .proj-desc{display:flex;flex-direction:column;align-items:center;gap:4px;scrollbar-width:none;}
   .proj-desc::-webkit-scrollbar{display:none;}
   .proj-desc-line{text-transform:none;max-width:90ch;}
@@ -178,8 +176,9 @@
   /* other projects disappear while one is open — its own name+description
      never has to share room with the rest of the list, so it never has
      a reason to run into the media above it */
-  .menu-proj{overflow:hidden;transition:max-height .35s ease,opacity .3s ease,margin .35s ease;}
-  .menu-proj.hidden{opacity:0;margin-top:0;margin-bottom:0;pointer-events:none;}
+  .menu-proj{transition:opacity .26s ease;}
+  .menu-proj.hidden{opacity:0;pointer-events:none;}
+  .menu-proj.gone{display:none;}
   /* pinned to the bottom, centred — same fixed spot regardless of how
      tall the open description is, rather than trailing the text and
      landing wherever a short description happens to end */
@@ -255,7 +254,8 @@
   }
   @media (max-width:640px) and (orientation:portrait){#loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}}
   /* content hidden until loader reveals it */
-  #menu,#siteTitle{opacity:0;transition:opacity .5s ease;}
+  #menu,#siteTitle{opacity:0;}
+  #siteTitle{transition:opacity .5s ease;}
   #loader .cls-1{fill:var(--fg)!important;}
   #loader .cls-2{stroke:var(--fg)!important;fill:none!important;}
 
@@ -409,6 +409,12 @@ const cvPanel=document.getElementById('cv');
 const cvInnerEl=document.getElementById('cvInner');
 const stripEl=document.getElementById('strip');
 let selectedIdx=null;
+/* every open/close/switch is fade-out → one instant layout commit →
+   transform/opacity only. FADE is the fade-out length; navToken lets a
+   newer navigation cancel the pending commit of an older one, so rapid
+   clicks never interleave two half-finished layouts */
+const FADE=260;
+let navToken=0;
 window.addEventListener('wheel',e=>{
   if(cvOpen){cvInnerEl.scrollTop+=e.deltaY;return;}
   if(selectedIdx!==null){stripEl.scrollLeft+=e.deltaY;}
@@ -480,39 +486,36 @@ if(matchMedia('(hover:hover)').matches){
    that instead of the live .top, which right after closeProject() would
    still be reporting the about-to-collapse project description's old
    (pre-transition) height, understating the room actually available */
-function capCvInnerHeight(closingExtra=0){
+function capCvInnerHeight(){
   const top=siteTitle.getBoundingClientRect().bottom+28;
-  const menuRect=menuEl.getBoundingClientRect();
-  const menuMaxH=parseFloat(getComputedStyle(menuEl).maxHeight)||Infinity;
-  const renderedMenuHeight=Math.min(menuEl.scrollHeight-closingExtra,menuMaxH);
-  const menuTop=menuRect.bottom-renderedMenuHeight;
+  const menuTop=menuEl.getBoundingClientRect().top;
   cvInnerEl.style.maxHeight=Math.max(80,menuTop-top-20)+'px';
 }
 let cvOpen=false;
-function toggleCV(force,closingExtra=0){
+function toggleCV(force){
   cvOpen=force!==undefined?force:!cvOpen;
   cvPanel.classList.toggle('show',cvOpen);
-  if(cvOpen)capCvInnerHeight(closingExtra);
+  if(cvOpen)capCvInnerHeight();
   cvPanel.style.maxHeight=cvOpen?cvInnerEl.scrollHeight+'px':'0px';
   siteTitle.classList.toggle('active',cvOpen);
 }
 const siteTitle=document.getElementById('siteTitle');
 siteTitle.addEventListener('click',()=>{
-  let closingExtra=0;
+  /* with a project open, the CV waits for the index to settle back into
+     its list layout, so its height cap is measured against the real
+     final position of the list rather than the mid-close one */
   if(selectedIdx!==null){
-    const openBody=document.querySelector('.proj-body.open');
-    /* 56 = the 28px top + 28px bottom margin .proj-body.open adds, which
-       drops away the moment it closes, same as its own max-height */
-    if(openBody)closingExtra=openBody.getBoundingClientRect().height+56;
     closeProject();
+    const token=navToken;
+    setTimeout(()=>{if(token===navToken)toggleCV(true);},FADE+40);
+    return;
   }
-  toggleCV(undefined,closingExtra);
+  toggleCV();
 });
 
 window.addEventListener('resize',()=>{
   if(cvPanel.classList.contains('show')){capCvInnerHeight();cvPanel.style.maxHeight=cvInnerEl.scrollHeight+'px';}
-  const openBody=document.querySelector('.proj-body.open');
-  if(openBody)openBody.style.maxHeight=openBody.querySelector('.proj-body-inner').scrollHeight+'px';
+  relayoutMenu();
   updateNextLinkVisibility();
 },{passive:true});
 
@@ -699,23 +702,6 @@ function buildProjBody(proj){
   return body;
 }
 
-/* open/close a .proj-body with its own measured height, exactly like
-   toggleCV does for #cv — a fixed CSS cap reaches its real height early
-   and idles for the rest of the transition; measuring scrollHeight makes
-   the whole .4s correspond to real motion. */
-function openProjBody(body){
-  if(!body)return;
-  body.classList.add('open');
-  const inner=body.querySelector('.proj-body-inner');
-  body.style.maxHeight=(inner?inner.scrollHeight:0)+'px';
-}
-function closeProjBody(body){
-  if(!body)return;
-  body.classList.remove('open');
-  body.style.maxHeight='0px';
-  body.style.marginTop=''; // clear the centering offset updateMenuPosition set while open
-}
-
 /* group projects by medium, then lay out the flat, centered index —
    each project's description unfolds directly under its own name */
 function buildMenu(){
@@ -763,86 +749,20 @@ function buildMenu(){
 
     const body=buildProjBody(proj);
     body.dataset.idx=i;
-    if(selectedIdx===i)body.classList.add('open');
     wrap.appendChild(body);
 
     list.appendChild(wrap);
   });
   menu.appendChild(list);
-  const restoredOpen=list.querySelector('.proj-body.open');
-  if(restoredOpen)requestAnimationFrame(()=>{
-    restoredOpen.style.maxHeight=restoredOpen.querySelector('.proj-body-inner').scrollHeight+'px';
-  });
-  closeBtnEl.classList.toggle('show',selectedIdx!==null);
 }
 
-/* fade out and empty the strip */
-let closeTimer=null;
-function clearStrip(){
-  const zone=document.getElementById('stripZone');
-  zone.classList.remove('show');
-  if(closeTimer)clearTimeout(closeTimer);
-  closeTimer=setTimeout(()=>{
-    stripEl.innerHTML='';
-    closeTimer=null;
-  },350);
-}
+const stripZoneEl=document.getElementById('stripZone');
+const rowOf=i=>document.querySelector(`#menu a[data-idx="${i}"]`)?.closest('.menu-proj')||null;
+const isShowing=row=>!!row&&!row.classList.contains('gone')&&!row.classList.contains('hidden');
 
-/* clear the strip and deselect the active project */
-function closeProject({pushUrl=true}={}){
-  selectedIdx=null;
-  document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
-  document.querySelectorAll('#menu .proj-body.open').forEach(closeProjBody);
-  if(cvOpen)toggleCV(false);
-  nextLinkTarget=null;
-  updateNextLinkVisibility();
-  clearStrip();
-  updateProjectListVisibility();
-  updateMenuPosition();
-  scheduleMenuIdle(); // "back" sits outside #menu, so closing via it never fires mouseenter/leave on #menu itself
-  if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
-}
-
-/* show a project's media in the horizontal strip, and its description
-   inline under its own name in the index */
-function selectProject(i,{pushUrl=true}={}){
-  if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
-  selectedIdx=i;
-  scheduleMenuIdle(); // shows #menu at full opacity and, since selectedIdx is now set, never schedules it to dim again
-  document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
-  const newActive=document.querySelector(`#menu a[data-idx="${i}"]`);
-  if(newActive)newActive.classList.add('active');
-
-  if(cvOpen)toggleCV(false);
-
-  const proj=projects[i];
-
-  /* closing the others and opening this one happen inside the same rAF
-     tick rather than one now + one deferred — two selections made in
-     quick succession could otherwise both end up open, if the first
-     rAF lands after the second one's synchronous cleanup already ran */
-  const body=document.querySelector(`#menu .proj-body[data-idx="${i}"]`);
-  requestAnimationFrame(()=>{
-    document.querySelectorAll('#menu .proj-body.open').forEach(el=>{
-      if(el!==body)closeProjBody(el);
-    });
-    openProjBody(body);
-  });
-  updateProjectListVisibility();
-  updateMenuPosition();
-  /* the description takes .4s to reach full height, shifting the title's
-     own position — recheck the gap once it (and the media) have settled.
-     setTimeout rather than transitionend/rAF alone: both are suspended
-     on a backgrounded tab, and this still has to run there too. A
-     second, later recheck catches the case where this selection follows
-     closely on another project's own close (or hide) transition, which
-     can still be in flight at 450ms and throw off the first reading —
-     switching projects quickly is a real interaction, not just a test
-     artifact. */
-  setTimeout(updateMenuPosition,450);
-  setTimeout(updateMenuPosition,950);
-
-  document.getElementById('stripZone').classList.add('show');
+/* the strip only ever swaps its content while fully transparent */
+let stripTimer=null;
+function fillStrip(proj){
   stripEl.innerHTML='';
   stripEl.scrollLeft=0;
   if(!proj.media?.length){
@@ -853,13 +773,174 @@ function selectProject(i,{pushUrl=true}={}){
   }else{
     renderStrip(proj.media);
   }
+  updateNextLinkVisibility();
+}
+function clearStrip(){
+  stripZoneEl.classList.remove('show');
+  clearTimeout(stripTimer);
+  stripTimer=setTimeout(()=>{stripEl.innerHTML='';stripTimer=null;},FADE);
+}
+function showStrip(proj){
+  clearTimeout(stripTimer);
+  if(stripZoneEl.classList.contains('show')&&stripEl.children.length){
+    stripZoneEl.classList.remove('show');
+    stripTimer=setTimeout(()=>{
+      stripTimer=null;
+      fillStrip(proj);
+      stripZoneEl.classList.add('show');
+    },FADE);
+  }else{
+    fillStrip(proj);
+    stripZoneEl.classList.add('show');
+  }
+}
+
+/* #menu's layout is only ever changed while its transform is cleared and
+   transitions are off, then animated back with FLIP — so the title glides
+   from where it was to where it lands, and nothing re-flows mid-motion */
+function freezeMenu(){
+  menuEl.style.transition='none';
+  menuEl.style.transform='';
+  void menuEl.offsetHeight;
+}
+function playFlip(row,beforeTop){
+  const delta=beforeTop-row.getBoundingClientRect().top;
+  if(Math.abs(delta)>.5){
+    menuEl.style.transform=`translateX(-50%) translateY(${delta}px)`;
+    void menuEl.offsetHeight;
+  }
+  menuEl.style.transition='';
+  menuEl.style.transform='';
+}
+
+/* open layout, committed in one go: only the selected entry, top-anchored
+   20px under the media, its description capped to the room above "back"
+   (scrolling internally past that) and centred in whatever room is left */
+function layoutMenuOpen(){
+  const wrap=rowOf(selectedIdx);
+  document.querySelectorAll('#menu .menu-proj').forEach(w=>{
+    const own=w===wrap;
+    w.classList.toggle('gone',!own);
+    if(!own)w.classList.add('hidden');
+    const b=w.querySelector('.proj-body');
+    b.classList.toggle('open',own);
+    if(!own){b.classList.remove('shown');b.style.marginTop='';}
+  });
+  const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||10;
+  const top=stripZoneEl.getBoundingClientRect().bottom+20;
+  const backRoom=closeBtnEl.getBoundingClientRect().height+16;
+  menuEl.style.bottom='auto';
+  menuEl.style.top=top+'px';
+  menuEl.style.maxHeight=Math.max(80,innerHeight-top-pad-backRoom)+'px';
+  menuEl.scrollTop=0;
+  if(!wrap)return;
+  const body=wrap.querySelector('.proj-body');
+  const desc=wrap.querySelector('.proj-desc');
+  body.style.marginTop='';
+  if(desc){
+    desc.style.maxHeight='';desc.style.overflowY='';
+    const overflow=menuEl.scrollHeight-menuEl.clientHeight;
+    if(overflow>1){ // >1: sub-pixel line heights round scrollHeight up by 1
+      desc.style.maxHeight=Math.max(40,desc.offsetHeight-overflow)+'px';
+      desc.style.overflowY='auto';
+    }
+  }
+  const rowBottom=wrap.querySelector('.menu-proj-row').getBoundingClientRect().bottom;
+  const gap=closeBtnEl.getBoundingClientRect().top-rowBottom-body.offsetHeight;
+  if(gap/2>14)body.style.marginTop=gap/2+'px';
+}
+function layoutMenuClosed(){
+  document.querySelectorAll('#menu .menu-proj').forEach(w=>{
+    w.classList.remove('gone');
+    const b=w.querySelector('.proj-body');
+    b.classList.remove('open','shown');
+    b.style.marginTop='';
+    const d=b.querySelector('.proj-desc');
+    if(d){d.style.maxHeight='';d.style.overflowY='';}
+  });
+  menuEl.style.top='';
+  menuEl.style.bottom='';
+  menuEl.style.maxHeight='';
+}
+function relayoutMenu(){
+  freezeMenu();
+  if(selectedIdx!==null)layoutMenuOpen();
+  menuEl.style.transition='';
+}
+
+/* close: description, media and "back" fade out; once they're gone the
+   list is restored in one instant commit, the title glides back into its
+   place in the index and the other entries fade in around it */
+function closeProject({pushUrl=true}={}){
+  if(selectedIdx===null)return;
+  const token=++navToken;
+  const row=rowOf(selectedIdx);
+  selectedIdx=null;
+  if(cvOpen)toggleCV(false);
+  nextLinkTarget=null;
+  updateNextLinkVisibility();
+  closeBtnEl.classList.remove('show');
+  clearStrip();
+  document.querySelectorAll('#menu .proj-body.shown').forEach(b=>b.classList.remove('shown'));
+  scheduleMenuIdle(); // "back" sits outside #menu, so closing via it never fires mouseenter/leave on #menu itself
+  if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
+
+  setTimeout(()=>{
+    if(token!==navToken)return;
+    const visible=isShowing(row);
+    const before=visible?row.getBoundingClientRect().top:0;
+    freezeMenu();
+    document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
+    document.querySelectorAll('#menu .menu-proj').forEach(w=>{if(w!==row||!visible)w.classList.add('hidden');});
+    layoutMenuClosed();
+    if(visible)playFlip(row,before);
+    else menuEl.style.transition='';
+    void menuEl.offsetHeight;
+    document.querySelectorAll('#menu .menu-proj.hidden').forEach(w=>w.classList.remove('hidden'));
+  },FADE);
+}
+
+/* open (or switch): the other entries / the previous project fade out;
+   once invisible the open layout is committed in one go, the title glides
+   up under the media (or, switching, the new one fades in there) and the
+   description fades in last, already at its final size */
+function selectProject(i,{pushUrl=true}={}){
+  if(selectedIdx===i)return;
+  const token=++navToken;
+  const wasOpen=selectedIdx!==null;
+  selectedIdx=i;
+  scheduleMenuIdle(); // shows #menu at full opacity and, since selectedIdx is now set, never schedules it to dim again
+  const row=rowOf(i);
+  document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
+  row?.querySelector('a[data-idx]').classList.add('active');
+  if(cvOpen)toggleCV(false);
+
+  const proj=projects[i];
+  document.querySelectorAll('#menu .menu-proj').forEach(w=>{if(w!==row||wasOpen)w.classList.add('hidden');});
+  document.querySelectorAll('#menu .proj-body.shown').forEach(b=>b.classList.remove('shown'));
+  closeBtnEl.classList.add('show');
+  showStrip(proj);
 
   const pos=menuOrder.indexOf(i);
   nextLinkTarget=(pos!==-1&&menuOrder.length>1)?menuOrder[(pos+1)%menuOrder.length]:null;
-  nextLinkEl.classList.toggle('show',false);
-  updateNextLinkVisibility();
+  nextLinkEl.classList.remove('show');
 
   if(pushUrl&&proj.slug)history.pushState({idx:i},'','#'+proj.slug);
+
+  setTimeout(()=>{
+    if(token!==navToken||!row)return;
+    const visible=isShowing(row);
+    const before=visible?row.getBoundingClientRect().top:0;
+    freezeMenu();
+    if(!visible)row.classList.add('hidden');
+    layoutMenuOpen();
+    if(visible)playFlip(row,before);
+    else menuEl.style.transition='';
+    void row.offsetHeight;
+    row.classList.remove('hidden');
+    const body=row.querySelector('.proj-body');
+    setTimeout(()=>{if(token===navToken)body.classList.add('shown');},visible?200:80);
+  },FADE);
 }
 
 /* render media into #strip as a single horizontal row of square tiles */
@@ -872,7 +953,7 @@ function createMediaEl(m){
   if(m.type==='image'){
     const img=document.createElement('img');
     img.className='strip-item';
-    img.addEventListener('load',()=>{img.classList.add('show');updateNextLinkVisibility();updateMenuPosition();});
+    img.addEventListener('load',()=>{img.classList.add('show');updateNextLinkVisibility();});
     img.src=m.url;
     return img;
   }
@@ -883,7 +964,7 @@ function createMediaEl(m){
     vid.disablePictureInPicture=true;
     vid.controlsList='nodownload noremoteplayback';
     vid.preload='none';
-    vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();updateMenuPosition();});
+    vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();});
     vid.addEventListener('loadedmetadata',()=>{if(vid.duration>=18)vid.controls=true;});
     // lazy: load src only when scrolled near, within the strip itself
     // rather than the viewport, since this is a horizontally-scrolling
@@ -913,121 +994,10 @@ nextLinkEl.addEventListener('click',e=>{
   if(nextLinkTarget!==null)selectProject(nextLinkTarget);
 });
 
-/* while a project is open, every other entry disappears — only the
-   selected name + its description stay in the index, so there's never
-   enough text left for any of it to reach the media above. "back" is
-   static HTML (like "next project"), pinned to its own corner rather
-   than part of #menu's flow, so it's toggled here, not rebuilt. */
+/* "back" is static HTML (like "next project"), pinned to its own spot
+   rather than part of #menu's flow */
 const closeBtnEl=document.getElementById('backBtn');
 closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
-function updateProjectListVisibility(){
-  document.querySelectorAll('.menu-proj').forEach(wrap=>{
-    const a=wrap.querySelector('a[data-idx]');
-    const idx=a?Number(a.dataset.idx):null;
-    /* the selected row is handled first and unconditionally: it must
-       never carry a height cap left over from an earlier hide/reveal,
-       no matter which state it's coming from, since its description is
-       either about to grow or already has */
-    if(idx===selectedIdx){
-      wrap.classList.remove('hidden');
-      wrap.style.maxHeight='none';
-      return;
-    }
-    const isHidden=wrap.classList.contains('hidden');
-    if(selectedIdx===null&&isHidden){
-      wrap.style.maxHeight=wrap.scrollHeight+'px';
-      wrap.classList.remove('hidden');
-    }else if(selectedIdx!==null&&!isHidden){
-      wrap.style.maxHeight=wrap.scrollHeight+'px';
-      /* a forced synchronous reflow, not requestAnimationFrame — rAF is
-         throttled to nothing on a backgrounded/unfocused tab, which
-         would leave this fixed at its full height, never collapsing */
-      void wrap.offsetHeight;
-      wrap.classList.add('hidden');
-      wrap.style.maxHeight='0px';
-    }
-  });
-  closeBtnEl.classList.toggle('show',selectedIdx!==null);
-}
-
-/* the index is always top-anchored to a fixed point when a project is
-   open — the name always lands exactly 20px under the media, instead
-   of floating at whatever height a bottom-anchored, upward-growing box
-   happens to put it at for that particular description's length.
-   Closed (the full list), it reverts to its normal CSS bottom anchor.
-   Switching between the two — a different anchor edge entirely — can't
-   itself be transitioned, so this uses FLIP: jump to the new position
-   instantly, then undo that jump with a transform that *does*
-   transition, so it plays as one continuous move. */
-function updateMenuPosition(){
-  const beforeTop=menuEl.getBoundingClientRect().top;
-  const prevTransition=menuEl.style.transition;
-  menuEl.style.transition='none';
-
-  let capHeight=null;
-  if(selectedIdx===null){
-    menuEl.style.top='';
-    menuEl.style.bottom='';
-  }else{
-    const screenPad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||10;
-    const top=stripEl.getBoundingClientRect().bottom+20; // the media→title gap, unrelated to screen padding
-    menuEl.style.bottom='auto';
-    menuEl.style.top=Math.max(0,top)+'px';
-    /* "back" sits centred in that same bottom padding, independent of
-       #menu's own flow — its height has to be reserved here too, or a
-       long description can grow straight down into it */
-    const backRoom=closeBtnEl.getBoundingClientRect().height+16;
-    capHeight=Math.max(80,window.innerHeight-top-screenPad-backRoom);
-  }
-  menuEl.style.maxHeight=capHeight?capHeight+'px':'';
-  void menuEl.offsetHeight; // commit the new anchor instantly, transition-free
-
-  /* the description is the one part with no natural ceiling — if even
-     the capped #menu still can't fit it (the longest description on
-     the narrowest real phone), it scrolls internally rather than
-     pushing "back" past the bottom of the screen */
-  const wrap=selectedIdx===null?null:document.querySelector('.menu-proj-row a.active')?.closest('.menu-proj');
-  const desc=wrap?wrap.querySelector('.proj-desc'):null;
-  const body=wrap?wrap.querySelector('.proj-body'):null;
-  if(desc){
-    desc.style.transition='none';
-    desc.style.maxHeight='';desc.style.overflowY='';
-    void desc.offsetHeight;
-    const overflow=menuEl.scrollHeight-menuEl.clientHeight;
-    if(overflow>0){
-      const newHeight=Math.max(40,desc.getBoundingClientRect().height-overflow);
-      desc.style.maxHeight=newHeight+'px';
-      desc.style.overflowY='auto';
-    }
-    void desc.offsetHeight;
-    desc.style.transition='';
-  }
-  /* the description block (everything under the title) sits centred in
-     whatever room is actually left between the title and "back" —
-     measured against "back"'s real position rather than the
-     approximate capHeight, so the two gaps land exactly equal. 14
-     matches .proj-body.open's own margin-top — read from the CSS
-     default rather than getComputedStyle, which right after opening
-     could still be mid-transition and report an in-between value */
-  if(body){
-    const defaultMarginTop=14;
-    const rowBottom=wrap.querySelector('.menu-proj-row').getBoundingClientRect().bottom;
-    const backTop=closeBtnEl.getBoundingClientRect().top;
-    const bodyHeight=body.getBoundingClientRect().height;
-    const extra=Math.max(0,(backTop-rowBottom-bodyHeight)/2-defaultMarginTop);
-    body.style.marginTop=extra>0?(defaultMarginTop+extra)+'px':'';
-  }
-
-  const afterTop=menuEl.getBoundingClientRect().top;
-  const delta=beforeTop-afterTop;
-  menuEl.style.transform=delta?`translateX(-50%) translateY(${delta}px)`:'translateX(-50%)';
-  void menuEl.offsetHeight; // commit the FLIP offset, still transition-free
-
-  menuEl.style.transition=prevTransition||'opacity .6s ease';
-  if(!menuEl.style.transition.includes('transform'))menuEl.style.transition+=',transform .4s ease';
-  menuEl.style.transform='translateX(-50%)';
-}
-window.addEventListener('resize',updateMenuPosition,{passive:true});
 
 loadFromSanity();
 </script>
