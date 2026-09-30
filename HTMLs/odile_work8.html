@@ -76,40 +76,27 @@
   #siteTitle{color:var(--fg);cursor:pointer;flex-shrink:0;}
   #siteTitle.active{font-weight:700;}
 
-  /* opens toward its own measured height, exactly like .proj-body below —
-     a fixed cap would reach its real height early and idle for the rest,
-     the one thing this whole rebuild was told to never let happen again */
-  #cv{
-    max-height:0;overflow:hidden;
-    transition:max-height .4s ease,margin-top .4s ease;
+  /* ── INFO — opened from Ding: the CV broken into fragments that land
+     somewhere new on every opening, some of them turned on their side,
+     drifting a few pixels; the images and the index step back behind */
+  /* a veil of the page's own grey settles behind the fragments, so
+     whatever is underneath recedes evenly, hidden things stay hidden */
+  #info{position:fixed;inset:0;z-index:95;pointer-events:none;background:rgba(128,128,128,0);transition:background-color .5s ease;}
+  #info.on{pointer-events:auto;cursor:pointer;background:rgba(128,128,128,.9);}
+  body.info #topZone{z-index:96;}
+  #info .frag{
+    position:absolute;left:0;top:0;white-space:nowrap;
+    opacity:0;transition:opacity .6s ease;
   }
-  #cv.show{margin-top:28px;}
-  #cvInner{
-    display:flex;flex-direction:column;align-items:center;gap:20px;
-    overflow-y:auto;
-    /* capped in JS to the real gap above #menu — a flat vh guess can't
-       know where the (variable-height) index actually starts, and the
-       two fixed panels would overlap whenever the CV runs long */
-    max-height:calc(100vh - 120px);
-    opacity:0;transition:opacity .25s ease;
-  }
-  #cv.show #cvInner{opacity:1;transition-delay:.1s;}
-  #cvInner::-webkit-scrollbar{display:none;}
-  .cv-bio{display:flex;flex-direction:column;align-items:center;gap:3px;}
-  .cv-bio a,.cv-bio a:visited,#cv a,#cv a:visited{color:var(--fg);text-decoration:none;}
-  .cv-section{display:flex;flex-direction:column;align-items:center;gap:2px;}
-  .cv-head{font-weight:700;margin-bottom:4px;}
-  .cv-loc{margin-top:-2px;margin-bottom:4px;}
-  /* the rows share one block, sized to the widest row and centered as a
-     unit, so every row stretches to that same width — date/company then
-     land in identical columns instead of each row centering on its own
-     (different) content width and drifting sideways row to row */
-  .cv-rows{display:flex;flex-direction:column;gap:2px;}
-  .cv-row{display:flex;gap:12px;max-width:100%;}
-  .cv-row .cv-date{flex-shrink:0;width:100px;text-align:right;}
-  .cv-row .cv-company{flex-shrink:0;width:150px;}
-  .cv-row .cv-company .bold-safe{justify-items:start;text-align:left;}
-  .cv-row .cv-role{flex-shrink:0;}
+  #info.on .frag{opacity:1;animation:drift var(--dur,10s) ease-in-out var(--del,0s) infinite alternate;}
+  @keyframes drift{from{translate:0 0}to{translate:var(--dx,0) var(--dy,0)}}
+  #info a,#info a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
+  #info a:hover{text-decoration:underline;text-underline-offset:.12em;text-decoration-thickness:1px;}
+  #info .big{font-size:min(4.2vw,56px);line-height:.98;letter-spacing:-.015em;}
+  #info .big>*{display:block;}
+  #info .h{font-weight:700;}
+  #info .vert{writing-mode:vertical-rl;transform:rotate(180deg);}
+  #info .rows{display:grid;grid-template-columns:auto auto auto;gap:0 14px;margin-left:10px;}
 
   /* ── MIDDLE — the open project's media, one horizontal row ──
      dead-centre: the room a long description needs below is protected
@@ -149,7 +136,8 @@
      spot, same as #menu's bottom padding, rather than tied to the
      media's position */
   .next-link{
-    position:fixed;right:var(--pad);bottom:var(--pad);z-index:70;
+    position:fixed;right:var(--pad);top:50%;z-index:70;
+    writing-mode:vertical-rl;transform:translateY(-50%);background:var(--bg);padding:6px 3px;
     opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
   .next-link.show{opacity:1;pointer-events:auto;}
@@ -222,7 +210,10 @@
     opacity:0;pointer-events:none;transition:opacity .5s ease;
   }
   .corner.on{opacity:1;}
-  .corner.bl{bottom:var(--pad);left:var(--pad);}
+  /* off the centre axis: the counter reads up the left edge, "next
+     project" down the right one, each on a patch of the page's grey so
+     it stays legible over the full-bleed media */
+  .corner.bl{left:var(--pad);top:50%;writing-mode:vertical-rl;transform:translateY(-50%) rotate(180deg);background:var(--bg);padding:6px 3px;}
 
   /* ── INDEX — category heads in the same type as the names, only bold ── */
   .menu-cat{font-weight:700;padding:2px 0;margin-top:14px;}
@@ -247,15 +238,12 @@
   @media (hover:hover){
     .ext-link:hover{font-weight:700;}
     #siteTitle:hover{font-weight:700;}
-    .cv-bio a:hover{font-weight:700;}
     .menu-proj-row a:hover{font-weight:700;}
     .proj-desc-link:hover{color:var(--fg);}
   }
 
   @media (max-width:900px){
     #topZone,#menu{width:min(92vw,520px);}
-    .cv-row{flex-wrap:wrap;justify-content:center;}
-    .cv-row .cv-date,.cv-row .cv-company{text-align:center;width:auto;}
     #stripZone{height:min(52vh,520px);}
   }
 
@@ -269,21 +257,15 @@
     html,body{line-height:1.2;}
     #topZone{top:calc(var(--pad) + env(safe-area-inset-top));width:min(88vw,380px);}
     #menu{bottom:calc(var(--pad) + env(safe-area-inset-bottom));width:min(88vw,380px);}
-    .next-link,.close-link,.corner.bl{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
+    .close-link{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
     .menu-cat{padding:7px 0;margin-top:8px;}
     #stripZone{height:min(42vh,380px);}
 
     /* real tap targets on the index — a thumb needs more than a text
        baseline to land on, even if the type itself stays compact */
     .menu-proj-row a{padding:7px 0;}
-    .cv-bio a{padding:3px 0;}
 
-    /* each role becomes one clean stacked entry — date, then company,
-       then role — instead of forcing a 3-column row into a narrow
-       screen where it wraps unpredictably mid-word */
-    .cv-rows{gap:16px;}
-    .cv-row{flex-direction:column;align-items:center;gap:2px;}
-    .cv-row .cv-role{color:var(--dim1);}
+    #info .big{font-size:6.4vw;}
 
     /* the filmstrip reads like a native card carousel, one media
        centring under a thumb per swipe rather than free-scrolling */
@@ -347,32 +329,27 @@
 <!-- TOP — Ding + the merged CV panel -->
 <div id="topZone">
   <div id="siteTitle">Ding</div>
-  <div id="cv">
-    <div id="cvInner">
-      <div class="cv-bio">
-        <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
-        <a href="#" id="emailCopy">thomasding227@gmail.com</a>
-        <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
-      </div>
-      <div class="cv-section">
-        <div class="cv-head">Thomas Ding</div>
-        <div class="cv-loc">B.2004 Paris, France</div>
-      </div>
-      <div class="cv-section">
-        <div class="cv-head">Experience</div>
-        <div class="cv-rows">
-          <div class="cv-row"><span class="cv-date">2026 — now</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">multi-disciplinary designer</span></div>
-          <div class="cv-row"><span class="cv-date">2025 — 2026</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">creative intern</span></div>
-          <div class="cv-row"><span class="cv-date">2023 — 2025</span><span class="cv-company"><a href="https://www.womenmanagement.com/paris/home.web" target="_blank" rel="noopener" class="ext-link">Women Management</a></span><span class="cv-role">graphic designer &amp; image editor</span></div>
-          <div class="cv-row"><span class="cv-date">2022 — 2023</span><span class="cv-company">Dream Factory</span><span class="cv-role">graphic designer</span></div>
-        </div>
-      </div>
-      <div class="cv-section">
-        <div class="cv-head">Services</div>
-        <div>Art direction, graphic design, image, video, AI</div>
-      </div>
+</div>
+
+<!-- INFO — the CV as floating fragments, placed anew on each opening -->
+<div id="info" aria-hidden="true">
+  <div class="frag big">
+    <span>Thomas Ding</span>
+    <a href="#" id="emailCopy">thomasding227@gmail.com</a>
+    <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a>
+  </div>
+  <div class="frag">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></div>
+  <div class="frag">B.2004 Paris, France</div>
+  <div class="frag vert">
+    <span class="h">Experience</span>
+    <div class="rows">
+      <span>2026 — now</span><a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a><span>multi-disciplinary designer</span>
+      <span>2025 — 2026</span><a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a><span>creative intern</span>
+      <span>2023 — 2025</span><a href="https://www.womenmanagement.com/paris/home.web" target="_blank" rel="noopener">Women Management</a><span>graphic designer &amp; image editor</span>
+      <span>2022 — 2023</span><span>Dream Factory</span><span>graphic designer</span>
     </div>
   </div>
+  <div class="frag vert"><span class="h">Services</span>&nbsp;&nbsp;Art direction, graphic design, image, video, AI</div>
 </div>
 
 <!-- MIDDLE — the open project's media, scrolling horizontally -->
@@ -472,8 +449,6 @@ function hideLoader(){
 
 /* wheel: scrolls whichever panel is actually open. With no ring on this
    page there is nothing for an idle wheel to do. */
-const cvPanel=document.getElementById('cv');
-const cvInnerEl=document.getElementById('cvInner');
 const stripEl=document.getElementById('strip');
 let selectedIdx=null;
 /* every open/close/switch is fade-out → one instant layout commit →
@@ -524,10 +499,7 @@ function stepStrip(dir){
 
 window.addEventListener('wheel',e=>{
   const dy=e.deltaMode===1?e.deltaY*40:e.deltaY;
-  if(cvOpen){
-    if(!cvInnerEl.contains(e.target))cvInnerEl.scrollTop+=dy; // over the CV itself it already scrolls natively
-    return;
-  }
+  if(cvOpen)return;
   if(selectedIdx===null&&e.target.closest?.('#menu'))return;
   if(Math.abs(e.deltaX)>Math.abs(dy)){stopStripScroll();return;} // a horizontal trackpad swipe scrolls the strip natively
   const desc=e.target.closest?.('.proj-desc');
@@ -542,6 +514,7 @@ stripEl.addEventListener('touchstart',stopStripScroll,{passive:true});
    declarations, so this can sit above them */
 window.addEventListener('keydown',e=>{
   if(e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='Escape'&&cvOpen){toggleCV(false);return;}
   if(e.key==='Escape'&&selectedIdx!==null){closeProject();return;}
   if(selectedIdx!==null&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){
     e.preventDefault();
@@ -600,21 +573,45 @@ if(matchMedia('(hover:hover)').matches){
   menuEl.addEventListener('mouseleave',scheduleMenuIdle);
 }
 
-/* the CV scrolls internally within the real gap above the index — only
-   ever measured with the list in its settled, closed layout */
-function capCvInnerHeight(){
-  const top=siteTitle.getBoundingClientRect().bottom+28;
-  const menuTop=menuEl.getBoundingClientRect().top;
-  cvInnerEl.style.maxHeight=Math.max(80,menuTop-top-20)+'px';
+/* ── INFO ── every opening deals the fragments out again: random spots
+   below Ding, biggest first, each kept clear of the ones already placed
+   (best of a few dozen tries), each with its own slow drift */
+const infoEl=document.getElementById('info');
+const frags=[...infoEl.querySelectorAll('.frag')];
+function scatter(){
+  const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||24;
+  const top=siteTitle.getBoundingClientRect().bottom+18;
+  const placed=[];
+  const gap=16;
+  const hit=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)+gap-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)+gap-Math.max(a.y,b.y));
+  [...frags].sort((a,b)=>b.offsetWidth*b.offsetHeight-a.offsetWidth*a.offsetHeight).forEach(f=>{
+    const w=f.offsetWidth,h=f.offsetHeight;
+    let best=null,worst=Infinity;
+    for(let t=0;t<80&&worst>0;t++){
+      const c={x:pad+Math.random()*Math.max(0,innerWidth-2*pad-w),y:top+Math.random()*Math.max(0,innerHeight-top-pad-h),w,h};
+      const o=placed.reduce((n,p)=>n+hit(c,p),0);
+      if(o<worst){worst=o;best=c;}
+    }
+    placed.push(best);
+    f.style.left=Math.round(best.x)+'px';
+    f.style.top=Math.round(best.y)+'px';
+    f.style.setProperty('--dx',(Math.random()*14-7).toFixed(1)+'px');
+    f.style.setProperty('--dy',(Math.random()*14-7).toFixed(1)+'px');
+    f.style.setProperty('--dur',(7+Math.random()*7).toFixed(1)+'s');
+    f.style.setProperty('--del',(-Math.random()*8).toFixed(1)+'s');
+  });
 }
 let cvOpen=false;
 function toggleCV(force){
   cvOpen=force!==undefined?force:!cvOpen;
-  cvPanel.classList.toggle('show',cvOpen);
-  if(cvOpen)capCvInnerHeight();
-  cvPanel.style.maxHeight=cvOpen?cvInnerEl.scrollHeight+'px':'0px';
+  if(cvOpen)scatter();
+  frags.forEach((f,k)=>{f.style.transitionDelay=cvOpen?(k*110)+'ms':'0ms';});
+  infoEl.classList.toggle('on',cvOpen);
+  infoEl.setAttribute('aria-hidden',String(!cvOpen));
+  document.body.classList.toggle('info',cvOpen);
   siteTitle.classList.toggle('active',cvOpen);
 }
+infoEl.addEventListener('click',e=>{if(!e.target.closest('a'))toggleCV(false);});
 const siteTitle=document.getElementById('siteTitle');
 siteTitle.tabIndex=0;
 siteTitle.setAttribute('role','button');
@@ -635,7 +632,7 @@ siteTitle.addEventListener('click',()=>{
 });
 
 window.addEventListener('resize',()=>{
-  if(cvPanel.classList.contains('show')){capCvInnerHeight();cvPanel.style.maxHeight=cvInnerEl.scrollHeight+'px';}
+  if(cvOpen)scatter();
   relayoutMenu();
   if(homeMode){const f=homeWidth()?stripEl.scrollLeft/homeWidth():1;placeStripZone();stripEl.scrollLeft=homeWidth()*f;}
   updateNextLinkVisibility();
@@ -1293,7 +1290,7 @@ nextLinkEl.addEventListener('click',e=>{
 const closeBtnEl=document.getElementById('backBtn');
 closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
 
-[siteTitle,closeBtnEl,nextLinkEl,...document.querySelectorAll('#cv a')].forEach(boldSafe);
+[siteTitle,closeBtnEl].forEach(boldSafe);
 
 /* ── COUNTER ── which media of the open project is on screen */
 const cornerBL=document.getElementById('cornerBL');
