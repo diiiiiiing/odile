@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ODILE — WORK</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
+<link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
+<style>
+  :root{
+    /* one palette, no modes — same as work4 */
+    --bg:#808080; --fg:#000;
+    --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
+    --pad:10px;
+    --font:-apple-system,'Helvetica Neue',sans-serif;
+    --fs:10px;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    width:100%;height:100%;
+    background:var(--bg);color:var(--fg);
+    font-family:var(--font);font-weight:400;
+    font-size:var(--fs);line-height:1;
+    letter-spacing:.02em;text-transform:uppercase;
+    overflow:hidden;
+    /* a touch device can flash a link's tap state from the same
+       touch-drag that starts a scroll — this is decorative, not a focus
+       indicator, so it's safe to drop everywhere */
+    -webkit-tap-highlight-color:transparent;
+  }
+  body{animation:fadeIn .6s ease both;}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  #overlay{position:fixed;inset:0;background:var(--bg);z-index:1000;
+    opacity:0;pointer-events:none;transition:opacity .7s ease;}
+  #overlay.on{opacity:1;pointer-events:auto;}
+
+  /* :visited is stated explicitly everywhere a link appears: the browser's
+     own default (a:visited{color:purple}, specificity 0,0,1,1) outranks a
+     plain single-class rule, so a link the visitor has actually clicked
+     before — their own Instagram, say — would otherwise go purple */
+  .ext-link,.ext-link:visited{color:var(--fg);text-decoration:none;}
+
+  /* bold on hover/active without the text changing width: an invisible
+     bold copy (data-label) sits in the same grid column, so the box is
+     always as wide as the bold version and centred/right-pinned text
+     never twitches sideways */
+  .bold-safe{display:inline-grid;justify-items:center;text-align:center;}
+  .bold-safe::after{
+    content:attr(data-label);font-weight:700;
+    height:0;overflow:hidden;visibility:hidden;
+    pointer-events:none;user-select:none;
+  }
+
+  a:focus-visible,#siteTitle:focus-visible{outline:1px solid var(--fg);outline-offset:3px;}
+
+  /* ══════════════════════════════════════════════════════
+     THREE ZONES, ALL CENTERED, EACH PINNED TO ITS OWN EDGE —
+     one design at every width, no separate mobile drawers.
+     TOP: Ding + the merged CV panel (opens directly, one click).
+     MIDDLE: a horizontal filmstrip of the open project's media.
+     BOTTOM: the project index, description opening inline.
+  ══════════════════════════════════════════════════════ */
+
+  /* ── TOP — Ding + CV ── */
+  #topZone{
+    position:fixed;top:var(--pad);left:50%;transform:translateX(-50%);
+    z-index:70;
+    display:flex;flex-direction:column;align-items:center;
+    width:min(86vw,480px);
+    max-height:calc(100vh - var(--pad)*2);
+  }
+  #siteTitle{color:var(--fg);cursor:pointer;flex-shrink:0;}
+  #siteTitle.active{font-weight:700;}
+
+  /* opens toward its own measured height, exactly like .proj-body below —
+     a fixed cap would reach its real height early and idle for the rest,
+     the one thing this whole rebuild was told to never let happen again */
+  #cv{
+    max-height:0;overflow:hidden;
+    transition:max-height .4s ease,margin-top .4s ease;
+  }
+  #cv.show{margin-top:28px;}
+  #cvInner{
+    display:flex;flex-direction:column;align-items:center;gap:20px;
+    overflow-y:auto;
+    /* capped in JS to the real gap above #menu — a flat vh guess can't
+       know where the (variable-height) index actually starts, and the
+       two fixed panels would overlap whenever the CV runs long */
+    max-height:calc(100vh - 120px);
+    opacity:0;transition:opacity .25s ease;
+  }
+  #cv.show #cvInner{opacity:1;transition-delay:.1s;}
+  #cvInner::-webkit-scrollbar{display:none;}
+  .cv-bio{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .cv-bio a,.cv-bio a:visited,#cv a,#cv a:visited{color:var(--fg);text-decoration:none;}
+  .cv-section{display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .cv-head{font-weight:700;margin-bottom:4px;}
+  .cv-loc{margin-top:-2px;margin-bottom:4px;}
+  /* the rows share one block, sized to the widest row and centered as a
+     unit, so every row stretches to that same width — date/company then
+     land in identical columns instead of each row centering on its own
+     (different) content width and drifting sideways row to row */
+  .cv-rows{display:flex;flex-direction:column;gap:2px;}
+  .cv-row{display:flex;gap:12px;max-width:100%;}
+  .cv-row .cv-date{flex-shrink:0;width:100px;text-align:right;}
+  .cv-row .cv-company{flex-shrink:0;width:150px;}
+  .cv-row .cv-company .bold-safe{justify-items:start;text-align:left;}
+  .cv-row .cv-role{flex-shrink:0;}
+
+  /* ── MIDDLE — the open project's media, one horizontal row ──
+     dead-centre: the room a long description needs below is protected
+     separately, by layoutMenuOpen()'s own internal-scroll fallback,
+     not by nudging the media off-centre */
+  #stripZone{
+    position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);
+    z-index:40;
+    display:flex;justify-content:center;align-items:center;
+    height:min(60vh,700px);
+    opacity:0;pointer-events:none;
+    transition:opacity .26s ease;
+  }
+  #stripZone.show{opacity:1;pointer-events:auto;}
+  #strip{
+    display:flex;gap:var(--pad);height:100%;max-width:calc(100vw - var(--pad)*2);
+    overflow-x:auto;overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  #strip::-webkit-scrollbar{display:none;}
+  .strip-item{
+    height:100%;width:auto;flex:0 0 auto;
+    display:block;
+    opacity:0;translate:0 10px;
+    transition:opacity .5s ease,translate .7s cubic-bezier(.22,1,.36,1);
+    -webkit-user-drag:none;user-select:none;
+  }
+  video.strip-item{aspect-ratio:16/9;}
+  .strip-item.show{opacity:1;translate:0 0;}
+  .strip-item.ph{aspect-ratio:1/1;background:#d9d9d9;opacity:1;}
+  #stripEmpty{color:var(--fg);opacity:0;animation:phIn .4s ease .25s forwards;}
+  @keyframes phIn{to{opacity:1;}}
+
+  /* pinned to the bottom-right corner of the screen — its own fixed
+     spot, same as #menu's bottom padding, rather than tied to the
+     media's position */
+  .next-link{
+    position:fixed;right:var(--pad);bottom:var(--pad);z-index:70;
+    opacity:0;pointer-events:none;transition:opacity .3s ease;
+  }
+  .next-link.show{opacity:1;pointer-events:auto;}
+
+  /* ── BOTTOM — the project index ── */
+  #menu{
+    position:fixed;left:50%;bottom:var(--pad);transform:translateX(-50%);
+    z-index:70;
+    width:min(90vw,640px);
+    max-height:calc(100vh - var(--pad)*2);
+    display:flex;flex-direction:column;align-items:center;
+    overflow-y:auto;
+    transition:opacity .5s ease,transform .55s cubic-bezier(.22,1,.36,1);
+  }
+  #menu::-webkit-scrollbar{display:none;}
+  #menu.idle{opacity:.35;}
+
+  .menu-projects{display:flex;flex-direction:column;align-items:center;gap:0;}
+  .menu-proj{display:flex;flex-direction:column;align-items:center;gap:0;}
+  .menu-proj-row{display:flex;align-items:baseline;justify-content:center;}
+  .menu-proj-row a{
+    color:var(--fg);text-decoration:none;cursor:pointer;
+    white-space:nowrap;flex-shrink:0;
+    padding:2px 0;
+  }
+  .menu-proj-row a.active{font-weight:700;}
+
+  /* the description is laid out at its final size in one go and only
+     fades — no height animation, so nothing around it ever re-flows
+     mid-transition */
+  .proj-body{display:none;margin-top:14px;}
+  .proj-body.open{display:block;}
+  .proj-body-inner{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    text-align:center;
+    color:var(--dim1);
+    opacity:0;transition:opacity .35s ease;
+  }
+  .proj-body.shown .proj-body-inner{opacity:1;}
+  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:4px;scrollbar-width:none;}
+  .proj-desc::-webkit-scrollbar{display:none;}
+  /* a description long enough to scroll fades out at its lower edge until
+     it's read to the end, instead of stopping on a sliced line */
+  .proj-desc.fades:not(.at-end){
+    -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 22px),transparent);
+    mask-image:linear-gradient(to bottom,#000 calc(100% - 22px),transparent);
+  }
+  .proj-desc-line{text-transform:none;max-width:90ch;}
+  .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
+
+  /* other projects disappear while one is open — its own name+description
+     never has to share room with the rest of the list, so it never has
+     a reason to run into the media above it */
+  .menu-proj{transition:opacity .26s ease;}
+  .menu-proj.hidden{opacity:0;pointer-events:none;}
+  .menu-proj.gone{display:none;}
+  /* pinned to the bottom, centred — same fixed spot regardless of how
+     tall the open description is, rather than trailing the text and
+     landing wherever a short description happens to end */
+  .close-link{
+    position:fixed;left:50%;bottom:var(--pad);transform:translateX(-50%);z-index:70;
+    opacity:0;pointer-events:none;transition:opacity .3s ease;
+  }
+  .close-link.show{opacity:1;pointer-events:auto;}
+
+  /* ── CORNERS — quiet running metadata framing the three zones ── */
+  .corner{
+    position:fixed;z-index:60;color:var(--dim1);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+    opacity:0;pointer-events:none;transition:opacity .5s ease;
+  }
+  .corner.on{opacity:1;}
+  .corner.tl{top:var(--pad);left:var(--pad);}
+  .corner.tr{top:var(--pad);right:var(--pad);}
+  .corner.bl{bottom:var(--pad);left:var(--pad);}
+
+  /* ── INDEX — category heads, superscript years, hover focus ── */
+  .menu-cat{color:var(--dim1);font-size:.8em;letter-spacing:.1em;margin:16px 0 6px;}
+  .menu-cat:first-child{margin-top:0;}
+  .menu-proj-row{position:relative;}
+  .menu-year{
+    position:absolute;left:100%;top:2px;margin-left:4px;
+    font-size:.7em;color:var(--dim1);font-variant-numeric:tabular-nums;
+    transition:opacity .25s ease;pointer-events:none;
+  }
+  .menu-proj-row a.active+.menu-year{opacity:0;}
+  .menu-proj-row a{transition:opacity .25s ease;}
+  @media (hover:hover){
+    .menu-projects:has(.menu-proj-row a:hover) .menu-proj-row a:not(:hover){opacity:.3;}
+    .menu-projects:has(.menu-proj-row a:hover) .menu-year{opacity:.3;}
+  }
+
+  /* ── PREVIEW — the hovered project's cover, in the empty centre ── */
+  #preview{
+    position:fixed;left:50%;top:50%;width:0;height:0;z-index:30;
+    pointer-events:none;opacity:0;transition:opacity .3s ease;
+  }
+  #preview.on{opacity:1;}
+  #preview img{
+    position:absolute;left:0;top:0;translate:-50% -50%;
+    display:block;width:auto;max-width:56vw;object-fit:contain;
+    opacity:0;transition:opacity .35s ease;
+  }
+  #preview img.on{opacity:1;}
+  #previewCap{
+    position:absolute;left:0;top:0;translate:-50% 0;
+    color:var(--dim1);white-space:nowrap;font-variant-numeric:tabular-nums;
+  }
+
+  /* ── STRIP CURSOR — prev/next label trailing the pointer ── */
+  #cursorLabel{
+    position:fixed;left:0;top:0;z-index:80;pointer-events:none;
+    white-space:nowrap;opacity:0;transition:opacity .2s ease;
+    background:var(--bg);padding:3px 5px 2px;
+  }
+  #cursorLabel.on{opacity:1;}
+  #strip.steppable{cursor:pointer;}
+
+  /* hover only for devices that actually have one — on touch, :hover can
+     fire (and stick) from the same tap-drag that starts a scroll, making
+     project names/links flash bold mid-scroll */
+  @media (hover:hover){
+    .ext-link:hover{font-weight:700;}
+    #siteTitle:hover{font-weight:700;}
+    .cv-bio a:hover{font-weight:700;}
+    .menu-proj-row a:hover{font-weight:700;}
+    .proj-desc-link:hover{color:var(--fg);}
+  }
+
+  @media (max-width:900px){
+    #topZone,#menu{width:min(92vw,520px);}
+    .cv-row{flex-wrap:wrap;justify-content:center;}
+    .cv-row .cv-date,.cv-row .cv-company{text-align:center;width:auto;}
+    #stripZone{height:min(52vh,520px);}
+  }
+
+  /* ── PORTRAIT PHONE — same three centred zones, tuned for one-hand,
+     one-thumb use: bigger type, real tap targets, safe-area padding so
+     nothing sits under the notch or the home indicator, and the filmstrip
+     snaps like a native card carousel. Landscape keeps the tablet rules
+     above instead — this is deliberately portrait-only. ── */
+  @media (max-width:640px) and (orientation:portrait){
+    :root{--pad:10px;--fs:13px;}
+    html,body{line-height:1.2;}
+    #topZone{top:calc(var(--pad) + env(safe-area-inset-top));width:min(88vw,380px);}
+    #menu{bottom:calc(var(--pad) + env(safe-area-inset-bottom));width:min(88vw,380px);}
+    .next-link,.close-link,.corner.bl{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
+    .corner.tl,.corner.tr{top:calc(var(--pad) + env(safe-area-inset-top));}
+    .menu-year{top:7px;}
+    #stripZone{height:min(42vh,380px);}
+
+    /* real tap targets on the index — a thumb needs more than a text
+       baseline to land on, even if the type itself stays compact */
+    .menu-proj-row a{padding:7px 0;}
+    .cv-bio a{padding:3px 0;}
+
+    /* each role becomes one clean stacked entry — date, then company,
+       then role — instead of forcing a 3-column row into a narrow
+       screen where it wraps unpredictably mid-word */
+    .cv-rows{gap:16px;}
+    .cv-row{flex-direction:column;align-items:center;gap:2px;}
+    .cv-row .cv-role{color:var(--dim1);}
+
+    /* the filmstrip reads like a native card carousel, one media
+       centring under a thumb per swipe rather than free-scrolling */
+    #strip{scroll-snap-type:x mandatory;}
+    .strip-item{scroll-snap-align:center;}
+  }
+
+  /* ── LOADER — full-screen overlay; text reveal after it fades ─ */
+  #loader{
+    position:fixed;inset:0;z-index:900;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--bg);
+    opacity:1;transition:opacity 1.4s cubic-bezier(0.4,0,0.2,1);
+    pointer-events:auto;
+  }
+  #loader.loaded{opacity:0;pointer-events:none;}
+  @keyframes loader-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+  #loader svg{
+    width:min(74vw,74vh);height:min(74vw,74vh);
+    overflow:visible;
+    animation:loader-in 1.2s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  @media (max-width:640px) and (orientation:portrait){#loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}}
+  /* content hidden until loader reveals it */
+  #menu,#siteTitle{opacity:0;}
+  #siteTitle{transition:opacity .5s ease;}
+  #loader .cls-1{fill:var(--fg)!important;}
+  #loader .cls-2{stroke:var(--fg)!important;fill:none!important;}
+
+  @keyframes spin-ccw {to{transform:rotate(-360deg);}}
+  @keyframes snap-in  {to{opacity:1}}
+  @keyframes snap-out {from{opacity:1}to{opacity:0}}
+  @keyframes ci-in{from{opacity:0}to{opacity:var(--ci-op,1)}}
+  @keyframes ci-out{from{opacity:var(--ci-op,1)}to{opacity:0}}
+  #lg-circles{transform-origin:570.86px 570.86px;animation:spin-ccw 40s linear infinite;}
+  #lg-circles circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
+  #lg-circles .ci-9{--ci-op:.7;animation:ci-in .4s ease 0.00s both;}
+  #lg-circles .ci-8{--ci-op:.6;animation:ci-in .4s ease 0.09s both;}
+  #lg-circles .ci-7{--ci-op:.7;animation:ci-in .4s ease 0.18s both;}
+  #lg-circles .ci-6{--ci-op:.6;animation:ci-in .4s ease 0.27s both;}
+  #lg-circles .ci-5{--ci-op:.7;animation:ci-in .4s ease 0.36s both;}
+  #lg-circles .ci-4{--ci-op:.6;animation:ci-in .4s ease 0.45s both;}
+  #lg-circles .ci-3{--ci-op:.7;animation:ci-in .4s ease 0.54s both;}
+  #lg-circles .ci-2{--ci-op:.6;animation:ci-in .4s ease 0.63s both;}
+  #lg-circles .ci-1{--ci-op:.7;animation:ci-in .4s ease 0.72s both;}
+
+  /* motion-sensitive visitors keep every fade, but the title jumps to its
+     new place instead of gliding and the loader target stops spinning */
+  @media (prefers-reduced-motion:reduce){
+    #menu{transition:opacity .5s ease;}
+    #lg-circles{animation:none;}
+    .strip-item{translate:none;}
+  }
+</style>
+</head>
+<body>
+<div id="loader"></div>
+<div id="overlay"></div>
+<script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
+
+<!-- TOP — Ding + the merged CV panel -->
+<div id="topZone">
+  <div id="siteTitle">Ding</div>
+  <div id="cv">
+    <div id="cvInner">
+      <div class="cv-bio">
+        <span class="i-line">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span>
+        <a href="#" id="emailCopy">thomasding227@gmail.com</a>
+        <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener" class="ext-link">@diiiiiiiiiiiiing</a>
+      </div>
+      <div class="cv-section">
+        <div class="cv-head">Thomas Ding</div>
+        <div class="cv-loc">B.2004 Paris, France</div>
+      </div>
+      <div class="cv-section">
+        <div class="cv-head">Experience</div>
+        <div class="cv-rows">
+          <div class="cv-row"><span class="cv-date">2026 — now</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">multi-disciplinary designer</span></div>
+          <div class="cv-row"><span class="cv-date">2025 — 2026</span><span class="cv-company"><a href="https://unveil.fr" target="_blank" rel="noopener" class="ext-link">UNVEIL®</a></span><span class="cv-role">creative intern</span></div>
+          <div class="cv-row"><span class="cv-date">2023 — 2025</span><span class="cv-company"><a href="https://www.womenmanagement.com/paris/home.web" target="_blank" rel="noopener" class="ext-link">Women Management</a></span><span class="cv-role">graphic designer &amp; image editor</span></div>
+          <div class="cv-row"><span class="cv-date">2022 — 2023</span><span class="cv-company">Dream Factory</span><span class="cv-role">graphic designer</span></div>
+        </div>
+      </div>
+      <div class="cv-section">
+        <div class="cv-head">Services</div>
+        <div>Art direction, graphic design, image, video, AI</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MIDDLE — the open project's media, scrolling horizontally -->
+<div id="stripZone">
+  <div id="strip"></div>
+</div>
+<!-- pinned to the screen's own bottom-right corner — kept outside
+     #stripZone, whose transform would otherwise become the containing
+     block for this fixed-position link instead of the viewport -->
+<a href="#" id="nextProject" class="ext-link next-link">next project</a>
+<!-- bottom-left counterpart, same reason: a fixed spot regardless of
+     the open description's length, not part of #menu's own flow -->
+<a href="#" id="backBtn" class="ext-link close-link">back</a>
+
+<div id="cornerTL" class="corner tl"></div>
+<div id="cornerTR" class="corner tr"></div>
+<div id="cornerBL" class="corner bl"></div>
+<div id="preview"><img alt=""><img alt=""><div id="previewCap"></div></div>
+<div id="cursorLabel"></div>
+
+<!-- BOTTOM — the project index -->
+<div id="menu"></div>
+
+<script>
+/* loader — fetch SVG, add group IDs for CSS animation, inject inline.
+   Unchanged from work4: page-agnostic chrome. */
+const loaderEl=document.getElementById('loader');
+const loaderStart=Date.now();
+// filled once the SVG is parsed, read back by hideLoader() to mirror the
+// entrance stagger (inside-out) on the way out
+let tickExitPaths=[];
+fetch('./loadersvg.svg')
+  .then(r=>r.text())
+  .then(text=>{
+    const doc=new DOMParser().parseFromString(text,'image/svg+xml');
+    const svg=doc.documentElement;
+    const groups=[...svg.children].filter(n=>n.tagName==='g');
+    if(groups[0]){
+      groups[0].id='lg-circles';
+      [...groups[0].children].forEach((c,i)=>c.classList.add('ci-'+(i+1)));
+    }
+    // groups[1] is the ring of mouse ornaments — dropped per request, never
+    // appended to the DOM at all
+    if(groups[1])groups[1].remove();
+    const CX=570.86,CY=570.86,TOL=18;
+    const paths=[...svg.children].filter(n=>n.tagName==='path');
+    svg.style.cssText='position:fixed;top:-9999px;width:1px;height:1px;overflow:visible;';
+    document.body.appendChild(svg);
+    const radii=paths.map(p=>{
+      const b=p.getBBox();
+      const cx=b.x+b.width/2, cy=b.y+b.height/2;
+      return Math.round(Math.sqrt((cx-CX)**2+(cy-CY)**2)/TOL)*TOL;
+    });
+    document.body.removeChild(svg);
+    svg.style.cssText='';
+    const sortedR=[...new Set(radii)].sort((a,b)=>a-b);
+    const stepMap=Object.fromEntries(sortedR.map((r,i)=>[r,i]));
+    const maxStep=sortedR.length-1;
+    const STEP=0.04, START=0.05;
+    const STEP_OUT=0.035, START_OUT=0;
+    paths.forEach((p,i)=>{
+      const delay=(START+stepMap[radii[i]]*STEP).toFixed(3);
+      p.style.opacity='0';
+      p.style.animation=`snap-in 0.12s ease ${delay}s both`;
+      // reversed order: the innermost ring of ticks (highest stepMap index
+      // is furthest out, so invert it) fades first, mirroring the entrance
+      const exitDelay=(START_OUT+(maxStep-stepMap[radii[i]])*STEP_OUT).toFixed(3);
+      tickExitPaths.push({el:p,delay:exitDelay});
+    });
+    loaderEl.appendChild(svg);
+  }).catch(()=>{});
+function hideLoader(){
+  const elapsed=Date.now()-loaderStart;
+  const wait=Math.max(0,2200-elapsed);
+  setTimeout(()=>{
+    // the target closes up from the centre outward — same order it opened
+    // in, just reversed to opacity 0 — while the grey backdrop behind it
+    // fades on its own, slightly slower timeline (#loader.loaded below)
+    document.querySelectorAll('#lg-circles circle').forEach(c=>{
+      const cls=[...c.classList].find(cl=>/^ci-\d$/.test(cl));
+      const idx=cls?parseInt(cls.slice(3),10):9;
+      const delay=((9-idx)*0.06).toFixed(2);
+      c.style.animation=`ci-out .3s ease ${delay}s both`;
+    });
+    tickExitPaths.forEach(({el,delay})=>{
+      el.style.animation=`snap-out .16s ease ${delay}s both`;
+    });
+    loaderEl.classList.add('loaded');
+    loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
+    setTimeout(()=>{
+      ['menu','siteTitle'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el)el.style.opacity='1';
+      });
+      menuRevealed=true;
+      document.querySelectorAll('.corner.tl,.corner.tr').forEach(c=>c.classList.add('on'));
+      preloadPreviews();
+      scheduleMenuIdle(); // the 5s idle clock starts once the index is actually visible
+    },700);
+  },wait);
+}
+
+/* wheel: scrolls whichever panel is actually open. With no ring on this
+   page there is nothing for an idle wheel to do. */
+const cvPanel=document.getElementById('cv');
+const cvInnerEl=document.getElementById('cvInner');
+const stripEl=document.getElementById('strip');
+let selectedIdx=null;
+/* every open/close/switch is fade-out → one instant layout commit →
+   transform/opacity only. FADE is the fade-out length; navToken lets a
+   newer navigation cancel the pending commit of an older one, so rapid
+   clicks never interleave two half-finished layouts */
+const FADE=260;
+let navToken=0;
+const BASE_TITLE=document.title;
+function projName(p){return p.displayTitle||p.client||p.title;}
+function boldSafe(el){el.dataset.label=el.textContent;el.classList.add('bold-safe');}
+let menuRevealed=false;
+
+/* the strip eases toward a target instead of jumping a whole wheel notch
+   at a time; wheel notches and arrow keys both just move the target */
+let stripTarget=null,stripRaf=0;
+function stopStripScroll(){
+  cancelAnimationFrame(stripRaf);
+  stripRaf=0;stripTarget=null;
+}
+function stripStep(){
+  const d=stripTarget-stripEl.scrollLeft;
+  if(Math.abs(d)<1){stripEl.scrollLeft=stripTarget;stopStripScroll();return;}
+  const prev=stripEl.scrollLeft;
+  stripEl.scrollLeft=prev+Math.sign(d)*Math.max(1,Math.abs(d)*.18);
+  if(stripEl.scrollLeft===prev){stopStripScroll();return;} // pinned at an edge
+  stripRaf=requestAnimationFrame(stripStep);
+}
+function scrollStripBy(delta){
+  const max=stripEl.scrollWidth-stripEl.clientWidth;
+  if(max<=0)return;
+  const from=stripTarget??stripEl.scrollLeft;
+  stripTarget=Math.max(0,Math.min(max,from+delta));
+  if(!stripRaf)stripRaf=requestAnimationFrame(stripStep);
+}
+/* one media per arrow press, each landing flush on its own left edge;
+   past the last one, → moves on to the next project */
+function stepStrip(dir){
+  const base=stripTarget??stripEl.scrollLeft;
+  const max=stripEl.scrollWidth-stripEl.clientWidth;
+  if(dir>0&&base>=max-2&&nextLinkTarget!==null){selectProject(nextLinkTarget);return;}
+  const origin=stripEl.getBoundingClientRect().left-stripEl.scrollLeft;
+  const lefts=[...stripEl.children].map(c=>c.getBoundingClientRect().left-origin);
+  let t=dir>0?lefts.find(x=>x>base+2):[...lefts].reverse().find(x=>x<base-2);
+  if(t===undefined)t=dir>0?max:0;
+  scrollStripBy(t-base);
+}
+
+window.addEventListener('wheel',e=>{
+  const dy=e.deltaMode===1?e.deltaY*40:e.deltaY;
+  if(cvOpen){
+    if(!cvInnerEl.contains(e.target))cvInnerEl.scrollTop+=dy; // over the CV itself it already scrolls natively
+    return;
+  }
+  if(selectedIdx===null)return;
+  if(Math.abs(e.deltaX)>Math.abs(dy)){stopStripScroll();return;} // a horizontal trackpad swipe scrolls the strip natively
+  const desc=e.target.closest?.('.proj-desc');
+  if(desc&&desc.scrollHeight>desc.clientHeight+1)return; // a long description scrolls itself
+  scrollStripBy(dy);
+},{passive:true});
+stripEl.addEventListener('pointerdown',stopStripScroll,{passive:true});
+stripEl.addEventListener('touchstart',stopStripScroll,{passive:true});
+
+/* escape closes an open project and returns to the index; ←/→ step
+   through its media. closeProject/selectProject are hoisted function
+   declarations, so this can sit above them */
+window.addEventListener('keydown',e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  if(e.key==='Escape'&&selectedIdx!==null){closeProject();return;}
+  if(selectedIdx!==null&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){
+    e.preventDefault();
+    stepStrip(e.key==='ArrowRight'?1:-1);
+  }
+});
+
+/* email copy */
+function copyEmail(el){
+  navigator.clipboard.writeText('thomasding227@gmail.com');
+  const original=el.textContent;
+  el.textContent='copied';
+  setTimeout(()=>{el.textContent=original;},1200);
+}
+const emailCopy=document.getElementById('emailCopy');
+emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);});
+
+/* CV — opens directly on Ding, no intermediate bio-only step.
+   #cvInner gets its own real cap: the actual gap between where it starts
+   and where the (fixed, independently-positioned) #menu starts — a flat
+   vh guess doesn't know the index's height, so a long CV would run under
+   it instead of stopping short and scrolling internally. */
+const menuEl=document.getElementById('menu');
+
+/* dims the index after 5s with the mouse off it, so it steps back once
+   someone's actually looking at the media/description rather than the
+   list itself — a real hover only, so touch devices (no persistent
+   hover to bring it back) are left alone entirely. Opacity is set
+   inline rather than through the .idle class alone: hideLoader() left
+   #menu with an inline style="opacity:1" when it revealed the page,
+   and an inline style always beats a stylesheet rule of any
+   specificity, class included. Never dims while a project is open —
+   the description itself must stay fully readable, only the closed
+   list steps back when idle. scheduleMenuIdle is kept in the outer
+   scope (a no-op when hover isn't supported) so selectProject/
+   closeProject can call it directly instead of depending on a
+   mouseenter/mouseleave pair that "back", sitting outside #menu, never
+   triggers. */
+let scheduleMenuIdle=()=>{};
+if(matchMedia('(hover:hover)').matches){
+  let menuIdleTimer=null;
+  const wake=()=>{
+    clearTimeout(menuIdleTimer);
+    menuEl.classList.remove('idle');
+    if(menuRevealed)menuEl.style.opacity='1'; // before the loader reveals it, #menu stays at its CSS opacity:0
+  };
+  scheduleMenuIdle=()=>{
+    wake();
+    if(selectedIdx!==null||!menuRevealed)return;
+    menuIdleTimer=setTimeout(()=>{
+      menuEl.classList.add('idle');
+      menuEl.style.opacity='.35';
+    },5000);
+  };
+  menuEl.addEventListener('mouseenter',wake);
+  menuEl.addEventListener('mouseleave',scheduleMenuIdle);
+}
+
+/* the CV scrolls internally within the real gap above the index — only
+   ever measured with the list in its settled, closed layout */
+function capCvInnerHeight(){
+  const top=siteTitle.getBoundingClientRect().bottom+28;
+  const menuTop=menuEl.getBoundingClientRect().top;
+  cvInnerEl.style.maxHeight=Math.max(80,menuTop-top-20)+'px';
+}
+let cvOpen=false;
+function toggleCV(force){
+  cvOpen=force!==undefined?force:!cvOpen;
+  cvPanel.classList.toggle('show',cvOpen);
+  if(cvOpen)hidePreview();
+  if(cvOpen)capCvInnerHeight();
+  cvPanel.style.maxHeight=cvOpen?cvInnerEl.scrollHeight+'px':'0px';
+  siteTitle.classList.toggle('active',cvOpen);
+}
+const siteTitle=document.getElementById('siteTitle');
+siteTitle.tabIndex=0;
+siteTitle.setAttribute('role','button');
+siteTitle.addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();siteTitle.click();}
+});
+siteTitle.addEventListener('click',()=>{
+  /* with a project open, the CV waits for the index to settle back into
+     its list layout, so its height cap is measured against the real
+     final position of the list rather than the mid-close one */
+  if(selectedIdx!==null){
+    closeProject();
+    const token=navToken;
+    setTimeout(()=>{if(token===navToken)toggleCV(true);},FADE+40);
+    return;
+  }
+  toggleCV();
+});
+
+window.addEventListener('resize',()=>{
+  if(cvPanel.classList.contains('show')){capCvInnerHeight();cvPanel.style.maxHeight=cvInnerEl.scrollHeight+'px';}
+  relayoutMenu();
+  updateNextLinkVisibility();
+},{passive:true});
+
+/* ── FALLBACK DATA — used if the CMS is unreachable or empty ── */
+const FALLBACK_PROJECTS=[
+  {title:'Project Alpha',      tags:['commercial'], media:[[1,1],[4,5],[16,9]].map(toPh)},
+  {title:'Working Title 02',   tags:['commercial'], media:[[4,5],[4,5],[1,1],[16,9]].map(toPh)},
+  {title:'Concrete Study',     tags:['commercial'], media:[[1,1],[16,9]].map(toPh)},
+  {title:'Untitled Campaign',  tags:['commercial'], media:[[4,5],[1,1],[4,5]].map(toPh)},
+  {title:'Field Recordings',   tags:['personal'],   media:[[16,9],[1,1]].map(toPh)},
+  {title:'Notes on Light',     tags:['personal'],   media:[[1,1],[4,5],[1,1],[16,9]].map(toPh)},
+  {title:'Specimen 07',        tags:['editorial'],  media:[[4,5],[4,5]].map(toPh)},
+  {title:'Loop & Repeat',      tags:['editorial'],  media:[[16,9],[4,5],[1,1]].map(toPh)},
+];
+function toPh([w,h]){return{type:'ph',ar:w/h};}
+
+/* menu sections are sorted by medium rather than by raw CMS tags */
+const CAT_ORDER=['videos','images','graphic design'];
+const CATEGORY_OVERRIDE={"runner's high":'images'};
+function getProjectCategory(p){
+  const key=(p.title||'').toLowerCase();
+  if(CATEGORY_OVERRIDE[key])return CATEGORY_OVERRIDE[key];
+  const tags=(p.tags||[]).map(t=>t.toLowerCase());
+  if(tags.includes('film')||tags.includes('music video')||tags.includes('video'))return 'videos';
+  if(tags.includes('graphic design'))return 'graphic design';
+  return 'images';
+}
+
+let projects=[];
+let menuOrder=[];
+
+/* ── SANITY ── */
+const PID='zgrgr7sj',DS='production';
+const GROQ=`*[_type=="project"]|order(year desc){
+  _id,title,subtitle,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
+  "tags":tags[]->{title},
+  "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
+  "media":media[]{
+    _type,"hidden":hidden==true,
+    _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+    _type=="file"=>{"url":asset->url,"mime":asset->mimeType},
+    _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
+    _type=="mediaVideo"=>{"url":video.asset->url,"mime":video.asset->mimeType}
+  }
+}`;
+
+/* the CMS's inline-link field is free text, not a validated URL field —
+   "www.site.com" without a scheme resolves as a path on this site rather
+   than an external link, so one is added when none is present */
+function normalizeUrl(href){
+  return /^([a-z][a-z0-9+.-]*:|\/|#)/i.test(href)?href:'https://'+href;
+}
+
+/* a URL-safe, human-readable id per project, so a link can point at one
+   directly ("keep a link to just one project") rather than only the home
+   state. Accents fold to plain letters, everything else to hyphens; a
+   collision (two projects reducing to the same slug) is disambiguated
+   with a numeric suffix rather than silently overwriting the first. */
+const SLUG_LETTERS={'ø':'o','œ':'oe','æ':'ae','ð':'d','þ':'th','ł':'l','ß':'ss'};
+function slugify(s){
+  return String(s||'').toLowerCase()
+    /* NFKD only decomposes an accented letter into base+mark (é → e + ´);
+       a handful of Latin letters are not compositions at all and pass
+       through untouched — Rønnenfelt's ø, say — so those are swapped by
+       hand before the fold rather than silently becoming a stray hyphen */
+    .replace(/[øœæðþłß]/g,c=>SLUG_LETTERS[c])
+    .normalize('NFKD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'')||'project';
+}
+function assignSlugs(){
+  const seen=new Set();
+  projects.forEach(p=>{
+    const base=slugify(p.displayTitle||p.client||p.title);
+    let slug=base,n=2;
+    while(seen.has(slug))slug=base+'-'+(n++);
+    seen.add(slug);
+    p.slug=slug;
+  });
+}
+
+/* projects are personal content: title/client/year/description + media (images, videos, or placeholders) */
+async function loadFromSanity(){
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(GROQ)}`);
+    const{result}=await res.json();
+    if(result?.length){
+      projects=result.map(p=>({
+        title:p.title||'(untitled)',
+        client:p.client||'',
+        displayTitle:p.displayTitle||'',
+        subtitle:p.subtitle||'',
+        year:p.year||'',
+        favorite:!!p.favorite,
+        link:p.link||'',
+        /* each line is an array of runs ({text, href}) rather than a flat
+           string, so an inline link mark from the CMS survives as a real
+           href instead of being flattened away with the rest of the markup */
+        description:Array.isArray(p.description)
+          ?p.description.filter(b=>b._type==='block'&&Array.isArray(b.children))
+            .map(b=>{
+              const defs=Object.fromEntries((b.markDefs||[]).map(d=>[d._key,d]));
+              return(b.children||[]).map(c=>({
+                text:c.text||'',
+                href:(c.marks||[]).map(k=>defs[k]).find(d=>d&&d._type==='link')?.href||null,
+              }));
+            })
+            .filter(runs=>runs.some(r=>r.text.trim()))
+          :[],
+        tags:Array.isArray(p.tags)?p.tags.map(t=>(t?.title||'').toLowerCase().trim()).filter(Boolean):[],
+        media:Array.isArray(p.media)?p.media.map(m=>{
+          if(m.hidden)return null;
+          if(m._type==='image'||m._type==='mediaImage')return{type:'image',url:m.url,ar:m.ar||1};
+          if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url};
+          return null;
+        }).filter(Boolean):[],
+        thumb:p.thumb?.url||'',
+        thumbAR:p.thumb?.ar||1,
+      }));
+    }
+  }catch(e){console.warn('[Sanity]',e.message);}
+  if(!projects.length)projects=FALLBACK_PROJECTS;
+  assignSlugs();
+  buildMenu();
+  hideLoader();
+  /* a link that already names a project opens it directly, without adding
+     a duplicate history entry for a state the URL already describes */
+  const hashSlug=decodeURIComponent(location.hash.slice(1));
+  if(hashSlug){
+    const idx=projects.findIndex(p=>p.slug===hashSlug);
+    if(idx!==-1)selectProject(idx,{pushUrl:false});
+  }
+}
+
+/* back/forward retraces the same project-by-project history selectProject
+   already writes via pushState */
+window.addEventListener('popstate',()=>{
+  const hashSlug=decodeURIComponent(location.hash.slice(1));
+  const idx=projects.findIndex(p=>p.slug===hashSlug);
+  if(idx!==-1){
+    if(selectedIdx!==idx)selectProject(idx,{pushUrl:false});
+  }else if(selectedIdx!==null){
+    closeProject({pushUrl:false});
+  }
+});
+
+/* build a project's description accordion (year, description lines, tags,
+   link) — reused under its name in the index */
+function buildProjBody(proj){
+  const body=document.createElement('div');
+  body.className='proj-body';
+  const inner=document.createElement('div');
+  inner.className='proj-body-inner';
+  if(proj.year||proj.description?.length){
+    const desc=document.createElement('div');
+    desc.className='proj-desc';
+    desc.addEventListener('scroll',()=>{
+      desc.classList.toggle('at-end',desc.scrollTop+desc.clientHeight>=desc.scrollHeight-2);
+    },{passive:true});
+    /* year and tags share one quiet metadata line above the text */
+    const meta=[proj.year,(proj.tags||[]).join(' · ')].filter(Boolean).join(' — ');
+    if(meta){const m=document.createElement('div');m.className='proj-meta';m.textContent=meta;desc.appendChild(m);}
+    proj.description?.forEach(line=>{
+      const p=document.createElement('div');
+      p.className='proj-desc-line';
+      const runs=Array.isArray(line)?line:[{text:String(line)}];
+      runs.forEach(run=>{
+        if(run.href){
+          const link=document.createElement('a');
+          link.href=normalizeUrl(run.href);link.target='_blank';link.rel='noopener';
+          link.className='proj-desc-link';
+          link.textContent=run.text;
+          p.appendChild(link);
+        }else{
+          p.appendChild(document.createTextNode(run.text));
+        }
+      });
+      desc.appendChild(p);
+    });
+    inner.appendChild(desc);
+  }
+  if(proj.link){
+    const a=document.createElement('a');
+    a.href=proj.link;a.target='_blank';a.rel='noopener';
+    a.className='ext-link proj-link';
+    a.textContent='visit project';
+    inner.appendChild(a);
+  }
+  body.appendChild(inner);
+  return body;
+}
+
+/* group projects by medium, then lay out the flat, centered index —
+   each project's description unfolds directly under its own name */
+function buildMenu(){
+  const menu=document.getElementById('menu');
+  menu.innerHTML='';
+  if(!projects.length)return;
+
+  const groups=new Map();
+  projects.forEach((p,i)=>{
+    const cat=getProjectCategory(p);
+    if(!groups.has(cat))groups.set(cat,[]);
+    groups.get(cat).push(i);
+  });
+  groups.forEach(idxs=>{
+    idxs.sort((a,b)=>(projects[b].favorite?1:0)-(projects[a].favorite?1:0));
+  });
+  const sortedGroups=[...groups.entries()].sort((a,b)=>{
+    const ai=CAT_ORDER.indexOf(a[0]),bi=CAT_ORDER.indexOf(b[0]);
+    return (ai===-1?CAT_ORDER.length:ai)-(bi===-1?CAT_ORDER.length:bi);
+  });
+  menuOrder=sortedGroups.flatMap(([,idxs])=>idxs);
+
+  const list=document.createElement('div');
+  list.className='menu-projects';
+  /* category heads ride along as .menu-proj entries of their own, so the
+     open/close choreography fades and collapses them with everything else */
+  sortedGroups.forEach(([cat,idxs])=>{
+    if(sortedGroups.length>1){
+      const head=document.createElement('div');
+      head.className='menu-proj menu-cat';
+      head.textContent=cat;
+      list.appendChild(head);
+    }
+    idxs.forEach(i=>list.appendChild(buildMenuEntry(i)));
+  });
+  menu.appendChild(list);
+  list.addEventListener('mouseleave',hidePreview);
+  updateCorners();
+}
+function buildMenuEntry(i){
+  const proj=projects[i];
+  const wrap=document.createElement('div');
+  wrap.className='menu-proj';
+
+  const row=document.createElement('div');
+  row.className='menu-proj-row';
+
+  const a=document.createElement('a');
+  a.href='#'+proj.slug;
+  a.textContent=projName(proj);
+  boldSafe(a);
+  a.dataset.idx=i;
+  if(selectedIdx===i)a.classList.add('active');
+  a.addEventListener('click',e=>{
+    e.preventDefault();
+    if(selectedIdx===i)closeProject();
+    else selectProject(i);
+  });
+  a.addEventListener('mouseenter',()=>{if(selectedIdx===null&&!cvOpen)showPreview(proj);});
+  row.appendChild(a);
+  if(proj.year){
+    const y=document.createElement('span');
+    y.className='menu-year';
+    y.textContent='’'+String(proj.year).slice(-2);
+    row.appendChild(y);
+  }
+  wrap.appendChild(row);
+
+  const body=buildProjBody(proj);
+  body.dataset.idx=i;
+  wrap.appendChild(body);
+  return wrap;
+}
+
+const stripZoneEl=document.getElementById('stripZone');
+const rowOf=i=>document.querySelector(`#menu a[data-idx="${i}"]`)?.closest('.menu-proj')||null;
+const isShowing=row=>!!row&&!row.classList.contains('gone')&&!row.classList.contains('hidden');
+
+/* the strip only ever swaps its content while fully transparent */
+let stripTimer=null;
+function fillStrip(proj){
+  releaseStripMedia();
+  stripEl.innerHTML='';
+  stripEl.scrollLeft=0;
+  if(!proj.media?.length){
+    const empty=document.createElement('div');
+    empty.id='stripEmpty';
+    empty.textContent='no media';
+    stripEl.appendChild(empty);
+  }else{
+    renderStrip(proj.media);
+  }
+  updateNextLinkVisibility();
+}
+function clearStrip(){
+  stripZoneEl.classList.remove('show');
+  clearTimeout(stripTimer);
+  stripTimer=setTimeout(()=>{releaseStripMedia();stripEl.innerHTML='';stripTimer=null;},FADE);
+}
+function showStrip(proj){
+  clearTimeout(stripTimer);
+  if(stripZoneEl.classList.contains('show')&&stripEl.children.length){
+    stripZoneEl.classList.remove('show');
+    stripTimer=setTimeout(()=>{
+      stripTimer=null;
+      fillStrip(proj);
+      stripZoneEl.classList.add('show');
+    },FADE);
+  }else{
+    fillStrip(proj);
+    stripZoneEl.classList.add('show');
+  }
+}
+
+/* #menu's layout is only ever changed while its transform is cleared and
+   transitions are off, then animated back with FLIP — so the title glides
+   from where it was to where it lands, and nothing re-flows mid-motion */
+function freezeMenu(){
+  menuEl.style.transition='none';
+  menuEl.style.transform='';
+  void menuEl.offsetHeight;
+}
+function playFlip(row,beforeTop){
+  const delta=beforeTop-row.getBoundingClientRect().top;
+  if(Math.abs(delta)>.5){
+    menuEl.style.transform=`translateX(-50%) translateY(${delta}px)`;
+    void menuEl.offsetHeight;
+  }
+  menuEl.style.transition='';
+  menuEl.style.transform='';
+}
+
+/* open layout, committed in one go: only the selected entry, top-anchored
+   20px under the media, its description capped to the room above "back"
+   (scrolling internally past that) and centred in whatever room is left */
+function layoutMenuOpen(){
+  const wrap=rowOf(selectedIdx);
+  document.querySelectorAll('#menu .menu-proj').forEach(w=>{
+    const own=w===wrap;
+    w.classList.toggle('gone',!own);
+    if(!own)w.classList.add('hidden');
+    const b=w.querySelector('.proj-body');
+    if(!b)return; // a category head
+    b.classList.toggle('open',own);
+    if(!own){b.classList.remove('shown');b.style.marginTop='';}
+  });
+  const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||10;
+  const top=stripZoneEl.getBoundingClientRect().bottom+20;
+  const backRoom=closeBtnEl.getBoundingClientRect().height+16;
+  menuEl.style.bottom='auto';
+  menuEl.style.top=top+'px';
+  menuEl.style.maxHeight=Math.max(80,innerHeight-top-pad-backRoom)+'px';
+  menuEl.scrollTop=0;
+  if(!wrap)return;
+  const body=wrap.querySelector('.proj-body');
+  const desc=wrap.querySelector('.proj-desc');
+  body.style.marginTop='';
+  if(desc){
+    desc.style.maxHeight='';desc.style.overflowY='';
+    desc.classList.remove('fades');
+    const overflow=menuEl.scrollHeight-menuEl.clientHeight;
+    if(overflow>1){ // >1: sub-pixel line heights round scrollHeight up by 1
+      desc.style.maxHeight=Math.max(40,desc.offsetHeight-overflow)+'px';
+      desc.style.overflowY='auto';
+      desc.classList.add('fades');
+      desc.scrollTop=0;
+      desc.classList.remove('at-end');
+    }
+  }
+  const rowBottom=wrap.querySelector('.menu-proj-row').getBoundingClientRect().bottom;
+  const gap=closeBtnEl.getBoundingClientRect().top-rowBottom-body.offsetHeight;
+  if(gap/2>14)body.style.marginTop=gap/2+'px';
+}
+function layoutMenuClosed(){
+  document.querySelectorAll('#menu .menu-proj').forEach(w=>{
+    w.classList.remove('gone');
+    const b=w.querySelector('.proj-body');
+    if(!b)return; // a category head
+    b.classList.remove('open','shown');
+    b.style.marginTop='';
+    const d=b.querySelector('.proj-desc');
+    if(d){d.style.maxHeight='';d.style.overflowY='';}
+  });
+  menuEl.style.top='';
+  menuEl.style.bottom='';
+  menuEl.style.maxHeight='';
+}
+function relayoutMenu(){
+  freezeMenu();
+  if(selectedIdx!==null)layoutMenuOpen();
+  menuEl.style.transition='';
+}
+
+/* close: description, media and "back" fade out; once they're gone the
+   list is restored in one instant commit, the title glides back into its
+   place in the index and the other entries fade in around it */
+let cascadeTimer=null;
+function clearCascade(){
+  clearTimeout(cascadeTimer);
+  document.querySelectorAll('#menu .menu-proj').forEach(w=>{w.style.transitionDelay='';});
+}
+function closeProject({pushUrl=true}={}){
+  if(selectedIdx===null)return;
+  const token=++navToken;
+  const row=rowOf(selectedIdx);
+  selectedIdx=null;
+  if(cvOpen)toggleCV(false);
+  nextLinkTarget=null;
+  updateCorners();
+  updateNextLinkVisibility();
+  closeBtnEl.classList.remove('show');
+  clearStrip();
+  document.querySelectorAll('#menu .proj-body.shown').forEach(b=>b.classList.remove('shown'));
+  scheduleMenuIdle(); // "back" sits outside #menu, so closing via it never fires mouseenter/leave on #menu itself
+  if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
+  document.title=BASE_TITLE;
+
+  setTimeout(()=>{
+    if(token!==navToken)return;
+    const visible=isShowing(row);
+    const before=visible?row.getBoundingClientRect().top:0;
+    freezeMenu();
+    document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
+    document.querySelectorAll('#menu .menu-proj').forEach(w=>{if(w!==row||!visible)w.classList.add('hidden');});
+    layoutMenuClosed();
+    if(visible)playFlip(row,before);
+    else menuEl.style.transition='';
+    void menuEl.offsetHeight;
+    /* the rest of the index returns in a cascade spreading out from the
+       title, rather than all at once */
+    const all=[...document.querySelectorAll('#menu .menu-proj')];
+    const from=Math.max(0,all.indexOf(row));
+    all.forEach((w,k)=>{
+      if(!w.classList.contains('hidden'))return;
+      w.style.transitionDelay=Math.min(Math.abs(k-from)*28,280)+'ms';
+      w.classList.remove('hidden');
+    });
+    cascadeTimer=setTimeout(clearCascade,700);
+  },FADE);
+}
+
+/* open (or switch): the other entries / the previous project fade out;
+   once invisible the open layout is committed in one go, the title glides
+   up under the media (or, switching, the new one fades in there) and the
+   description fades in last, already at its final size */
+function selectProject(i,{pushUrl=true}={}){
+  if(selectedIdx===i)return;
+  const token=++navToken;
+  clearCascade();
+  hidePreview();
+  const wasOpen=selectedIdx!==null;
+  selectedIdx=i;
+  scheduleMenuIdle(); // shows #menu at full opacity and, since selectedIdx is now set, never schedules it to dim again
+  const row=rowOf(i);
+  document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
+  row?.querySelector('a[data-idx]').classList.add('active');
+  if(cvOpen)toggleCV(false);
+
+  const proj=projects[i];
+  document.querySelectorAll('#menu .menu-proj').forEach(w=>{if(w!==row||wasOpen)w.classList.add('hidden');});
+  document.querySelectorAll('#menu .proj-body.shown').forEach(b=>b.classList.remove('shown'));
+  closeBtnEl.classList.add('show');
+  showStrip(proj);
+
+  const pos=menuOrder.indexOf(i);
+  nextLinkTarget=(pos!==-1&&menuOrder.length>1)?menuOrder[(pos+1)%menuOrder.length]:null;
+  nextLinkEl.classList.remove('show');
+  updateCorners();
+
+  if(pushUrl&&proj.slug)history.pushState({idx:i},'','#'+proj.slug);
+  document.title=`${projName(proj)} — ${BASE_TITLE}`.toUpperCase();
+
+  setTimeout(()=>{
+    if(token!==navToken||!row)return;
+    const visible=isShowing(row);
+    const before=visible?row.getBoundingClientRect().top:0;
+    freezeMenu();
+    if(!visible)row.classList.add('hidden');
+    layoutMenuOpen();
+    if(visible)playFlip(row,before);
+    else menuEl.style.transition='';
+    void row.offsetHeight;
+    row.classList.remove('hidden');
+    const body=row.querySelector('.proj-body');
+    setTimeout(()=>{if(token===navToken)body.classList.add('shown');},visible?200:80);
+  },FADE);
+}
+
+/* media load lazily as the strip scrolls near them — measured against the
+   strip itself, since it runs far past the visible width — and videos
+   only play while actually on screen */
+const nearJobs=new WeakMap();
+const makeNear=margin=>new IntersectionObserver((entries,obs)=>{
+  entries.forEach(en=>{
+    if(!en.isIntersecting)return;
+    obs.unobserve(en.target);
+    nearJobs.get(en.target)?.();
+    nearJobs.delete(en.target);
+  });
+},{root:stripEl,rootMargin:`0px ${margin}px`});
+const imgNear=makeNear(1200);
+const vidNear=makeNear(400);
+const vidVis=new IntersectionObserver(entries=>{
+  entries.forEach(({target:v,isIntersecting})=>{
+    v._vis=isIntersecting;
+    if(isIntersecting){
+      if(v._held){v._held=false;v.play().catch(()=>{});}
+    }else if(!v.paused){v.pause();v._held=true;}
+  });
+},{root:stripEl});
+function whenNear(el,obs,job){nearJobs.set(el,job);obs.observe(el);}
+function releaseStripMedia(){
+  [imgNear,vidNear,vidVis].forEach(o=>o.disconnect());
+  stopStripScroll();
+}
+
+/* Sanity serves the originals by default — ask for the height the strip
+   actually shows (×DPR, bucketed so the CDN cache is shared) in the best
+   format the browser takes. GIFs are left alone to keep their animation */
+function sizedUrl(url,cssHeight=stripZoneEl.clientHeight){
+  if(!/^https:\/\/cdn\.sanity\.io\/images\//.test(url)||/\.gif(\?|$)/i.test(url))return url;
+  const px=cssHeight*(window.devicePixelRatio||1);
+  const h=Math.min(2400,Math.max(400,Math.ceil(px/200)*200));
+  return `${url}${url.includes('?')?'&':'?'}h=${h}&fit=max&auto=format&q=85`;
+}
+
+/* render media into #strip as a single horizontal row */
+function renderStrip(media){
+  media.forEach((m,k)=>stripEl.appendChild(createMediaEl(m,k)));
+}
+
+/* render a single media item — its width is reserved from its aspect
+   ratio before it loads, so nothing beside it shifts when it arrives */
+function createMediaEl(m,k){
+  if(m.type==='image'){
+    const img=document.createElement('img');
+    img.className='strip-item';
+    img.alt='';
+    img.decoding='async';
+    img.draggable=false;
+    if(m.ar)img.style.aspectRatio=String(m.ar);
+    if(k<6)img.style.transitionDelay=k*70+'ms'; // the first few rise in one after another
+    img.addEventListener('load',()=>{
+      /* decoded before it fades in, so the fade never starts on a
+         half-painted frame */
+      (img.decode?img.decode():Promise.resolve()).catch(()=>{}).then(()=>img.classList.add('show'));
+      updateNextLinkVisibility();
+    });
+    const src=sizedUrl(m.url);
+    if(k<3)img.src=src;
+    else whenNear(img,imgNear,()=>{img.src=src;});
+    return img;
+  }
+  if(m.type==='video'){
+    const vid=document.createElement('video');
+    vid.className='strip-item';
+    vid.muted=true;vid.loop=true;vid.autoplay=true;vid.playsInline=true;
+    vid.disablePictureInPicture=true;
+    vid.controlsList='nodownload noremoteplayback';
+    vid.preload='none';
+    if(k<6)vid.style.transitionDelay=k*70+'ms';
+    vid.addEventListener('loadeddata',()=>{vid.classList.add('show');updateNextLinkVisibility();});
+    vid.addEventListener('loadedmetadata',()=>{
+      if(vid.videoWidth&&vid.videoHeight)vid.style.aspectRatio=`${vid.videoWidth}/${vid.videoHeight}`;
+      if(vid.duration>=18)vid.controls=true;
+      updateNextLinkVisibility();
+    });
+    /* autoplay can start while it's still just off screen */
+    vid.addEventListener('play',()=>{if(vid._vis===false){vid.pause();vid._held=true;}});
+    whenNear(vid,vidNear,()=>{vid.src=m.url;});
+    vidVis.observe(vid);
+    return vid;
+  }
+  const ph=document.createElement('div');
+  ph.className='strip-item ph';
+  if(m.ar)ph.style.aspectRatio=String(m.ar);
+  return ph;
+}
+
+/* "next project" — appears once the strip is scrolled to its end */
+const nextLinkEl=document.getElementById('nextProject');
+let nextLinkTarget=null;
+function updateNextLinkVisibility(){
+  if(nextLinkTarget===null){nextLinkEl.classList.remove('show');updateCounter();return;}
+  const atEnd=stripEl.scrollLeft+stripEl.clientWidth>=stripEl.scrollWidth-4;
+  nextLinkEl.classList.toggle('show',atEnd);
+  updateCounter();
+}
+stripEl.addEventListener('scroll',updateNextLinkVisibility,{passive:true});
+nextLinkEl.addEventListener('click',e=>{
+  e.preventDefault();
+  if(nextLinkTarget!==null)selectProject(nextLinkTarget);
+});
+
+/* "back" is static HTML (like "next project"), pinned to its own spot
+   rather than part of #menu's flow */
+const closeBtnEl=document.getElementById('backBtn');
+closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
+
+[siteTitle,closeBtnEl,nextLinkEl,...document.querySelectorAll('#cv a')].forEach(boldSafe);
+
+/* ── CORNERS ── Paris time, the index count / open project's position,
+   and which media of the open project is on screen */
+const cornerTL=document.getElementById('cornerTL');
+const cornerTR=document.getElementById('cornerTR');
+const cornerBL=document.getElementById('cornerBL');
+const pad2=n=>String(n).padStart(2,'0');
+const clockFmt=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
+function tickClock(){cornerTL.textContent='paris '+clockFmt.format(new Date());}
+tickClock();
+setInterval(tickClock,10000);
+function updateCorners(){
+  const total=menuOrder.length;
+  cornerTR.textContent=selectedIdx===null
+    ?(total?total+' works':'')
+    :`${pad2(menuOrder.indexOf(selectedIdx)+1)} / ${pad2(total)}`;
+  updateCounter();
+}
+/* flush-left stepping on desktop counts the media nearest the left edge;
+   the phone carousel snaps to centre, so there it's the one nearest the
+   middle; scrolled to the end always reads as the last */
+function updateCounter(){
+  const items=[...stripEl.children].filter(c=>c.classList.contains('strip-item'));
+  const n=items.length;
+  if(selectedIdx===null||!n){cornerBL.classList.remove('on');return;}
+  const max=stripEl.scrollWidth-stripEl.clientWidth;
+  const box=stripEl.getBoundingClientRect();
+  const centred=getComputedStyle(stripEl).scrollSnapType.startsWith('x');
+  let cur=n;
+  if(stripEl.scrollLeft<max-4){
+    const aim=centred?box.left+box.width/2:box.left;
+    let best=Infinity;
+    items.forEach((it,k)=>{
+      const r=it.getBoundingClientRect();
+      const d=Math.abs((centred?r.left+r.width/2:r.left)-aim);
+      if(d<best){best=d;cur=k+1;}
+    });
+  }
+  cornerBL.textContent=`${pad2(cur)} / ${pad2(n)}`;
+  cornerBL.classList.add('on');
+}
+
+/* ── PREVIEW ── hovering a name in the closed index shows its cover in
+   the empty middle, crossfading between two stacked images so one never
+   blinks out before the next is decoded */
+const hoverCapable=matchMedia('(hover:hover)').matches;
+const previewEl=document.getElementById('preview');
+const pvImgs=[...previewEl.querySelectorAll('img')];
+const previewCap=document.getElementById('previewCap');
+let pvFront=0,pvWant=null;
+function placePreview(){
+  const top=siteTitle.getBoundingClientRect().bottom;
+  const bottom=menuEl.getBoundingClientRect().top;
+  const room=bottom-top;
+  const h=Math.floor(Math.min(innerHeight*.42,440,room-90));
+  previewEl.style.top=(top+room/2-10)+'px';
+  pvImgs.forEach(i=>{i.style.height=h+'px';});
+  previewCap.style.top=(h/2+10)+'px';
+  return h;
+}
+function previewSrc(p,h){
+  const url=p.thumb||(p.media||[]).find(m=>m.type==='image')?.url;
+  return url?sizedUrl(url,h):'';
+}
+function showPreview(p){
+  if(!hoverCapable)return;
+  const h=placePreview();
+  const url=h>=80?previewSrc(p,h):'';
+  if(!url){hidePreview();return;}
+  const cap=[p.year,p.subtitle].filter(Boolean).join(' — ');
+  pvWant=url;
+  const front=pvImgs[pvFront],back=pvImgs[1-pvFront];
+  if(front.dataset.src===url){
+    previewCap.textContent=cap;
+    front.classList.add('on');
+    previewEl.classList.add('on');
+    return;
+  }
+  back.classList.remove('on');
+  back.dataset.src=url;
+  back.src=url;
+  (back.decode?back.decode():new Promise(r=>{back.onload=r;})).catch(()=>{}).then(()=>{
+    if(pvWant!==url)return;
+    previewCap.textContent=cap;
+    back.classList.add('on');
+    front.classList.remove('on');
+    pvFront=1-pvFront;
+    previewEl.classList.add('on');
+  });
+}
+function hidePreview(){pvWant=null;previewEl.classList.remove('on');}
+function preloadPreviews(){
+  if(!hoverCapable)return;
+  const h=placePreview();
+  if(h<80)return;
+  projects.forEach(p=>{const u=previewSrc(p,h);if(u){const i=new Image();i.decoding='async';i.src=u;}});
+}
+
+/* ── STRIP CURSOR ── on a pointer device, a label trails the cursor over
+   the media (← prev / next → / next project →) and a click steps that way */
+const cursorEl=document.getElementById('cursorLabel');
+if(hoverCapable){
+  stripEl.classList.add('steppable');
+  let mx=0,my=0,over=false;
+  const refresh=()=>{
+    if(!over)return;
+    const max=stripEl.scrollWidth-stripEl.clientWidth;
+    const pos=stripTarget??stripEl.scrollLeft;
+    const left=mx<innerWidth/2;
+    let text='';
+    if(left&&pos>2)text='← prev';
+    else if(!left&&pos<max-2)text='next →';
+    else if(!left&&nextLinkTarget!==null)text='next project →';
+    if(cursorEl.textContent!==text)cursorEl.textContent=text;
+    const w=cursorEl.offsetWidth;
+    const x=mx+16+w>innerWidth-8?mx-16-w:mx+16;
+    cursorEl.style.transform=`translate3d(${x}px,${my+16}px,0)`;
+    cursorEl.classList.toggle('on',!!text&&selectedIdx!==null);
+  };
+  stripEl.addEventListener('mousemove',e=>{
+    mx=e.clientX;my=e.clientY;
+    over=!e.target.closest?.('video[controls]');
+    if(!over){cursorEl.classList.remove('on');return;}
+    refresh();
+  });
+  stripEl.addEventListener('mouseleave',()=>{over=false;cursorEl.classList.remove('on');});
+  stripEl.addEventListener('scroll',refresh,{passive:true});
+  stripEl.addEventListener('click',e=>{
+    if(e.target.closest?.('video[controls]'))return;
+    stepStrip(e.clientX<innerWidth/2?-1:1);
+  });
+}
+
+loadFromSanity();
+</script>
+</body>
+</html>
