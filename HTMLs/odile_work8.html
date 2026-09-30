@@ -93,6 +93,19 @@
   #info .vert{writing-mode:vertical-rl;transform:rotate(180deg);}
   #info .rows{display:grid;grid-template-columns:auto auto auto;gap:0 14px;margin-left:10px;}
 
+  /* ── TABS — under Ding, home only: the project index, the gallery, and
+     a third room not open yet ── */
+  #tabs{
+    position:fixed;left:50%;top:calc(var(--pad) + 26px);transform:translateX(-50%);z-index:70;
+    display:flex;gap:28px;white-space:nowrap;transition:opacity .4s ease;
+  }
+  #tabs a,#tabs a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
+  #tabs a.on{font-weight:700;}
+  #tabs .soon{opacity:.4;cursor:default;}
+  body:not(.home) #tabs{opacity:0!important;pointer-events:none;}
+  /* the gallery is the same band with no index under it */
+  body.gallery #menu{opacity:0!important;pointer-events:none;}
+
   /* ── MIDDLE — the open project's media, one horizontal row ──
      dead-centre: the room a long description needs below is protected
      separately, by layoutMenuOpen()'s own internal-scroll fallback,
@@ -124,6 +137,9 @@
   video.strip-item{aspect-ratio:16/9;}
   .strip-item.show{opacity:1;translate:0 0;}
   .strip-item.ph{aspect-ratio:1/1;background:#d9d9d9;opacity:1;}
+  /* placeholders touch edge to edge, so neighbours alternate tone to read as separate pieces */
+  .strip-item.ph:nth-child(3n+1){background:#cdcdcd;}
+  .strip-item.ph:nth-child(3n+2){background:#e4e4e4;}
   #stripEmpty{color:var(--fg);opacity:0;animation:phIn .4s ease .25s forwards;}
   @keyframes phIn{to{opacity:1;}}
 
@@ -231,6 +247,7 @@
      project names/links flash bold mid-scroll */
   @media (hover:hover){
     .ext-link:hover{font-weight:700;}
+    #tabs a:hover{font-weight:700;}
     #siteTitle:hover{font-weight:700;}
     .menu-proj-row a:hover{font-weight:700;}
     .proj-desc-link:hover{color:var(--fg);}
@@ -286,7 +303,7 @@
   }
   @media (max-width:640px) and (orientation:portrait){#loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}}
   /* content hidden until loader reveals it */
-  #menu,#siteTitle{opacity:0;}
+  #menu,#siteTitle,#tabs{opacity:0;}
   #siteTitle{transition:opacity .5s ease;}
   #loader .cls-1{fill:var(--fg)!important;}
   #loader .cls-2{stroke:var(--fg)!important;fill:none!important;}
@@ -323,6 +340,11 @@
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 
 <!-- TOP — Ding + the merged CV panel -->
+<nav id="tabs">
+  <a href="#" data-tab="project" class="on">Project</a>
+  <a href="#gallery" data-tab="gallery">Gallery</a>
+  <span class="soon" aria-disabled="true">Coming soon</span>
+</nav>
 <div id="topZone">
   <div id="siteTitle">Ding</div>
 </div>
@@ -431,7 +453,7 @@ function hideLoader(){
     loaderEl.classList.add('loaded');
     loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
     setTimeout(()=>{
-      ['menu','siteTitle'].forEach(id=>{
+      ['menu','siteTitle','tabs'].forEach(id=>{
         const el=document.getElementById(id);
         if(el)el.style.opacity='1';
       });
@@ -493,7 +515,6 @@ function stepStrip(dir){
 
 window.addEventListener('wheel',e=>{
   const dy=e.deltaMode===1?e.deltaY*40:e.deltaY;
-  if(cvOpen)return;
   if(selectedIdx===null&&e.target.closest?.('#menu'))return;
   if(Math.abs(e.deltaX)>Math.abs(dy)){stopStripScroll();return;} // a horizontal trackpad swipe scrolls the strip natively
   const desc=e.target.closest?.('.proj-desc');
@@ -579,7 +600,7 @@ function scatter(){
   const box=el=>{const r=el.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height};};
   const hit=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)+gap-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)+gap-Math.max(a.y,b.y));
   const list=menuEl.querySelector('.menu-projects');
-  const blocked=[box(siteTitle),...(list?[{...box(list),y:innerHeight-pad-menuEl.offsetHeight,h:menuEl.offsetHeight}]:[])];
+  const blocked=[box(siteTitle),box(document.getElementById('tabs')),...(list&&tab!=='gallery'?[{...box(list),y:innerHeight-pad-menuEl.offsetHeight,h:menuEl.offsetHeight}]:[])];
   const placed=[];
   const band=box(stripZoneEl);
   [...frags].sort((a,b)=>b.offsetWidth*b.offsetHeight-a.offsetWidth*a.offsetHeight).forEach(f=>{
@@ -763,6 +784,7 @@ async function loadFromSanity(){
   const hashSlug=decodeURIComponent(location.hash.slice(1));
   const idx=hashSlug?projects.findIndex(p=>p.slug===hashSlug):-1;
   if(idx!==-1)selectProject(idx,{pushUrl:false});
+  else if(hashSlug==='gallery'){tab='gallery';document.body.classList.add('gallery');document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab==='gallery'));showHome();}
   else showHome();
 }
 
@@ -773,8 +795,12 @@ window.addEventListener('popstate',()=>{
   const idx=projects.findIndex(p=>p.slug===hashSlug);
   if(idx!==-1){
     if(selectedIdx!==idx)selectProject(idx,{pushUrl:false});
+  }else if(hashSlug==='gallery'){
+    setTab('gallery',{push:false});
   }else if(selectedIdx!==null){
     closeProject({pushUrl:false});
+  }else if(tab!=='project'){
+    setTab('project',{push:false});
   }
 });
 
@@ -946,10 +972,14 @@ function homeList(){
   }
   return out;
 }
+/* gallery: placeholders until its images are in the CMS */
+const GALLERY_AR=[1,4/5,16/9,3/4,3/2,2/3,1,5/4,9/16,4/3,1,3/4];
+function galleryList(){return Array.from({length:24},(_,n)=>({m:{type:'ph',ar:GALLERY_AR[n%GALLERY_AR.length]},i:-1,k:n}));}
+let tab='project';
 function fillHome(){
   releaseStripMedia();
   stripEl.innerHTML='';
-  const list=homeList();
+  const list=tab==='gallery'?galleryList():homeList();
   homeMode=true;homeLen=list.length;
   placeStripZone();
   let seed=2004;
@@ -981,6 +1011,26 @@ stripEl.addEventListener('scroll',()=>{
 },{passive:true});
 function showHome(delay){swapStrip(fillHome,delay);}
 
+function setTab(t,{push=true}={}){
+  if(t===tab&&selectedIdx===null)return;
+  if(selectedIdx!==null)closeProject({pushUrl:false});
+  tab=t;
+  document.body.classList.toggle('gallery',t==='gallery');
+  document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===t));
+  showHome();
+  if(cvOpen)setTimeout(scatter,FADE+40);
+  if(push){
+    if(t==='gallery')history.pushState(null,'','#gallery');
+    else if(location.hash)history.pushState(null,'',location.pathname+location.search);
+  }
+}
+document.getElementById('tabs').addEventListener('click',e=>{
+  const a=e.target.closest('a[data-tab]');
+  if(!a)return;
+  e.preventDefault();
+  setTab(a.dataset.tab);
+});
+
 /* at home the band sits in the free space between Ding and the index;
    with a project open it goes back to the centred strip of the stylesheet */
 function placeStripZone(){
@@ -993,8 +1043,9 @@ function placeStripZone(){
   const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||24;
   const css=stripZoneEl.getBoundingClientRect().height;
   const c=innerHeight/2;
-  const top=siteTitle.getBoundingClientRect().bottom+24;
-  const bottom=innerHeight-pad-menuEl.offsetHeight-24;
+  const tabsEl=document.getElementById('tabs');
+  const top=Math.max(siteTitle.getBoundingClientRect().bottom,tabsEl.getBoundingClientRect().bottom)+24;
+  const bottom=tab==='gallery'?innerHeight-pad-24:innerHeight-pad-menuEl.offsetHeight-24;
   const h=Math.max(140,Math.min(css,2*(c-top),2*(bottom-c)));
   stripZoneEl.style.height=Math.floor(h)+'px';
 }
@@ -1134,6 +1185,11 @@ function closeProject({pushUrl=true}={}){
    description fades in last, already at its final size */
 function selectProject(i,{pushUrl=true,start=0}={}){
   if(selectedIdx===i)return;
+  if(tab!=='project'){
+    tab='project';
+    document.body.classList.remove('gallery');
+    document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab==='project'));
+  }
   const token=++navToken;
   clearCascade();
   const wasOpen=selectedIdx!==null;
@@ -1293,7 +1349,7 @@ nextLinkEl.addEventListener('click',e=>{
 const closeBtnEl=document.getElementById('backBtn');
 closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
 
-[siteTitle,closeBtnEl].forEach(boldSafe);
+[siteTitle,closeBtnEl,...document.querySelectorAll('#tabs a')].forEach(boldSafe);
 
 /* ── COUNTER ── which media of the open project is on screen */
 const cornerBL=document.getElementById('cornerBL');
@@ -1339,7 +1395,7 @@ if(hoverCapable){
     let text='';
     if(homeMode){
       const el=document.elementFromPoint(mx,my)?.closest?.('#strip [data-p]');
-      text=el?projName(projects[+el.dataset.p]):'';
+      text=el&&+el.dataset.p>=0?projName(projects[+el.dataset.p]):'';
     }
     else if(left&&pos>2)text='← prev';
     else if(!left&&pos<max-2)text='next →';
@@ -1367,7 +1423,7 @@ if(hoverCapable){
 stripEl.addEventListener('click',e=>{
   if(!homeMode)return;
   const el=e.target.closest?.('[data-p]');
-  if(el)selectProject(+el.dataset.p,{start:+el.dataset.k||0});
+  if(el&&+el.dataset.p>=0)selectProject(+el.dataset.p,{start:+el.dataset.k||0});
 });
 
 loadFromSanity();
