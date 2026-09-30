@@ -10,122 +10,104 @@
 <link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
 <link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
 <style>
-  /* work10 — the archive as a pile of prints you riffle through by moving
-     sideways. No scrolling at all: the screen's width is the timeline,
-     newest on the left. Default Times and old blue/purple links, because
-     the page should look like it was typed, not designed. */
-  :root{--fs:15px;--pad:12px;}
+  /* work10 — the archive written out as one paragraph. Images sit inline
+     like words on a shared baseline, each project at its own "type size";
+     the project's name is written just before its pictures, and the bio
+     is simply how the paragraph begins. */
+  :root{--fs:13px;--pad:12px;}
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-  html,body{height:100%;background:#fff;overflow:hidden;}
+  html,body{background:#fff;}
+  html{scrollbar-width:none;}
+  html::-webkit-scrollbar{display:none;}
   body{
-    color:#000;font-family:'Times New Roman',Times,serif;
-    font-size:var(--fs);line-height:1.3;
+    color:#000;font-family:Arial,Helvetica,sans-serif;
+    font-size:var(--fs);line-height:1;
     text-transform:lowercase;
-    cursor:ew-resize;
     -webkit-tap-highlight-color:transparent;
-    overscroll-behavior:none;
+    animation:in .5s ease both;
   }
-  a{color:#0000ee;text-decoration:underline;cursor:pointer;}
-  a:visited{color:#551a8b;}
-  a:active{color:#e00;}
+  @keyframes in{from{opacity:0}to{opacity:1}}
+  a,a:visited{color:inherit;text-decoration:none;}
+  @media (hover:hover){a:hover{text-decoration:underline;text-underline-offset:2px;}}
+  a:focus-visible{outline:1px solid currentColor;outline-offset:2px;}
 
-  /* ── TEXT ── */
-  #about,#projText{
-    position:fixed;left:var(--pad);top:var(--pad);z-index:20;
-    width:min(300px,calc(100vw - 2*var(--pad)));
-    cursor:auto;
-  }
-  #projText{display:none;}
-  body.proj #about{display:none;}
-  body.proj #projText{display:block;}
-  #projText p{margin-bottom:.6em;}
-  #projTitle{font-style:italic;}
-  #index{
-    position:fixed;right:var(--pad);top:var(--pad);z-index:20;
-    text-align:right;cursor:auto;
-    list-style:none;
-  }
-  #index .here{color:#000;}
+  /* white + difference: black on the page, inverted over a photo. Set on
+     the fixed element itself, which is its own stacking context */
+  .ink{color:#fff;mix-blend-mode:difference;}
 
-  /* ── THE PILE ── each print keeps its own crooked offset; the one on
-     top is simply the last one appended */
-  #pile{position:fixed;inset:0;z-index:10;}
-  .print{
-    position:absolute;left:50%;top:47%;
-    display:block;
-    background:#fff;
+  /* ── THE PARAGRAPH ── */
+  .flow{padding:var(--pad) var(--pad) 22vh;text-align:left;}
+  .flow .w{white-space:normal;}
+  .flow .w[data-p]{white-space:nowrap;} /* a project's name never breaks across its own pictures */
+  .m{
+    display:inline-block;vertical-align:baseline;
+    /* a wide picture on a narrow screen shrinks to fit rather than
+       being squeezed */
+    height:min(var(--h),calc((100vw - 2*var(--pad)) / var(--ar,1)));width:auto;
+    cursor:pointer;
+    opacity:0;transition:opacity .45s ease;
     -webkit-user-drag:none;user-select:none;
   }
-  .print.wait{outline:1px solid #000;outline-offset:-1px;}
-  .print video{display:block;width:100%;height:100%;object-fit:cover;}
-  .print .tag{position:absolute;left:6px;top:4px;font-style:italic;}
-  .print.vid.ready .tag{display:none;}
+  .m.show{opacity:1;}
+  video.m{background:#f2f2f2;opacity:1;}
+  #proj .m{cursor:default;}
+  .end{display:inline-block;margin-top:2em;}
 
-  #caption{
-    position:fixed;left:50%;bottom:44px;translate:-50% 0;z-index:20;
-    text-align:center;white-space:nowrap;pointer-events:none;
-  }
-  #hint{font-style:italic;}
+  /* index = the same paragraph, shrunk until the whole archive fits:
+     names stay legible, pictures become their own thumbnails */
+  #home.mini .m{height:calc(var(--h) * .2);}
+  #home.mini .m,#home.mini .w{cursor:pointer;}
 
-  /* ── RULER ── the timeline the pointer is scrubbing */
-  #ruler{position:fixed;left:0;right:0;bottom:0;height:22px;z-index:15;pointer-events:none;}
-  #ruler span{
-    position:absolute;bottom:0;padding-left:4px;
-    border-left:1px solid #000;height:22px;
-    font-size:12px;line-height:1;display:flex;align-items:flex-start;
-  }
-  body.proj #ruler{display:none;}
+  #proj{display:none;}
+  body.proj #home{display:none;}
+  body.proj #proj{display:block;}
 
-  @media (max-width:700px),(hover:none){
-    :root{--fs:14px;}
-    body{cursor:auto;}
-    #about,#projText{width:auto;right:var(--pad);}
-    #index{
-      top:auto;bottom:calc(var(--pad) + env(safe-area-inset-bottom));
-      left:var(--pad);right:var(--pad);text-align:left;
-    }
-    #index li{display:inline;}
-    #index li:not(:last-child)::after{content:' / ';color:#000;}
-    #caption{bottom:auto;top:calc(47% + 28vh);}
-    #ruler{display:none;}
+  /* ── MENU ── one line, bottom left */
+  #nav{
+    position:fixed;left:var(--pad);bottom:calc(var(--pad) + env(safe-area-inset-bottom));z-index:50;
+    white-space:nowrap;
   }
+  #nav a.on{text-decoration:underline;text-underline-offset:2px;}
+  #nav [hidden]{display:none;}
+
+  #label{
+    position:fixed;left:0;top:0;z-index:60;pointer-events:none;
+    white-space:nowrap;opacity:0;
+  }
+  #label.on{opacity:1;}
+
+  @media (prefers-reduced-motion:reduce){body{animation:none;}.m{transition:none;}}
 </style>
 </head>
 <body>
 
-<div id="about">
-  thomas ding makes images, films and graphic design in paris.
-  multi-disciplinary designer at <a href="https://unveil.fr" target="_blank" rel="noopener">unveil®</a>,
-  before that women management and dream factory. born 2004.
-  write to <a href="mailto:thomasding227@gmail.com">thomasding227@gmail.com</a>
-  or find <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a>.
-</div>
-<div id="projText"></div>
-<ul id="index"></ul>
+<main id="home" class="flow"></main>
+<section id="proj" class="flow"></section>
 
-<div id="pile"></div>
-<div id="caption"><div id="capText">loading</div><div id="hint"></div></div>
-<div id="ruler"></div>
+<nav id="nav" class="ink">
+  <a href="#" id="navHome">thomas ding</a><span>, </span><a href="#" id="navIndex">index</a><span id="sepShuffle">, </span><a href="#" id="navShuffle">shuffle</a><span id="sepNext" hidden>, </span><a href="#" id="navNext" hidden>next</a>
+</nav>
+<div id="label" class="ink"></div>
 
 <script>
-const pileEl=document.getElementById('pile');
-const capText=document.getElementById('capText');
-const hintEl=document.getElementById('hint');
-const indexEl=document.getElementById('index');
-const projTextEl=document.getElementById('projText');
-const rulerEl=document.getElementById('ruler');
+history.scrollRestoration='manual';
+
+const homeEl=document.getElementById('home');
+const projEl=document.getElementById('proj');
+const labelEl=document.getElementById('label');
+const navHome=document.getElementById('navHome');
+const navIndex=document.getElementById('navIndex');
+const navShuffle=document.getElementById('navShuffle');
+const navNext=document.getElementById('navNext');
 const BASE_TITLE=document.title;
-const touchy=matchMedia('(hover:none)').matches;
-const narrow=()=>innerWidth<=700;
 const nameOf=p=>p.displayTitle||p.client||p.title;
+const narrow=()=>innerWidth<700;
 
 let projects=[];
-let items=[];        // every media of every project: {g,p,m,k,n}
-let seq=[];          // the global indices currently in the pile's reach
-let pos=0;           // position within seq of the print on top
-let openIdx=null;    // project whose media alone are in reach, or null
-let touched=false;   // the hint goes away after the first riffle
-const PILE=5;        // prints left lying under the top one
+let order=[];
+let openIdx=null;
+let homeY=0;
+let seed=2004;
 
 function rng(s){
   return()=>{
@@ -135,200 +117,241 @@ function rng(s){
     return((t^t>>>14)>>>0)/4294967296;
   };
 }
-
-function sizedUrl(url,cssH){
+function sizedUrl(url,vh){
   if(!/^https:\/\/cdn\.sanity\.io\/images\//.test(url)||/\.gif(\?|$)/i.test(url))return url;
-  const h=Math.min(2000,Math.max(300,Math.ceil(cssH*(window.devicePixelRatio||1)/200)*200));
+  const px=vh/100*innerHeight*(window.devicePixelRatio||1);
+  const h=Math.min(2400,Math.max(200,Math.ceil(px/200)*200));
   return `${url}${url.includes('?')?'&':'?'}h=${h}&fit=max&auto=format&q=82`;
 }
 
-/* ── PRINTS ── one element per media, made on first need and kept, so
-   riffling back over a print finds it already decoded */
-const cache=new Map();
-function printHeight(ar){
-  return narrow()?Math.min(innerHeight*.46,innerWidth*.8/ar):Math.min(innerHeight*.58,innerWidth*.46/ar);
+/* ── MEDIA ── loaded as the page nears them; videos play only on screen,
+   and not at all in the shrunken index */
+const near=new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(!en.isIntersecting)return;
+    const el=en.target;
+    near.unobserve(el);
+    if(el.getAttribute('src'))return;
+    /* in the shrunken index a video only fetches enough to show its first
+       frame — a still, not forty films playing at once */
+    if(el.tagName==='VIDEO'&&inMini(el)){el.preload='metadata';el.src=el.dataset.src+'#t=0.1';}
+    else el.src=el.dataset.src;
+  });
+},{rootMargin:'1200px 0px'});
+const vidVis=new IntersectionObserver(entries=>{
+  entries.forEach(({target:v,isIntersecting})=>{
+    v._vis=isIntersecting;
+    if(isIntersecting&&v.getAttribute('src')&&v.paused&&!inMini(v))v.play().catch(()=>{});
+    else if(!isIntersecting&&!v.paused)v.pause();
+  });
+});
+const inMini=el=>homeEl.classList.contains('mini')&&!!el.closest('#home');
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)return;
+  document.querySelectorAll('video.m').forEach(v=>{
+    if(v._vis&&v.paused&&v.getAttribute('src')&&!inMini(v))v.play().catch(()=>{});
+  });
+});
+function release(container){
+  container.querySelectorAll('.m').forEach(el=>{
+    near.unobserve(el);
+    if(el.tagName==='VIDEO'){vidVis.unobserve(el);el.pause();el.removeAttribute('src');el.load();}
+  });
+  container.innerHTML='';
 }
-function placePrint(el,it,ar){
-  const r=rng(it.g*9973+17);
-  const dx=(r()-.5)*(narrow()?8:10);   // vw
-  const dy=(r()-.5)*(narrow()?5:8);    // vh
-  const rot=(r()-.5)*7;                // deg
-  const h=printHeight(ar);
-  el.style.height=h+'px';
-  el.style.width=h*ar+'px';
-  el.style.transform=`translate(-50%,-50%) translate(${dx.toFixed(2)}vw,${dy.toFixed(2)}vh) rotate(${rot.toFixed(2)}deg)`;
-}
-function getPrint(g){
-  if(cache.has(g))return cache.get(g);
-  const it=items[g];
+function setAr(el,ar){el.style.aspectRatio=String(ar);el.style.setProperty('--ar',String(ar));}
+function media(m,pIdx,vh){
   let el;
-  if(it.m.type==='image'){
+  if(m.type==='image'){
     el=document.createElement('img');
     el.alt='';el.decoding='async';el.draggable=false;
-    el.className='print wait';
-    el.addEventListener('load',()=>el.classList.remove('wait'));
-    el.src=sizedUrl(it.m.url,printHeight(it.m.ar||1));
+    setAr(el,m.ar||1);
+    el.addEventListener('load',()=>{
+      let done=false;const show=()=>{if(!done){done=true;el.classList.add('show');}};
+      (el.decode?el.decode():Promise.resolve()).catch(()=>{}).then(show);
+      setTimeout(show,300);
+    });
+    el.dataset.src=sizedUrl(m.url,vh);
   }else{
-    /* a video is an empty frame with "video" written in it until it has
-       actually stayed on top long enough to be worth loading */
-    el=document.createElement('div');
-    el.className='print vid wait';
-    el.innerHTML='<span class="tag">video</span>';
+    el=document.createElement('video');
+    el.muted=true;el.loop=true;el.playsInline=true;el.autoplay=true;
+    el.preload='none';el.disablePictureInPicture=true;
+    setAr(el,16/9);
+    el.addEventListener('loadedmetadata',()=>{if(el.videoWidth&&el.videoHeight)setAr(el,el.videoWidth/el.videoHeight);});
+    el.addEventListener('play',()=>{if(el._vis===false||inMini(el))el.pause();});
+    el.dataset.src=m.url;
+    vidVis.observe(el);
   }
-  el.dataset.g=g;
-  placePrint(el,it,it.m.ar||16/9);
-  cache.set(g,el);
+  el.classList.add('m');
+  el.style.setProperty('--h',vh+'vh');
+  el.dataset.p=pIdx;
+  near.observe(el);
   return el;
 }
-function startVideo(el){
-  let v=el.querySelector('video');
-  if(!v){
-    const it=items[+el.dataset.g];
-    v=document.createElement('video');
-    v.muted=true;v.loop=true;v.playsInline=true;v.autoplay=true;
-    v.disablePictureInPicture=true;
-    v.addEventListener('loadedmetadata',()=>{
-      if(v.videoWidth&&v.videoHeight)placePrint(el,it,v.videoWidth/v.videoHeight);
-    });
-    v.addEventListener('loadeddata',()=>el.classList.add('ready'),{once:true});
-    v.addEventListener('loadeddata',()=>el.classList.remove('wait'),{once:true});
-    v.src=it.m.url;
-    el.appendChild(v);
-  }
-  v.play().catch(()=>{});
-}
-function dropPrint(el){
-  el.remove();
-  const v=el.querySelector('video');
-  if(v){ // videos don't stay cached once off the pile — they're heavy
-    v.pause();v.removeAttribute('src');v.load();v.remove();
-    el.classList.remove('ready');el.classList.add('wait');
-  }
+const usable=p=>(p.media||[]).filter(m=>m&&m.url&&(m.type==='image'||m.type==='video'));
+const word=(text,cls='w')=>{const s=document.createElement('span');s.className=cls;s.textContent=text;return s;};
+const space=()=>document.createTextNode(' ');
+function link(text,href,{blank=false,onClick=null}={}){
+  const a=document.createElement('a');
+  a.href=href;a.textContent=text;
+  if(blank){a.target='_blank';a.rel='noopener';}
+  if(onClick)a.addEventListener('click',e=>{e.preventDefault();onClick();});
+  return a;
 }
 
-let videoTimer=null;
-function show(p){
-  if(!seq.length)return;
-  pos=((p%seq.length)+seq.length)%seq.length;
-  const g=seq[pos];
-  const el=getPrint(g);
-  const prev=pileEl.lastElementChild;
-  if(prev!==el){
-    if(prev)prev.querySelector('video')?.pause();
-    pileEl.appendChild(el);
-    while(pileEl.children.length>PILE+1)dropPrint(pileEl.firstElementChild);
-  }
-  clearTimeout(videoTimer);
-  if(el.classList.contains('vid'))videoTimer=setTimeout(()=>{if(pileEl.lastElementChild===el)startVideo(el);},160);
-  const it=items[g];
-  capText.textContent=`${nameOf(projects[it.p])}, ${it.k+1} of ${it.n}`;
-  /* the next prints either way are fetched ahead of the pointer */
-  for(let d=-4;d<=8;d++){const q=seq[((pos+d)%seq.length+seq.length)%seq.length];if(items[q].m.type==='image')getPrint(q);}
+/* ── HOME ── the bio opens the paragraph, then every project: its name,
+   then its pictures at that project's own height */
+function buildHome(){
+  release(homeEl);
+  const r=rng(seed);
+  order=projects.map((_,i)=>i);
+  if(seed!==2004)for(let i=order.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+
+  const bio=document.createElement('span');
+  bio.className='w';
+  bio.append(
+    'thomas ding, born 2004 in paris. multi-disciplinary designer at ',
+    link('unveil®','https://unveil.fr',{blank:true}),
+    ', before that women management and dream factory. art direction, graphic design, image, video, ai. ',
+    link('thomasding227@gmail.com','mailto:thomasding227@gmail.com'),
+    ', ',
+    link('@diiiiiiiiiiiiing','https://instagram.com/diiiiiiiiiiiiing',{blank:true}),
+    '.'
+  );
+  homeEl.append(bio,space());
+
+  order.forEach(i=>{
+    const p=projects[i];
+    const vh=narrow()?12+r()*20:14+r()*34;
+    const name=word([nameOf(p),p.year].filter(Boolean).join(', '));
+    name.dataset.p=i;
+    name.dataset.anchor=i;
+    homeEl.append(name,space());
+    usable(p).forEach(m=>homeEl.appendChild(media(m,i,vh)));
+    homeEl.append(space());
+  });
+  const end=document.createElement('span');
+  end.className='end w';
+  end.append('that’s all. ',link('back to the top ↑','#',{onClick:()=>window.scrollTo({top:0,behavior:'smooth'})}));
+  homeEl.appendChild(end);
+  window.scrollTo(0,0);
 }
 
-/* ── RIFFLING ── in the archive the pointer's x is the timeline itself;
-   inside a project the pile turns relative to where the pointer was
-   when you went in, one print per step */
-let anchorX=null,anchorPos=0;
-function stepWidth(){return Math.max(28,Math.min(140,innerWidth/Math.max(1,seq.length)));}
-const overText=t=>!!t.closest?.('#about,#projText,#index,a');
-window.addEventListener('mousemove',e=>{
-  if(touchy||!seq.length||overText(e.target))return;
-  let p;
-  if(openIdx===null)p=Math.min(seq.length-1,Math.floor(e.clientX/innerWidth*seq.length));
-  else{
-    if(anchorX===null){anchorX=e.clientX;anchorPos=pos;}
-    p=anchorPos+Math.round((e.clientX-anchorX)/stepWidth());
-  }
-  if(p!==pos||pileEl.lastElementChild?.dataset.g!=seq[pos]){riffled();show(p);}
-},{passive:true});
-
-/* touch: drag sideways to riffle, tap to go in (or to turn one print) */
-let tx=null,tPos=0,moved=false;
-pileEl.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;tPos=pos;moved=false;},{passive:true});
-pileEl.addEventListener('touchmove',e=>{
-  if(tx===null)return;
-  const d=Math.round((e.touches[0].clientX-tx)/16);
-  if(d!==0)moved=true;
-  if(tPos+d!==pos){riffled();show(tPos+d);}
-},{passive:true});
-pileEl.addEventListener('touchend',()=>{tx=null;});
-pileEl.addEventListener('click',e=>{
-  if(moved){moved=false;return;}
-  if(!seq.length)return;
-  if(openIdx===null)openProject(items[seq[pos]].p,{keep:seq[pos]});
-  else{riffled();show(pos+1);anchorX=null;}
-});
-
-function riffled(){if(!touched){touched=true;hintEl.textContent='';}}
-
-window.addEventListener('keydown',e=>{
-  if(!seq.length)return;
-  if(e.key==='ArrowRight'){riffled();show(pos+1);anchorX=null;}
-  else if(e.key==='ArrowLeft'){riffled();show(pos-1);anchorX=null;}
-  else if(e.key==='Enter'&&openIdx===null&&!e.target.closest?.('a'))openProject(items[seq[pos]].p,{keep:seq[pos]});
-  else if(e.key==='Escape')closeProject();
-});
-
-/* ── PROJECT ── only its media stay in reach, and its text takes the
-   corner; the index marks where you are */
-function openProject(i,{push=true,keep=null}={}){
+/* ── PROJECT ── the same paragraph, just this one: its text first, its
+   pictures much larger, and the next one named at the end */
+function openProject(i,{push=true}={}){
   const p=projects[i];
   if(!p)return;
+  if(openIdx===null)homeY=scrollY;
+  setMini(false);
   openIdx=i;
   document.body.classList.add('proj');
-  seq=items.filter(it=>it.p===i).map(it=>it.g);
-  anchorX=null;
+  hideLabel();
+  release(projEl);
 
-  projTextEl.innerHTML='';
-  const t=document.createElement('p');
-  t.id='projTitle';
-  t.textContent=[nameOf(p),p.year].filter(Boolean).join(', ');
-  projTextEl.appendChild(t);
-  if(p.tags?.length){const m=document.createElement('p');m.textContent=p.tags.join(', ');projTextEl.appendChild(m);}
+  const text=document.createElement('span');
+  text.className='w';
+  text.append([nameOf(p),p.year].filter(Boolean).join(', '));
+  if(p.tags?.length)text.append(' — '+p.tags.join(', '));
+  text.append('. ');
   (p.description||[]).forEach(runs=>{
-    const line=document.createElement('p');
     runs.forEach(run=>{
-      if(run.href){
-        const a=document.createElement('a');
-        a.href=normalizeUrl(run.href);a.target='_blank';a.rel='noopener';
-        a.textContent=run.text;line.appendChild(a);
-      }else line.appendChild(document.createTextNode(run.text));
+      if(run.href)text.appendChild(link(run.text,normalizeUrl(run.href),{blank:true}));
+      else text.append(run.text);
     });
-    projTextEl.appendChild(line);
+    text.append(' ');
   });
-  const nav=document.createElement('p');
-  if(p.link){
-    const a=document.createElement('a');
-    a.href=p.link;a.target='_blank';a.rel='noopener';a.textContent='visit';
-    nav.appendChild(a);nav.appendChild(document.createTextNode(' / '));
-  }
-  const back=document.createElement('a');
-  back.href='#';back.textContent='back to everything';
-  back.addEventListener('click',e=>{e.preventDefault();closeProject();});
-  nav.appendChild(back);
-  projTextEl.appendChild(nav);
+  if(p.link)text.append(link('visit ↗',p.link,{blank:true}),' ');
+  projEl.append(text,space());
 
-  const start=keep!==null&&seq.includes(keep)?seq.indexOf(keep):0;
-  if(!seq.length){capText.textContent='nothing here yet';pileEl.innerHTML='';}
-  else show(start);
-  hintEl.textContent=touched?'':touchy?'(drag sideways)':'(move sideways)';
-  markIndex();
+  const vh=narrow()?46:66;
+  const list=usable(p);
+  list.forEach(m=>projEl.appendChild(media(m,i,vh)));
+  if(!list.length)projEl.append(word('(nothing here yet)'),space());
+
+  const next=order[(order.indexOf(i)+1)%order.length];
+  const end=document.createElement('span');
+  end.className='end w';
+  end.append('next: ',link(nameOf(projects[next])+' →','#'+projects[next].slug,{onClick:()=>openProject(next)}));
+  projEl.appendChild(end);
+
+  navShuffle.hidden=document.getElementById('sepShuffle').hidden=true;
+  navNext.hidden=document.getElementById('sepNext').hidden=false;
+  navNext.onclick=e=>{e.preventDefault();openProject(next);};
+  window.scrollTo(0,0);
   document.title=`${nameOf(p)} — ${BASE_TITLE}`.toLowerCase();
   if(push&&p.slug)history.pushState(null,'','#'+p.slug);
 }
-function closeProject({push=true}={}){
-  if(openIdx===null)return;
-  const keepG=seq[pos];
+function closeProject({push=true,top=false}={}){
+  if(openIdx===null){if(top)window.scrollTo({top:0,behavior:'smooth'});return;}
   openIdx=null;
+  release(projEl);
   document.body.classList.remove('proj');
-  seq=items.map(it=>it.g);
-  anchorX=null;
-  show(Math.max(0,seq.indexOf(keepG)));
-  markIndex();
+  navShuffle.hidden=document.getElementById('sepShuffle').hidden=false;
+  navNext.hidden=document.getElementById('sepNext').hidden=true;
+  window.scrollTo(0,top?0:homeY);
   document.title=BASE_TITLE;
   if(push&&location.hash)history.pushState(null,'',location.pathname+location.search);
 }
+
+/* ── INDEX ── shrink the home paragraph; clicking anything in it grows
+   it back and lands you on that spot */
+function setMini(on){
+  if(on&&openIdx!==null)closeProject();
+  homeEl.classList.toggle('mini',on);
+  navIndex.classList.toggle('on',on);
+  if(on){
+    homeEl.querySelectorAll('video.m').forEach(v=>v.pause());
+    window.scrollTo(0,0);
+  }else{
+    homeEl.querySelectorAll('video.m').forEach(v=>{if(v._vis&&v.getAttribute('src'))v.play().catch(()=>{});});
+  }
+}
+homeEl.addEventListener('click',e=>{
+  if(e.target.closest('a'))return;
+  const el=e.target.closest('[data-p]');
+  if(!el)return;
+  if(homeEl.classList.contains('mini')){
+    setMini(false);
+    const target=el.classList.contains('m')?el:el.nextElementSibling||el;
+    requestAnimationFrame(()=>target.scrollIntoView({block:'center'}));
+    setTimeout(()=>target.scrollIntoView({block:'center'}),60);
+    return;
+  }
+  openProject(+el.dataset.p);
+});
+
+navHome.addEventListener('click',e=>{e.preventDefault();setMini(false);closeProject({top:true});});
+navIndex.addEventListener('click',e=>{e.preventDefault();setMini(!homeEl.classList.contains('mini'));});
+navShuffle.addEventListener('click',e=>{
+  e.preventDefault();
+  setMini(false);
+  seed=Math.floor(Math.random()*1e9);
+  buildHome();
+});
+
+/* ── LABEL ── the project's name trails the pointer over its pictures */
+if(matchMedia('(hover:hover)').matches){
+  document.addEventListener('mousemove',e=>{
+    const el=e.target.closest?.('.m[data-p]');
+    if(!el||openIdx!==null){hideLabel();return;}
+    const p=projects[+el.dataset.p];
+    const text=[nameOf(p),p.year].filter(Boolean).join(', ');
+    if(labelEl.textContent!==text)labelEl.textContent=text;
+    const w=labelEl.offsetWidth;
+    const x=e.clientX+14+w>innerWidth-8?e.clientX-14-w:e.clientX+14;
+    labelEl.style.transform=`translate3d(${x}px,${e.clientY+14}px,0)`;
+    labelEl.classList.add('on');
+  },{passive:true});
+  document.addEventListener('mouseleave',hideLabel);
+}
+function hideLabel(){labelEl.classList.remove('on');}
+
+window.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if(homeEl.classList.contains('mini'))setMini(false);
+  else closeProject();
+});
 window.addEventListener('popstate',()=>{
   const slug=decodeURIComponent(location.hash.slice(1));
   const i=projects.findIndex(p=>p.slug===slug);
@@ -336,67 +359,11 @@ window.addEventListener('popstate',()=>{
   else closeProject({push:false});
 });
 
-/* ── INDEX ── plain links; hovering one in the archive riffles straight
-   to that project's first print */
-function buildIndex(){
-  indexEl.innerHTML='';
-  const all=document.createElement('li');
-  const a=document.createElement('a');
-  a.href=location.pathname+location.search;a.textContent=`everything (${items.length})`;
-  a.addEventListener('click',e=>{e.preventDefault();closeProject();});
-  all.appendChild(a);
-  indexEl.appendChild(all);
-  projects.forEach((p,i)=>{
-    const li=document.createElement('li');
-    const link=document.createElement('a');
-    link.href='#'+p.slug;
-    link.textContent=[nameOf(p),p.year?`(${p.year})`:''].filter(Boolean).join(' ');
-    link.addEventListener('click',e=>{e.preventDefault();openProject(i);});
-    link.addEventListener('mouseenter',()=>{
-      if(openIdx!==null)return;
-      const first=seq.findIndex(g=>items[g].p===i);
-      if(first!==-1){riffled();show(first);}
-    });
-    li.appendChild(link);
-    const here=document.createElement('span');
-    here.className='here';
-    li.appendChild(here);
-    indexEl.appendChild(li);
-  });
-  markIndex();
-}
-function markIndex(){
-  [...indexEl.querySelectorAll('.here')].forEach((s,i)=>{s.textContent=i===openIdx?' ← you are here':'';});
-}
-
-/* ── RULER ── a tick where each year starts along the archive */
-function buildRuler(){
-  rulerEl.innerHTML='';
-  let last=null;
-  items.forEach(it=>{
-    const y=projects[it.p].year;
-    if(!y||y===last)return;
-    last=y;
-    const s=document.createElement('span');
-    s.style.left=(it.g/items.length*100)+'%';
-    s.textContent=y;
-    rulerEl.appendChild(s);
-  });
-}
-
-window.addEventListener('resize',()=>{
-  cache.forEach((el,g)=>{
-    const v=el.querySelector('video');
-    placePrint(el,items[g],v&&v.videoWidth?v.videoWidth/v.videoHeight:(items[g].m.ar||16/9));
-  });
-},{passive:true});
-
 /* ── SANITY ── same content and query as the other work pages */
 const PID='zgrgr7sj',DS='production';
 const GROQ=`*[_type=="project"]|order(year desc){
   _id,title,subtitle,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
   "tags":tags[]->{title},
-  "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
   "media":media[]{
     _type,"hidden":hidden==true,
     _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
@@ -456,16 +423,9 @@ async function load(){
       }).filter(Boolean):[],
     }));
   }catch(e){console.warn('[Sanity]',e.message);}
-  if(!projects.length){capText.textContent='nothing to show right now';return;}
+  if(!projects.length){homeEl.textContent='nothing to show right now.';return;}
   assignSlugs();
-  projects.forEach((p,i)=>p.media.forEach((m,k)=>items.push({g:items.length,p:i,m,k,n:p.media.length})));
-  seq=items.map(it=>it.g);
-  buildIndex();
-  buildRuler();
-  /* start with a few prints already lying there, so it reads as a pile */
-  [3,2,1].forEach(d=>show(seq.length-d));
-  show(0);
-  hintEl.textContent=touchy?'(drag sideways, tap to go in)':'(move sideways, click to go in)';
+  buildHome();
   const slug=decodeURIComponent(location.hash.slice(1));
   const i=projects.findIndex(p=>p.slug===slug);
   if(i!==-1)openProject(i,{push:false});
