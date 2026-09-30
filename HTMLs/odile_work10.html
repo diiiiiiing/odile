@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>thomas ding</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
+<link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
+<style>
+  /* work10 — the archive as a pile of prints you riffle through by moving
+     sideways. No scrolling at all: the screen's width is the timeline,
+     newest on the left. Default Times and old blue/purple links, because
+     the page should look like it was typed, not designed. */
+  :root{--fs:15px;--pad:12px;}
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;background:#fff;overflow:hidden;}
+  body{
+    color:#000;font-family:'Times New Roman',Times,serif;
+    font-size:var(--fs);line-height:1.3;
+    text-transform:lowercase;
+    cursor:ew-resize;
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;
+  }
+  a{color:#0000ee;text-decoration:underline;cursor:pointer;}
+  a:visited{color:#551a8b;}
+  a:active{color:#e00;}
+
+  /* ── TEXT ── */
+  #about,#projText{
+    position:fixed;left:var(--pad);top:var(--pad);z-index:20;
+    width:min(300px,calc(100vw - 2*var(--pad)));
+    cursor:auto;
+  }
+  #projText{display:none;}
+  body.proj #about{display:none;}
+  body.proj #projText{display:block;}
+  #projText p{margin-bottom:.6em;}
+  #projTitle{font-style:italic;}
+  #index{
+    position:fixed;right:var(--pad);top:var(--pad);z-index:20;
+    text-align:right;cursor:auto;
+    list-style:none;
+  }
+  #index .here{color:#000;}
+
+  /* ── THE PILE ── each print keeps its own crooked offset; the one on
+     top is simply the last one appended */
+  #pile{position:fixed;inset:0;z-index:10;}
+  .print{
+    position:absolute;left:50%;top:47%;
+    display:block;
+    background:#fff;
+    -webkit-user-drag:none;user-select:none;
+  }
+  .print.wait{outline:1px solid #000;outline-offset:-1px;}
+  .print video{display:block;width:100%;height:100%;object-fit:cover;}
+  .print .tag{position:absolute;left:6px;top:4px;font-style:italic;}
+  .print.vid.ready .tag{display:none;}
+
+  #caption{
+    position:fixed;left:50%;bottom:44px;translate:-50% 0;z-index:20;
+    text-align:center;white-space:nowrap;pointer-events:none;
+  }
+  #hint{font-style:italic;}
+
+  /* ── RULER ── the timeline the pointer is scrubbing */
+  #ruler{position:fixed;left:0;right:0;bottom:0;height:22px;z-index:15;pointer-events:none;}
+  #ruler span{
+    position:absolute;bottom:0;padding-left:4px;
+    border-left:1px solid #000;height:22px;
+    font-size:12px;line-height:1;display:flex;align-items:flex-start;
+  }
+  body.proj #ruler{display:none;}
+
+  @media (max-width:700px),(hover:none){
+    :root{--fs:14px;}
+    body{cursor:auto;}
+    #about,#projText{width:auto;right:var(--pad);}
+    #index{
+      top:auto;bottom:calc(var(--pad) + env(safe-area-inset-bottom));
+      left:var(--pad);right:var(--pad);text-align:left;
+    }
+    #index li{display:inline;}
+    #index li:not(:last-child)::after{content:' / ';color:#000;}
+    #caption{bottom:auto;top:calc(47% + 28vh);}
+    #ruler{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="about">
+  thomas ding makes images, films and graphic design in paris.
+  multi-disciplinary designer at <a href="https://unveil.fr" target="_blank" rel="noopener">unveil®</a>,
+  before that women management and dream factory. born 2004.
+  write to <a href="mailto:thomasding227@gmail.com">thomasding227@gmail.com</a>
+  or find <a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a>.
+</div>
+<div id="projText"></div>
+<ul id="index"></ul>
+
+<div id="pile"></div>
+<div id="caption"><div id="capText">loading</div><div id="hint"></div></div>
+<div id="ruler"></div>
+
+<script>
+const pileEl=document.getElementById('pile');
+const capText=document.getElementById('capText');
+const hintEl=document.getElementById('hint');
+const indexEl=document.getElementById('index');
+const projTextEl=document.getElementById('projText');
+const rulerEl=document.getElementById('ruler');
+const BASE_TITLE=document.title;
+const touchy=matchMedia('(hover:none)').matches;
+const narrow=()=>innerWidth<=700;
+const nameOf=p=>p.displayTitle||p.client||p.title;
+
+let projects=[];
+let items=[];        // every media of every project: {g,p,m,k,n}
+let seq=[];          // the global indices currently in the pile's reach
+let pos=0;           // position within seq of the print on top
+let openIdx=null;    // project whose media alone are in reach, or null
+let touched=false;   // the hint goes away after the first riffle
+const PILE=5;        // prints left lying under the top one
+
+function rng(s){
+  return()=>{
+    s|=0;s=s+0x6D2B79F5|0;
+    let t=Math.imul(s^s>>>15,1|s);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return((t^t>>>14)>>>0)/4294967296;
+  };
+}
+
+function sizedUrl(url,cssH){
+  if(!/^https:\/\/cdn\.sanity\.io\/images\//.test(url)||/\.gif(\?|$)/i.test(url))return url;
+  const h=Math.min(2000,Math.max(300,Math.ceil(cssH*(window.devicePixelRatio||1)/200)*200));
+  return `${url}${url.includes('?')?'&':'?'}h=${h}&fit=max&auto=format&q=82`;
+}
+
+/* ── PRINTS ── one element per media, made on first need and kept, so
+   riffling back over a print finds it already decoded */
+const cache=new Map();
+function printHeight(ar){
+  return narrow()?Math.min(innerHeight*.46,innerWidth*.8/ar):Math.min(innerHeight*.58,innerWidth*.46/ar);
+}
+function placePrint(el,it,ar){
+  const r=rng(it.g*9973+17);
+  const dx=(r()-.5)*(narrow()?8:10);   // vw
+  const dy=(r()-.5)*(narrow()?5:8);    // vh
+  const rot=(r()-.5)*7;                // deg
+  const h=printHeight(ar);
+  el.style.height=h+'px';
+  el.style.width=h*ar+'px';
+  el.style.transform=`translate(-50%,-50%) translate(${dx.toFixed(2)}vw,${dy.toFixed(2)}vh) rotate(${rot.toFixed(2)}deg)`;
+}
+function getPrint(g){
+  if(cache.has(g))return cache.get(g);
+  const it=items[g];
+  let el;
+  if(it.m.type==='image'){
+    el=document.createElement('img');
+    el.alt='';el.decoding='async';el.draggable=false;
+    el.className='print wait';
+    el.addEventListener('load',()=>el.classList.remove('wait'));
+    el.src=sizedUrl(it.m.url,printHeight(it.m.ar||1));
+  }else{
+    /* a video is an empty frame with "video" written in it until it has
+       actually stayed on top long enough to be worth loading */
+    el=document.createElement('div');
+    el.className='print vid wait';
+    el.innerHTML='<span class="tag">video</span>';
+  }
+  el.dataset.g=g;
+  placePrint(el,it,it.m.ar||16/9);
+  cache.set(g,el);
+  return el;
+}
+function startVideo(el){
+  let v=el.querySelector('video');
+  if(!v){
+    const it=items[+el.dataset.g];
+    v=document.createElement('video');
+    v.muted=true;v.loop=true;v.playsInline=true;v.autoplay=true;
+    v.disablePictureInPicture=true;
+    v.addEventListener('loadedmetadata',()=>{
+      if(v.videoWidth&&v.videoHeight)placePrint(el,it,v.videoWidth/v.videoHeight);
+    });
+    v.addEventListener('loadeddata',()=>el.classList.add('ready'),{once:true});
+    v.addEventListener('loadeddata',()=>el.classList.remove('wait'),{once:true});
+    v.src=it.m.url;
+    el.appendChild(v);
+  }
+  v.play().catch(()=>{});
+}
+function dropPrint(el){
+  el.remove();
+  const v=el.querySelector('video');
+  if(v){ // videos don't stay cached once off the pile — they're heavy
+    v.pause();v.removeAttribute('src');v.load();v.remove();
+    el.classList.remove('ready');el.classList.add('wait');
+  }
+}
+
+let videoTimer=null;
+function show(p){
+  if(!seq.length)return;
+  pos=((p%seq.length)+seq.length)%seq.length;
+  const g=seq[pos];
+  const el=getPrint(g);
+  const prev=pileEl.lastElementChild;
+  if(prev!==el){
+    if(prev)prev.querySelector('video')?.pause();
+    pileEl.appendChild(el);
+    while(pileEl.children.length>PILE+1)dropPrint(pileEl.firstElementChild);
+  }
+  clearTimeout(videoTimer);
+  if(el.classList.contains('vid'))videoTimer=setTimeout(()=>{if(pileEl.lastElementChild===el)startVideo(el);},160);
+  const it=items[g];
+  capText.textContent=`${nameOf(projects[it.p])}, ${it.k+1} of ${it.n}`;
+  /* the next prints either way are fetched ahead of the pointer */
+  for(let d=-4;d<=8;d++){const q=seq[((pos+d)%seq.length+seq.length)%seq.length];if(items[q].m.type==='image')getPrint(q);}
+}
+
+/* ── RIFFLING ── in the archive the pointer's x is the timeline itself;
+   inside a project the pile turns relative to where the pointer was
+   when you went in, one print per step */
+let anchorX=null,anchorPos=0;
+function stepWidth(){return Math.max(28,Math.min(140,innerWidth/Math.max(1,seq.length)));}
+const overText=t=>!!t.closest?.('#about,#projText,#index,a');
+window.addEventListener('mousemove',e=>{
+  if(touchy||!seq.length||overText(e.target))return;
+  let p;
+  if(openIdx===null)p=Math.min(seq.length-1,Math.floor(e.clientX/innerWidth*seq.length));
+  else{
+    if(anchorX===null){anchorX=e.clientX;anchorPos=pos;}
+    p=anchorPos+Math.round((e.clientX-anchorX)/stepWidth());
+  }
+  if(p!==pos||pileEl.lastElementChild?.dataset.g!=seq[pos]){riffled();show(p);}
+},{passive:true});
+
+/* touch: drag sideways to riffle, tap to go in (or to turn one print) */
+let tx=null,tPos=0,moved=false;
+pileEl.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;tPos=pos;moved=false;},{passive:true});
+pileEl.addEventListener('touchmove',e=>{
+  if(tx===null)return;
+  const d=Math.round((e.touches[0].clientX-tx)/16);
+  if(d!==0)moved=true;
+  if(tPos+d!==pos){riffled();show(tPos+d);}
+},{passive:true});
+pileEl.addEventListener('touchend',()=>{tx=null;});
+pileEl.addEventListener('click',e=>{
+  if(moved){moved=false;return;}
+  if(!seq.length)return;
+  if(openIdx===null)openProject(items[seq[pos]].p,{keep:seq[pos]});
+  else{riffled();show(pos+1);anchorX=null;}
+});
+
+function riffled(){if(!touched){touched=true;hintEl.textContent='';}}
+
+window.addEventListener('keydown',e=>{
+  if(!seq.length)return;
+  if(e.key==='ArrowRight'){riffled();show(pos+1);anchorX=null;}
+  else if(e.key==='ArrowLeft'){riffled();show(pos-1);anchorX=null;}
+  else if(e.key==='Enter'&&openIdx===null&&!e.target.closest?.('a'))openProject(items[seq[pos]].p,{keep:seq[pos]});
+  else if(e.key==='Escape')closeProject();
+});
+
+/* ── PROJECT ── only its media stay in reach, and its text takes the
+   corner; the index marks where you are */
+function openProject(i,{push=true,keep=null}={}){
+  const p=projects[i];
+  if(!p)return;
+  openIdx=i;
+  document.body.classList.add('proj');
+  seq=items.filter(it=>it.p===i).map(it=>it.g);
+  anchorX=null;
+
+  projTextEl.innerHTML='';
+  const t=document.createElement('p');
+  t.id='projTitle';
+  t.textContent=[nameOf(p),p.year].filter(Boolean).join(', ');
+  projTextEl.appendChild(t);
+  if(p.tags?.length){const m=document.createElement('p');m.textContent=p.tags.join(', ');projTextEl.appendChild(m);}
+  (p.description||[]).forEach(runs=>{
+    const line=document.createElement('p');
+    runs.forEach(run=>{
+      if(run.href){
+        const a=document.createElement('a');
+        a.href=normalizeUrl(run.href);a.target='_blank';a.rel='noopener';
+        a.textContent=run.text;line.appendChild(a);
+      }else line.appendChild(document.createTextNode(run.text));
+    });
+    projTextEl.appendChild(line);
+  });
+  const nav=document.createElement('p');
+  if(p.link){
+    const a=document.createElement('a');
+    a.href=p.link;a.target='_blank';a.rel='noopener';a.textContent='visit';
+    nav.appendChild(a);nav.appendChild(document.createTextNode(' / '));
+  }
+  const back=document.createElement('a');
+  back.href='#';back.textContent='back to everything';
+  back.addEventListener('click',e=>{e.preventDefault();closeProject();});
+  nav.appendChild(back);
+  projTextEl.appendChild(nav);
+
+  const start=keep!==null&&seq.includes(keep)?seq.indexOf(keep):0;
+  if(!seq.length){capText.textContent='nothing here yet';pileEl.innerHTML='';}
+  else show(start);
+  hintEl.textContent=touched?'':touchy?'(drag sideways)':'(move sideways)';
+  markIndex();
+  document.title=`${nameOf(p)} — ${BASE_TITLE}`.toLowerCase();
+  if(push&&p.slug)history.pushState(null,'','#'+p.slug);
+}
+function closeProject({push=true}={}){
+  if(openIdx===null)return;
+  const keepG=seq[pos];
+  openIdx=null;
+  document.body.classList.remove('proj');
+  seq=items.map(it=>it.g);
+  anchorX=null;
+  show(Math.max(0,seq.indexOf(keepG)));
+  markIndex();
+  document.title=BASE_TITLE;
+  if(push&&location.hash)history.pushState(null,'',location.pathname+location.search);
+}
+window.addEventListener('popstate',()=>{
+  const slug=decodeURIComponent(location.hash.slice(1));
+  const i=projects.findIndex(p=>p.slug===slug);
+  if(i!==-1){if(i!==openIdx)openProject(i,{push:false});}
+  else closeProject({push:false});
+});
+
+/* ── INDEX ── plain links; hovering one in the archive riffles straight
+   to that project's first print */
+function buildIndex(){
+  indexEl.innerHTML='';
+  const all=document.createElement('li');
+  const a=document.createElement('a');
+  a.href=location.pathname+location.search;a.textContent=`everything (${items.length})`;
+  a.addEventListener('click',e=>{e.preventDefault();closeProject();});
+  all.appendChild(a);
+  indexEl.appendChild(all);
+  projects.forEach((p,i)=>{
+    const li=document.createElement('li');
+    const link=document.createElement('a');
+    link.href='#'+p.slug;
+    link.textContent=[nameOf(p),p.year?`(${p.year})`:''].filter(Boolean).join(' ');
+    link.addEventListener('click',e=>{e.preventDefault();openProject(i);});
+    link.addEventListener('mouseenter',()=>{
+      if(openIdx!==null)return;
+      const first=seq.findIndex(g=>items[g].p===i);
+      if(first!==-1){riffled();show(first);}
+    });
+    li.appendChild(link);
+    const here=document.createElement('span');
+    here.className='here';
+    li.appendChild(here);
+    indexEl.appendChild(li);
+  });
+  markIndex();
+}
+function markIndex(){
+  [...indexEl.querySelectorAll('.here')].forEach((s,i)=>{s.textContent=i===openIdx?' ← you are here':'';});
+}
+
+/* ── RULER ── a tick where each year starts along the archive */
+function buildRuler(){
+  rulerEl.innerHTML='';
+  let last=null;
+  items.forEach(it=>{
+    const y=projects[it.p].year;
+    if(!y||y===last)return;
+    last=y;
+    const s=document.createElement('span');
+    s.style.left=(it.g/items.length*100)+'%';
+    s.textContent=y;
+    rulerEl.appendChild(s);
+  });
+}
+
+window.addEventListener('resize',()=>{
+  cache.forEach((el,g)=>{
+    const v=el.querySelector('video');
+    placePrint(el,items[g],v&&v.videoWidth?v.videoWidth/v.videoHeight:(items[g].m.ar||16/9));
+  });
+},{passive:true});
+
+/* ── SANITY ── same content and query as the other work pages */
+const PID='zgrgr7sj',DS='production';
+const GROQ=`*[_type=="project"]|order(year desc){
+  _id,title,subtitle,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
+  "tags":tags[]->{title},
+  "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
+  "media":media[]{
+    _type,"hidden":hidden==true,
+    _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+    _type=="file"=>{"url":asset->url,"mime":asset->mimeType},
+    _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
+    _type=="mediaVideo"=>{"url":video.asset->url,"mime":video.asset->mimeType}
+  }
+}`;
+function normalizeUrl(href){
+  return /^([a-z][a-z0-9+.-]*:|\/|#)/i.test(href)?href:'https://'+href;
+}
+const SLUG_LETTERS={'ø':'o','œ':'oe','æ':'ae','ð':'d','þ':'th','ł':'l','ß':'ss'};
+function slugify(s){
+  return String(s||'').toLowerCase()
+    .replace(/[øœæðþłß]/g,c=>SLUG_LETTERS[c])
+    .normalize('NFKD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-')
+    .replace(/^-+|-+$/g,'')||'project';
+}
+function assignSlugs(){
+  const seen=new Set();
+  projects.forEach(p=>{
+    const base=slugify(p.displayTitle||p.client||p.title);
+    let slug=base,n=2;
+    while(seen.has(slug))slug=base+'-'+(n++);
+    seen.add(slug);
+    p.slug=slug;
+  });
+}
+async function load(){
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(GROQ)}`);
+    const{result}=await res.json();
+    projects=(result||[]).map(p=>({
+      title:p.title||'(untitled)',
+      client:p.client||'',
+      displayTitle:p.displayTitle||'',
+      year:p.year||'',
+      link:p.link||'',
+      description:Array.isArray(p.description)
+        ?p.description.filter(b=>b._type==='block'&&Array.isArray(b.children))
+          .map(b=>{
+            const defs=Object.fromEntries((b.markDefs||[]).map(d=>[d._key,d]));
+            return b.children.map(c=>({
+              text:c.text||'',
+              href:(c.marks||[]).map(k=>defs[k]).find(d=>d&&d._type==='link')?.href||null,
+            }));
+          })
+          .filter(runs=>runs.some(r=>r.text.trim()))
+        :[],
+      tags:Array.isArray(p.tags)?p.tags.map(t=>(t?.title||'').toLowerCase().trim()).filter(Boolean):[],
+      media:Array.isArray(p.media)?p.media.map(m=>{
+        if(!m||m.hidden||!m.url)return null;
+        if(m._type==='image'||m._type==='mediaImage')return{type:'image',url:m.url,ar:m.ar||1};
+        if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url};
+        return null;
+      }).filter(Boolean):[],
+    }));
+  }catch(e){console.warn('[Sanity]',e.message);}
+  if(!projects.length){capText.textContent='nothing to show right now';return;}
+  assignSlugs();
+  projects.forEach((p,i)=>p.media.forEach((m,k)=>items.push({g:items.length,p:i,m,k,n:p.media.length})));
+  seq=items.map(it=>it.g);
+  buildIndex();
+  buildRuler();
+  /* start with a few prints already lying there, so it reads as a pile */
+  [3,2,1].forEach(d=>show(seq.length-d));
+  show(0);
+  hintEl.textContent=touchy?'(drag sideways, tap to go in)':'(move sideways, click to go in)';
+  const slug=decodeURIComponent(location.hash.slice(1));
+  const i=projects.findIndex(p=>p.slug===slug);
+  if(i!==-1)openProject(i,{push:false});
+}
+load();
+</script>
+</body>
+</html>
