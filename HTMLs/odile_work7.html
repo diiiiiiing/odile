@@ -96,11 +96,11 @@
   .cv-row .cv-role{flex-shrink:0;}
 
   /* ── MIDDLE — the open project's media, one horizontal row ──
-     raised above dead-centre: #topZone rarely needs the space above,
-     so it's given to the open project's text below instead, which is
-     what actually risks running out of room */
+     dead-centre: the room a long description needs below is protected
+     separately, by updateMenuPosition()'s own internal-scroll fallback,
+     not by nudging the media off-centre */
   #stripZone{
-    position:fixed;left:0;right:0;top:44%;transform:translateY(-50%);
+    position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);
     z-index:40;
     display:flex;justify-content:center;align-items:center;
     height:min(64vh,720px);
@@ -408,6 +408,7 @@ function hideLoader(){
 const cvPanel=document.getElementById('cv');
 const cvInnerEl=document.getElementById('cvInner');
 const stripEl=document.getElementById('strip');
+let selectedIdx=null;
 window.addEventListener('wheel',e=>{
   if(cvOpen){cvInnerEl.scrollTop+=e.deltaY;return;}
   if(selectedIdx!==null){stripEl.scrollLeft+=e.deltaY;}
@@ -415,6 +416,12 @@ window.addEventListener('wheel',e=>{
 /* horizontal touch-panning on #strip and vertical on #cvInner both work
    natively on a real overflow container — no custom remap needed here,
    unlike the vertical mouse wheel above */
+
+/* escape closes an open project and returns to the index — closeProject
+   is a hoisted function declaration, so this can sit above it */
+window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&selectedIdx!==null)closeProject();
+});
 
 /* email copy */
 function copyEmail(el){
@@ -440,21 +447,30 @@ const menuEl=document.getElementById('menu');
    inline rather than through the .idle class alone: hideLoader() left
    #menu with an inline style="opacity:1" when it revealed the page,
    and an inline style always beats a stylesheet rule of any
-   specificity, class included. */
+   specificity, class included. Never dims while a project is open —
+   the description itself must stay fully readable, only the closed
+   list steps back when idle. scheduleMenuIdle is kept in the outer
+   scope (a no-op when hover isn't supported) so selectProject/
+   closeProject can call it directly instead of depending on a
+   mouseenter/mouseleave pair that "back", sitting outside #menu, never
+   triggers. */
+let scheduleMenuIdle=()=>{};
 if(matchMedia('(hover:hover)').matches){
   let menuIdleTimer=null;
-  const scheduleMenuIdle=()=>{
+  const wake=()=>{
     clearTimeout(menuIdleTimer);
+    menuEl.classList.remove('idle');
+    menuEl.style.opacity='1';
+  };
+  scheduleMenuIdle=()=>{
+    wake();
+    if(selectedIdx!==null)return;
     menuIdleTimer=setTimeout(()=>{
       menuEl.classList.add('idle');
       menuEl.style.opacity='.35';
     },5000);
   };
-  menuEl.addEventListener('mouseenter',()=>{
-    clearTimeout(menuIdleTimer);
-    menuEl.classList.remove('idle');
-    menuEl.style.opacity='1';
-  });
+  menuEl.addEventListener('mouseenter',wake);
   menuEl.addEventListener('mouseleave',scheduleMenuIdle);
   scheduleMenuIdle();
 }
@@ -526,7 +542,6 @@ function getProjectCategory(p){
 }
 
 let projects=[];
-let selectedIdx=null;
 let menuOrder=[];
 
 /* ── SANITY ── */
@@ -784,6 +799,7 @@ function closeProject({pushUrl=true}={}){
   clearStrip();
   updateProjectListVisibility();
   updateMenuPosition();
+  scheduleMenuIdle(); // "back" sits outside #menu, so closing via it never fires mouseenter/leave on #menu itself
   if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
 }
 
@@ -792,6 +808,7 @@ function closeProject({pushUrl=true}={}){
 function selectProject(i,{pushUrl=true}={}){
   if(closeTimer){clearTimeout(closeTimer);closeTimer=null;}
   selectedIdx=i;
+  scheduleMenuIdle(); // shows #menu at full opacity and, since selectedIdx is now set, never schedules it to dim again
   document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
   const newActive=document.querySelector(`#menu a[data-idx="${i}"]`);
   if(newActive)newActive.classList.add('active');
