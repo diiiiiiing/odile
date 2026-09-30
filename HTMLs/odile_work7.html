@@ -178,7 +178,8 @@
     opacity:0;transition:opacity .25s ease,gap .3s ease;
   }
   .proj-body.open .proj-body-inner{opacity:1;transition-delay:.1s;}
-  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:var(--gap-b,4px);}
+  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:var(--gap-b,4px);scrollbar-width:none;}
+  .proj-desc::-webkit-scrollbar{display:none;}
   .proj-desc-line{text-transform:none;max-width:90ch;}
   .proj-desc-link,.proj-desc-link:visited{color:inherit;text-decoration:none;}
 
@@ -822,8 +823,14 @@ function selectProject(i,{pushUrl=true}={}){
   /* the description takes .4s to reach full height, shifting the title's
      own position — recheck the gap once it (and the media) have settled.
      setTimeout rather than transitionend/rAF alone: both are suspended
-     on a backgrounded tab, and this still has to run there too. */
+     on a backgrounded tab, and this still has to run there too. A
+     second, later recheck catches the case where this selection follows
+     closely on another project's own close (or hide) transition, which
+     can still be in flight at 450ms and throw off the first reading —
+     switching projects quickly is a real interaction, not just a test
+     artifact. */
   setTimeout(ensureTitleGap,450);
+  setTimeout(ensureTitleGap,950);
 
   document.getElementById('stripZone').classList.add('show');
   stripEl.innerHTML='';
@@ -944,32 +951,60 @@ const GAP_DEFAULTS={a:14,b:6,c:10};
 const GAP_FLOORS={a:4,b:2,c:4};
 function ensureTitleGap(){
   const root=document.documentElement.style;
+  /* margin-top/bottom and gap all carry their own CSS transition, so a
+     single before/after estimate is measuring against a value that's
+     still animating toward its target, not the target itself — instead
+     this disables those transitions for the duration of the check,
+     re-measuring after every single change (forcing a synchronous
+     reflow each time) until 20px is actually reached or every gap is
+     at its floor, then hands control back to the real transitions */
+  const animated=[...document.querySelectorAll('.proj-body,.proj-body-inner,.proj-desc')];
+  animated.forEach(el=>{el.dataset._prevTransition=el.style.transition;el.style.transition='none';});
+
   root.setProperty('--gap-a',GAP_DEFAULTS.a+'px');
   root.setProperty('--gap-b',GAP_DEFAULTS.b+'px');
   root.setProperty('--gap-c',GAP_DEFAULTS.c+'px');
-  if(selectedIdx===null)return;
-  const wrap=document.querySelector('.menu-proj-row a.active')?.closest('.menu-proj');
-  if(!wrap)return;
-  let need=20-(wrap.getBoundingClientRect().top-stripEl.getBoundingClientRect().bottom);
-  if(need<=0)return;
-  let a=GAP_DEFAULTS.a,c=GAP_DEFAULTS.c;
-  const takeA=Math.min(need,a-GAP_FLOORS.a); a-=takeA; need-=takeA;
-  const takeC=Math.min(need,c-GAP_FLOORS.c); c-=takeC; need-=takeC;
-  root.setProperty('--gap-a',a+'px');
-  root.setProperty('--gap-c',c+'px');
-  if(need>0){
-    /* --gap-b also drives .proj-desc's own line spacing now, so every
-       gap it touches counts here, not just proj-body-inner's direct
-       children */
+  const wrap=selectedIdx===null?null:document.querySelector('.menu-proj-row a.active')?.closest('.menu-proj');
+  const desc=wrap?wrap.querySelector('.proj-desc'):null;
+  if(desc){desc.style.maxHeight='';desc.style.overflowY='';}
+  if(wrap){
+    void wrap.offsetHeight;
     const inner=wrap.querySelector('.proj-body-inner');
-    const desc=wrap.querySelector('.proj-desc');
     const gapCount=(inner?Math.max(0,inner.children.length-1):0)+
                     (desc?Math.max(0,desc.children.length-1):0);
-    if(gapCount>0){
-      const perGap=Math.min(GAP_DEFAULTS.b-GAP_FLOORS.b,need/gapCount);
-      root.setProperty('--gap-b',(GAP_DEFAULTS.b-perGap)+'px');
+    let a=GAP_DEFAULTS.a,b=GAP_DEFAULTS.b,c=GAP_DEFAULTS.c;
+    for(let i=0;i<12;i++){
+      const need=20-(wrap.getBoundingClientRect().top-stripEl.getBoundingClientRect().bottom);
+      if(need<=0)break;
+      if(a>GAP_FLOORS.a){
+        a=Math.max(GAP_FLOORS.a,a-need);
+        root.setProperty('--gap-a',a+'px');
+      }else if(c>GAP_FLOORS.c){
+        c=Math.max(GAP_FLOORS.c,c-need);
+        root.setProperty('--gap-c',c+'px');
+      }else if(b>GAP_FLOORS.b&&gapCount>0){
+        b=Math.max(GAP_FLOORS.b,b-need/gapCount);
+        root.setProperty('--gap-b',b+'px');
+      }else{
+        break; // every compressible gap is already at its floor
+      }
+      void wrap.offsetHeight;
+    }
+    /* every gap is already at its floor and it's still not enough (the
+       longest description on the narrowest real phone) — the description
+       text itself is the one part with no natural ceiling, so it's what
+       gives: capped to whatever height actually closes the remaining
+       shortfall, scrolling internally rather than pushing the title
+       into the media */
+    const stillNeed=20-(wrap.getBoundingClientRect().top-stripEl.getBoundingClientRect().bottom);
+    if(stillNeed>0&&desc){
+      const newHeight=Math.max(40,desc.getBoundingClientRect().height-stillNeed);
+      desc.style.maxHeight=newHeight+'px';
+      desc.style.overflowY='auto';
     }
   }
+
+  animated.forEach(el=>{el.style.transition=el.dataset._prevTransition||'';delete el.dataset._prevTransition;});
 }
 window.addEventListener('resize',ensureTitleGap,{passive:true});
 
