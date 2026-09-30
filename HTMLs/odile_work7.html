@@ -970,6 +970,7 @@ function updateMenuPosition(){
      pushing "back" past the bottom of the screen */
   const wrap=selectedIdx===null?null:document.querySelector('.menu-proj-row a.active')?.closest('.menu-proj');
   const desc=wrap?wrap.querySelector('.proj-desc'):null;
+  const body=wrap?wrap.querySelector('.proj-body'):null;
   if(desc){
     desc.style.transition='none';
     desc.style.maxHeight='';desc.style.overflowY='';
@@ -982,6 +983,21 @@ function updateMenuPosition(){
     }
     void desc.offsetHeight;
     desc.style.transition='';
+  }
+  /* the description block (everything under the title) sits centred in
+     whatever room is actually left between the title and "back" —
+     measured against "back"'s real position rather than the
+     approximate capHeight, so the two gaps land exactly equal. 14
+     matches .proj-body.open's own margin-top — read from the CSS
+     default rather than getComputedStyle, which right after opening
+     could still be mid-transition and report an in-between value */
+  if(body){
+    const defaultMarginTop=14;
+    const rowBottom=wrap.querySelector('.menu-proj-row').getBoundingClientRect().bottom;
+    const backTop=closeBtnEl.getBoundingClientRect().top;
+    const bodyHeight=body.getBoundingClientRect().height;
+    const extra=Math.max(0,(backTop-rowBottom-bodyHeight)/2-defaultMarginTop);
+    body.style.marginTop=extra>0?(defaultMarginTop+extra)+'px':'';
   }
 
   const afterTop=menuEl.getBoundingClientRect().top;
