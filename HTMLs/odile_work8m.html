@@ -209,7 +209,7 @@ function feedList(){
     const AR=[1,4/5,3/4,1,2/3,4/5];
     return Array.from({length:18},(_,n)=>({m:{type:'ph',ar:AR[n%AR.length]},p:-1,k:0}));
   }
-  const lists=order.map(i=>projects[i].media.slice(0,5).map((m,k)=>({m,p:i,k})));
+  const lists=order.map(i=>[...projects[i].homeOnly.map(m=>({m,p:i,k:0})),...projects[i].media.slice(0,5).map((m,k)=>({m,p:i,k}))]);
   const out=[];
   for(let k=0,more=true;more;k++){more=false;lists.forEach(l=>{if(l[k]){out.push(l[k]);more=true;}});}
   return out;
@@ -358,7 +358,10 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
         const defs=Object.fromEntries((b.markDefs||[]).map(d=>[d._key,d]));
         return b.children.map(c=>({text:c.text||'',href:(c.marks||[]).map(k=>defs[k]).find(d=>d&&d._type==='link')?.href||null}));
       }).filter(r=>r.some(x=>x.text.trim())):[],
-      media:(p.media||[]).filter(m=>m&&!m.hidden&&m.url).map(m=>m._type==='image'||m._type==='mediaImage'?{type:'image',url:m.url,ar:m.ar||1}:{type:'video',url:m.url}),
+      ...(()=>{
+        const all=(p.media||[]).filter(m=>m&&m.url).map(m=>m._type==='image'||m._type==='mediaImage'?{type:'image',url:m.url,ar:m.ar||1,hidden:!!m.hidden}:{type:'video',url:m.url,hidden:!!m.hidden});
+        return{media:all.filter(m=>!m.hidden),homeOnly:all.filter(m=>m.hidden)}; // "Masqué": feed only, never in the project
+      })(),
     }));
     GALLERY=(result.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});
   }catch(e){console.warn('[Sanity]',e.message);}

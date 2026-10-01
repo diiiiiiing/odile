@@ -120,10 +120,13 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 
   /* ── TABS — under Ding, home only: the project index, the gallery, and
      a third room not open yet ── */
+  /* Projects against the left margin, Gallery against the right one */
   #tabs{
-    position:fixed;left:50%;top:calc(var(--pad) + 26px);transform:translateX(-50%);z-index:70;
-    display:flex;gap:56px;white-space:nowrap;transition:opacity .4s ease;
+    position:fixed;left:var(--pad);right:var(--pad);top:calc(var(--pad) + 26px);z-index:70;
+    display:flex;justify-content:space-between;white-space:nowrap;transition:opacity .4s ease;
+    pointer-events:none;
   }
+  #tabs a{pointer-events:auto;}
   #tabs a,#tabs a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
   #tabs a.on{font-weight:700;}
   body:not(.home) #tabs{opacity:0!important;pointer-events:none;}
@@ -750,12 +753,17 @@ async function loadFromSanity(){
             .filter(runs=>runs.some(r=>r.text.trim()))
           :[],
         tags:Array.isArray(p.tags)?p.tags.map(t=>(t?.title||'').toLowerCase().trim()).filter(Boolean):[],
-        media:Array.isArray(p.media)?p.media.map(m=>{
-          if(m.hidden)return null;
-          if(m._type==='image'||m._type==='mediaImage')return{type:'image',url:m.url,ar:m.ar||1};
-          if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url};
-          return null;
-        }).filter(Boolean):[],
+        /* "Masqué" media stay out of the project itself but still feed the
+           home band (homeOnly) */
+        ...(()=>{
+          const all=(Array.isArray(p.media)?p.media:[]).map(m=>{
+            if(!m||!m.url)return null;
+            if(m._type==='image'||m._type==='mediaImage')return{type:'image',url:m.url,ar:m.ar||1,hidden:!!m.hidden};
+            if(m._type==='file'||m._type==='mediaVideo')return{type:'video',url:m.url,hidden:!!m.hidden};
+            return null;
+          }).filter(Boolean);
+          return{media:all.filter(m=>!m.hidden),homeOnly:all.filter(m=>m.hidden)};
+        })(),
         thumb:p.thumb?.url||'',
         thumbAR:p.thumb?.ar||1,
       }));
@@ -959,7 +967,12 @@ function swapStrip(fill,delay=FADE){
    times over and jumps back a copy at either end, so it never runs out;
    every copy of a given media loads together, so the jump never blinks. */
 function homeList(){
-  const lists=menuOrder.map(i=>(projects[i].media||[]).filter(m=>m.type==='image'||m.type==='video').slice(0,5).map((m,k)=>({m,i,k})));
+  /* each project's first five media, plus every media hidden from its
+     project page, which lives only here (opening those starts at the top) */
+  const lists=menuOrder.map(i=>[
+    ...(projects[i].homeOnly||[]).map(m=>({m,i,k:0})),
+    ...(projects[i].media||[]).filter(m=>m.type==='image'||m.type==='video').slice(0,5).map((m,k)=>({m,i,k})),
+  ]);
   const out=[];
   for(let k=0,more=true;more;k++){
     more=false;
