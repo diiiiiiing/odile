@@ -112,7 +112,7 @@
      a third room not open yet ── */
   #tabs{
     position:fixed;left:50%;top:calc(var(--pad) + 26px);transform:translateX(-50%);z-index:70;
-    display:flex;gap:28px;white-space:nowrap;transition:opacity .4s ease;
+    display:flex;gap:56px;white-space:nowrap;transition:opacity .4s ease;
   }
   #tabs a,#tabs a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
   #tabs a.on{font-weight:700;}
@@ -178,7 +178,6 @@
     transition:opacity .5s ease,transform .55s cubic-bezier(.22,1,.36,1);
   }
   #menu::-webkit-scrollbar{display:none;}
-  #menu.idle{opacity:.35;}
 
   .menu-projects{display:flex;flex-direction:column;align-items:center;gap:0;}
   .menu-proj{display:flex;flex-direction:column;align-items:center;gap:0;}
@@ -470,8 +469,6 @@ function hideLoader(){
         const el=document.getElementById(id);
         if(el)el.style.opacity='1';
       });
-      menuRevealed=true;
-      scheduleMenuIdle(); // the 5s idle clock starts once the index is actually visible
     },700);
   },wait);
 }
@@ -489,7 +486,6 @@ let navToken=0;
 const BASE_TITLE=document.title;
 function projName(p){return p.displayTitle||p.client||p.title;}
 function boldSafe(el){el.dataset.label=el.textContent;el.classList.add('bold-safe');}
-let menuRevealed=false;
 
 /* the strip eases toward a target instead of jumping a whole wheel notch
    at a time; wheel notches and arrow keys both just move the target */
@@ -567,39 +563,6 @@ emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);}
    it instead of stopping short and scrolling internally. */
 const menuEl=document.getElementById('menu');
 
-/* dims the index after 5s with the mouse off it, so it steps back once
-   someone's actually looking at the media/description rather than the
-   list itself — a real hover only, so touch devices (no persistent
-   hover to bring it back) are left alone entirely. Opacity is set
-   inline rather than through the .idle class alone: hideLoader() left
-   #menu with an inline style="opacity:1" when it revealed the page,
-   and an inline style always beats a stylesheet rule of any
-   specificity, class included. Never dims while a project is open —
-   the description itself must stay fully readable, only the closed
-   list steps back when idle. scheduleMenuIdle is kept in the outer
-   scope (a no-op when hover isn't supported) so selectProject/
-   closeProject can call it directly instead of depending on a
-   mouseenter/mouseleave pair that "back", sitting outside #menu, never
-   triggers. */
-let scheduleMenuIdle=()=>{};
-if(matchMedia('(hover:hover)').matches){
-  let menuIdleTimer=null;
-  const wake=()=>{
-    clearTimeout(menuIdleTimer);
-    menuEl.classList.remove('idle');
-    if(menuRevealed)menuEl.style.opacity='1'; // before the loader reveals it, #menu stays at its CSS opacity:0
-  };
-  scheduleMenuIdle=()=>{
-    wake();
-    if(selectedIdx!==null||!menuRevealed)return;
-    menuIdleTimer=setTimeout(()=>{
-      menuEl.classList.add('idle');
-      menuEl.style.opacity='.35';
-    },5000);
-  };
-  menuEl.addEventListener('mouseenter',wake);
-  menuEl.addEventListener('mouseleave',scheduleMenuIdle);
-}
 
 /* ── INFO ── every opening deals the fragments out again: random spots
    below Ding, biggest first, each kept clear of the ones already placed
@@ -1196,7 +1159,6 @@ function closeProject({pushUrl=true}={}){
   closeBtnEl.classList.remove('show');
   showHome(FADE+30); // after the list's own commit, so the band is measured against its final place
   document.querySelectorAll('#menu .proj-body.shown').forEach(b=>b.classList.remove('shown'));
-  scheduleMenuIdle(); // "back" sits outside #menu, so closing via it never fires mouseenter/leave on #menu itself
   if(pushUrl&&location.hash)history.pushState(null,'',location.pathname+location.search);
   document.title=BASE_TITLE;
 
@@ -1239,7 +1201,6 @@ function selectProject(i,{pushUrl=true,start=0}={}){
   clearCascade();
   const wasOpen=selectedIdx!==null;
   selectedIdx=i;
-  scheduleMenuIdle(); // shows #menu at full opacity and, since selectedIdx is now set, never schedules it to dim again
   const row=rowOf(i);
   document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
   row?.querySelector('a[data-idx]').classList.add('active');
