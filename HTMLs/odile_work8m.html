@@ -89,14 +89,21 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   .txt .desc a{color:var(--fg);text-decoration:underline;}
   .end{display:flex;justify-content:space-between;padding:22px var(--pad) calc(26px + var(--bottom));}
 
-  /* ── INFO ── */
-  #info{padding:28px var(--pad) calc(40px + var(--bottom));text-align:center;}
-  #info p{margin-bottom:14px;}
-  #info a,#info a:visited,#info a:active{color:#000;text-decoration:underline;}
-  #info .h{font-weight:700;margin:26px 0 6px;}
-  #info .row{margin-bottom:10px;}
-  #info .row span{display:block;}
-  #info .role{color:var(--dim);}
+  /* ── INFO ── the whole screen, flush left, its blocks spread from top to
+     bottom with air between every line */
+  body.info #info{display:flex;}
+  #info{
+    flex-direction:column;justify-content:space-between;gap:36px;
+    min-height:calc(100svh - var(--bar));
+    padding:36px var(--pad) calc(36px + var(--bottom));
+    text-align:left;line-height:1.55;
+  }
+  #info section>*+*{margin-top:4px;}
+  #info a,#info a:visited,#info a:active{color:#000;text-decoration:underline;text-underline-offset:.15em;}
+  #info .h{font-weight:700;margin-bottom:14px;}
+  #info .rows{display:grid;grid-template-columns:max-content 1fr;gap:16px 22px;}
+  #info .rows .co{display:block;}
+  #info .rows .role{display:block;color:var(--dim);}
 
   #more{height:1px;}
   @media (prefers-reduced-motion:reduce){.view,.m img{animation:none;transition:none;}}
@@ -117,16 +124,30 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   <div id="feed" class="view"></div>
   <div id="proj" class="view"></div>
   <div id="info" class="view">
-    <p>Thomas Ding<br>Paris, France <span class="paris-time"></span></p>
-    <p>Currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></p>
-    <p><a href="mailto:thomasding227@gmail.com">thomasding227@gmail.com</a><br><a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a></p>
-    <div class="h">Experiences</div>
-    <div class="row"><span>2026 — now · UNVEIL®</span><span class="role">multi-disciplinary designer</span></div>
-    <div class="row"><span>2025 — 2026 · UNVEIL®</span><span class="role">creative intern</span></div>
-    <div class="row"><span>2023 — 2025 · Women Management</span><span class="role">graphic designer &amp; image editor</span></div>
-    <div class="row"><span>2022 — 2023 · Dream Factory</span><span class="role">graphic designer</span></div>
-    <div class="h">Services</div>
-    <p>Art direction, graphic design, image, video, AI</p>
+    <section>
+      <div>Thomas Ding</div>
+      <div>Paris, France <span class="paris-time"></span></div>
+    </section>
+    <section>
+      <div>Currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></div>
+    </section>
+    <section>
+      <div><a href="mailto:thomasding227@gmail.com">thomasding227@gmail.com</a></div>
+      <div><a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a></div>
+    </section>
+    <section>
+      <div class="h">Experiences</div>
+      <div class="rows">
+        <span>2026 — now</span><span><span class="co">UNVEIL®</span><span class="role">multi-disciplinary designer</span></span>
+        <span>2025 — 2026</span><span><span class="co">UNVEIL®</span><span class="role">creative intern</span></span>
+        <span>2023 — 2025</span><span><span class="co">Women Management</span><span class="role">graphic designer &amp; image editor</span></span>
+        <span>2022 — 2023</span><span><span class="co">Dream Factory</span><span class="role">graphic designer</span></span>
+      </div>
+    </section>
+    <section>
+      <div class="h">Services</div>
+      <div>Art direction, graphic design, image, video, AI</div>
+    </section>
   </div>
   <div id="more"></div>
 </main>
