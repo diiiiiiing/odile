@@ -22,7 +22,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   /* work8, phone edition: one vertical column of media, edge to edge,
      nothing else on screen but Ding and two words. Native scrolling only,
      space reserved for every media before it loads, off-screen rows
-     skipped by the renderer, videos playing only while seen. */
+     skipped by the renderer, videos shown as their first frame. */
   :root{
     --bg:#808080;--fg:#000;--dim:#3a3a3a;
     --fs:13px;--pad:16px;
@@ -67,7 +67,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   /* ── MEDIA ── full width, no gaps; each row keeps its own height off
      screen (aspect-ratio) while the renderer skips its content */
   .m{
-    display:block;width:100%;position:relative;
+    display:block;width:100%;margin:0 auto;position:relative;
     content-visibility:auto;
     scroll-margin-top:var(--bar);
     background:var(--bg);
@@ -142,29 +142,26 @@ let view='feed',tab='projects',openIdx=null,feedY=0;
 const W=Math.min(1600,Math.ceil(innerWidth*Math.min(3,devicePixelRatio||1)/200)*200);
 const sized=u=>/^https:\/\/cdn\.sanity\.io\/images\//.test(u)&&!/\.gif(\?|$)/i.test(u)?`${u}?w=${W}&fit=max&auto=format&q=80`:u;
 
-/* ── VIDEOS ── loaded within a couple of screens, unloaded beyond (iOS
-   caps how many it will hold), playing only while mostly on screen */
+/* ── VIDEOS ── their first frame is fetched within a couple of screens and
+   dropped beyond (iOS caps how many it will hold) */
 const near=new IntersectionObserver(es=>es.forEach(({target:v,isIntersecting})=>{
   if(isIntersecting){if(!v.getAttribute('src'))v.src=v.dataset.src;}
   else if(v.getAttribute('src')){v.pause();v.removeAttribute('src');v.load();}
 }),{rootMargin:'150% 0px'});
-const seen=new IntersectionObserver(es=>es.forEach(({target:v,isIntersecting})=>{
-  v._seen=isIntersecting;
-  if(isIntersecting){if(v.getAttribute('src'))v.play().catch(()=>{});}
-  else v.pause();
-}),{threshold:.35});
+/* nothing autoplays, but a video played by hand stops when the page hides */
 document.addEventListener('visibilitychange',()=>{
-  document.querySelectorAll('video').forEach(v=>{if(document.hidden)v.pause();else if(v._seen&&v.getAttribute('src'))v.play().catch(()=>{});});
+  if(document.hidden)document.querySelectorAll('video').forEach(v=>v.pause());
 });
 function release(root){
-  root.querySelectorAll('video').forEach(v=>{near.unobserve(v);seen.unobserve(v);v.pause();v.removeAttribute('src');v.load();});
+  root.querySelectorAll('video').forEach(v=>{near.unobserve(v);v.pause();v.removeAttribute('src');v.load();});
   root.innerHTML='';
 }
 
 /* one row: its height is reserved from the aspect ratio before anything loads */
-function row(m,{p=-1,k=0,eager=false}={}){
+function row(m,{p=-1,k=0,eager=false,width=100,controls=false}={}){
   const f=document.createElement('figure');
   f.className='m';
+  if(width<100)f.style.width=width+'%';
   f.style.aspectRatio=String(m.ar||(m.type==='video'?16/9:1));
   if(p>=0){f.dataset.p=p;f.dataset.k=k;}
   if(m.type==='image'){
@@ -176,11 +173,16 @@ function row(m,{p=-1,k=0,eager=false}={}){
     img.src=sized(m.url);
     f.appendChild(img);
   }else if(m.type==='video'){
+    /* no autoplay on the phone — it stalls on iOS (and Low Power Mode
+       forbids it): a video shows its first frame as a still (the #t
+       fragment makes iOS paint it without playing). In a project it also
+       gets its controls, and a tap plays it */
     const v=document.createElement('video');
-    v.muted=true;v.loop=true;v.playsInline=true;v.autoplay=true;v.preload='none';
+    v.muted=true;v.loop=true;v.playsInline=true;v.preload='metadata';
     v.setAttribute('playsinline','');v.setAttribute('muted','');
     v.disablePictureInPicture=true;
-    v.dataset.src=m.url;
+    v.controls=controls;
+    v.dataset.src=m.url+'#t=0.1';
     v.addEventListener('loadedmetadata',()=>{
       /* a video only reveals its real proportions once loaded; if it sits
          above what's being looked at, the scroll absorbs the change so
@@ -191,11 +193,9 @@ function row(m,{p=-1,k=0,eager=false}={}){
         const d=f.offsetHeight-before;
         if(d&&f.getBoundingClientRect().bottom<=innerHeight*.15)scrollBy(0,d);
       }
-      if(view==='proj'&&v.duration>=18)v.controls=true;
     });
-    v.addEventListener('play',()=>{if(v._seen===false)v.pause();});
     f.appendChild(v);
-    near.observe(v);seen.observe(v);
+    near.observe(v);
   }else f.classList.add('ph');
   return f;
 }
@@ -219,7 +219,9 @@ function appendFeed(){
   const list=feedList();
   if(!list.length)return;
   const frag=document.createDocumentFragment();
-  list.forEach((it,n)=>frag.appendChild(row(it.m,{p:it.p,k:it.k,eager:batches===0&&n<2})));
+  let seed=2004+batches*7919;
+  const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+  list.forEach((it,n)=>frag.appendChild(row(it.m,{p:it.p,k:it.k,eager:batches===0&&n<2,width:Math.round(52+rnd()*48)})));
   feedEl.appendChild(frag);
   batches++;
 }
@@ -257,7 +259,7 @@ function openProject(i,{at=0,push=true}={}){
   txt.appendChild(desc);
   projEl.appendChild(txt);
   const frag=document.createDocumentFragment();
-  p.media.forEach((m,k)=>frag.appendChild(row(m,{eager:k===at||k<1})));
+  p.media.forEach((m,k)=>frag.appendChild(row(m,{eager:k===at||k<1,controls:true})));
   projEl.appendChild(frag);
   const end=document.createElement('div');end.className='end';
   const top=document.createElement('button');top.textContent='Top ↑';

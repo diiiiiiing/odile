@@ -285,6 +285,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   #strip.steppable .strip-item{cursor:pointer;}
   body:not(.home) #strip .strip-item{cursor:zoom-in;}
   body:not(.home) #strip video[controls]{cursor:auto;}
+  body:not(.home) #strip.edge,body:not(.home) #strip.edge .strip-item{cursor:pointer;}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
@@ -1451,6 +1452,19 @@ const hoverCapable=matchMedia('(hover:hover)').matches;
 
 /* ── STRIP CURSOR ── on a pointer device, a label trails the cursor over
    the media (← prev / next → / next project →) and a click steps that way */
+/* a thin band down each side of a project's strip: with the strip all the
+   way left, the left band leads to the previous project; all the way
+   right, the right band to the next one. Narrow enough that the media
+   at either end stay fully on show */
+function edgeAt(x){
+  if(homeMode||selectedIdx===null)return 0;
+  const band=Math.max(60,Math.min(140,innerWidth*.08));
+  const atStart=stripEl.scrollLeft<=4;
+  const atEnd=stripEl.scrollLeft+stripEl.clientWidth>=stripEl.scrollWidth-4;
+  if(x<band&&atStart&&prevLinkTarget!==null)return -1;
+  if(x>innerWidth-band&&atEnd&&nextLinkTarget!==null)return 1;
+  return 0;
+}
 const cursorEl=document.getElementById('cursorLabel');
 if(hoverCapable){
   stripEl.classList.add('steppable');
@@ -1461,8 +1475,11 @@ if(hoverCapable){
     if(homeMode){
       const el=document.elementFromPoint(mx,my)?.closest?.('#strip [data-p]');
       text=el&&+el.dataset.p>=0?projName(projects[+el.dataset.p]):'';
+    }else{
+      const ed=edgeAt(mx);
+      text=ed<0?'← previous project':ed>0?'next project →':'';
+      stripEl.classList.toggle('edge',!!ed);
     }
-
     if(cursorEl.textContent!==text)cursorEl.textContent=text;
     const w=cursorEl.offsetWidth;
     const x=mx+16+w>innerWidth-8?mx-16-w:mx+16;
@@ -1471,16 +1488,18 @@ if(hoverCapable){
   };
   stripEl.addEventListener('mousemove',e=>{
     mx=e.clientX;my=e.clientY;
-    over=!e.target.closest?.('video[controls]');
+    over=!e.target.closest?.('video[controls]')||!!edgeAt(mx);
     if(!over){cursorEl.classList.remove('on');return;}
     refresh();
   });
-  stripEl.addEventListener('mouseleave',()=>{over=false;cursorEl.classList.remove('on');});
+  stripEl.addEventListener('mouseleave',()=>{over=false;cursorEl.classList.remove('on');stripEl.classList.remove('edge');});
   stripEl.addEventListener('scroll',refresh,{passive:true});
 }
 /* in a project, a click on a media shows it large */
 stripEl.addEventListener('click',e=>{
   if(homeMode)return;
+  const ed=edgeAt(e.clientX);
+  if(ed){e.preventDefault();selectProject(ed<0?prevLinkTarget:nextLinkTarget);return;}
   const item=e.target.closest?.('.strip-item');
   if(!item||item.matches('video[controls]')||item.classList.contains('ph'))return;
   openLightbox([...stripEl.children].filter(c=>c.classList.contains('strip-item')&&!c.classList.contains('ph')).indexOf(item));
