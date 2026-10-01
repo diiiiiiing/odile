@@ -117,7 +117,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   <div id="feed" class="view"></div>
   <div id="proj" class="view"></div>
   <div id="info" class="view">
-    <p>Thomas Ding<br>B.2004 Paris, France</p>
+    <p>Thomas Ding<br>Paris, France <span class="paris-time"></span></p>
     <p>Currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></p>
     <p><a href="mailto:thomasding227@gmail.com">thomasding227@gmail.com</a><br><a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a></p>
     <div class="h">Experiences</div>
@@ -377,6 +377,13 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
   buildFeed();
   const i=projects.findIndex(p=>p.slug===h);
   if(i!==-1){history.replaceState(null,'',location.pathname+location.search);openProject(i);}
+})();
+
+/* Paris time beside "Paris, France", kept to the minute */
+(()=>{
+  const fmt=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
+  const tick=()=>document.querySelectorAll('.paris-time').forEach(e=>{e.textContent=fmt.format(new Date());});
+  tick();setInterval(tick,15000);
 })();
 </script>
 </body>

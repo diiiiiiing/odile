@@ -380,7 +380,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   <div class="frag"><a href="#" id="emailCopy">thomasding227@gmail.com</a></div>
   <div class="frag"><a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a></div>
   <div class="frag">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></div>
-  <div class="frag">B.2004 Paris, France</div>
+  <div class="frag">Paris, France <span class="paris-time"></span></div>
   <div class="frag vert">
     <span class="h">Experiences</span>
     <div class="rows">
@@ -1456,6 +1456,13 @@ stripEl.addEventListener('click',e=>{
 });
 
 loadFromSanity();
+
+/* Paris time beside "Paris, France", kept to the minute */
+(()=>{
+  const fmt=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
+  const tick=()=>document.querySelectorAll('.paris-time').forEach(e=>{e.textContent=fmt.format(new Date());});
+  tick();setInterval(tick,15000);
+})();
 </script>
 </body>
 </html>
