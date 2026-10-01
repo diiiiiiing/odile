@@ -120,10 +120,10 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 
   /* ── TABS — under Ding, home only: the project index, the gallery, and
      a third room not open yet ── */
-  /* Projects against the left margin, Gallery against the right one */
+  /* Projects centred in the left half of the screen, Gallery in the right */
   #tabs{
-    position:fixed;left:var(--pad);right:var(--pad);top:calc(var(--pad) + 26px);z-index:70;
-    display:flex;justify-content:space-between;white-space:nowrap;transition:opacity .4s ease;
+    position:fixed;left:0;right:0;top:calc(var(--pad) + 26px);z-index:70;
+    display:grid;grid-template-columns:1fr 1fr;justify-items:center;white-space:nowrap;transition:opacity .4s ease;
     pointer-events:none;
   }
   #tabs a{pointer-events:auto;}
@@ -179,6 +179,22 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
   .next-link.show{opacity:1;pointer-events:auto;}
+  .prev-link{
+    position:fixed;left:var(--pad);bottom:var(--pad);z-index:70;
+    writing-mode:vertical-rl;transform:rotate(180deg);
+    opacity:0;pointer-events:none;transition:opacity .3s ease;
+  }
+  .prev-link.show{opacity:1;pointer-events:auto;}
+
+  /* ── LIGHTBOX — a project's media, clicked, shown as large as it goes ── */
+  #lightbox{
+    position:fixed;inset:0;z-index:150;background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;transition:opacity .25s ease;cursor:zoom-out;
+  }
+  #lightbox.on{opacity:1;pointer-events:auto;}
+  #lightbox img,#lightbox video{display:block;max-width:100vw;max-height:100vh;width:auto;height:auto;object-fit:contain;}
+  #lightbox video{cursor:auto;}
 
   /* ── BOTTOM — the project index ── */
   #menu{
@@ -266,7 +282,9 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     color:#fff;mix-blend-mode:difference; /* inverts over the media instead of sitting on a patch */
   }
   #cursorLabel.on{opacity:1;}
-  #strip.steppable{cursor:pointer;}
+  #strip.steppable .strip-item{cursor:pointer;}
+  body:not(.home) #strip .strip-item{cursor:zoom-in;}
+  body:not(.home) #strip video[controls]{cursor:auto;}
 
   /* hover only for devices that actually have one — on touch, :hover can
      fire (and stick) from the same tap-drag that starts a scroll, making
@@ -294,8 +312,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     html,body{line-height:1.2;}
     #topZone{top:calc(var(--pad) + env(safe-area-inset-top));width:min(88vw,380px);}
     #menu{bottom:calc(var(--pad) + env(safe-area-inset-bottom));width:min(88vw,380px);}
-    .close-link,.next-link,.corner.bl{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
-    .next-link,.corner.bl{writing-mode:horizontal-tb;transform:none;} /* flat on a phone, clear of the description */
+    .close-link,.next-link,.prev-link,.corner.bl{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
+    .next-link,.prev-link,.corner.bl{writing-mode:horizontal-tb;transform:none;} /* flat on a phone, clear of the description */
     .menu-cat{padding:7px 0;margin-top:8px;}
     #stripZone{height:min(42vh,380px);}
 
@@ -401,6 +419,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      #stripZone, whose transform would otherwise become the containing
      block for this fixed-position link instead of the viewport -->
 <a href="#" id="nextProject" class="ext-link next-link">next project</a>
+<a href="#" id="prevProject" class="ext-link prev-link">previous project</a>
+<div id="lightbox"></div>
 <!-- bottom-left counterpart, same reason: a fixed spot regardless of
      the open description's length, not part of #menu's own flow -->
 <a href="#" id="backBtn" class="ext-link close-link">back</a>
@@ -536,6 +556,7 @@ function stepStrip(dir){
 }
 
 window.addEventListener('wheel',e=>{
+  if(lbOpen)return; // the enlarged media holds still
   const dy=e.deltaMode===1?e.deltaY*40:e.deltaY;
   if(selectedIdx===null&&e.target.closest?.('#menu'))return;
   if(Math.abs(e.deltaX)>Math.abs(dy)){stopStripScroll();return;} // a horizontal trackpad swipe scrolls the strip natively
@@ -551,6 +572,11 @@ stripEl.addEventListener('touchstart',stopStripScroll,{passive:true});
    declarations, so this can sit above them */
 window.addEventListener('keydown',e=>{
   if(e.metaKey||e.ctrlKey||e.altKey)return;
+  if(lbOpen){
+    if(e.key==='Escape')closeLightbox();
+    else if(e.key==='ArrowRight'||e.key==='ArrowLeft'){e.preventDefault();showInLightbox(lbIdx+(e.key==='ArrowRight'?1:-1));}
+    return;
+  }
   if(e.key==='Escape'&&cvOpen){toggleCV(false);return;}
   if(e.key==='Escape'&&selectedIdx!==null){closeProject();return;}
   if(selectedIdx!==null&&(e.key==='ArrowRight'||e.key==='ArrowLeft')){
@@ -1172,11 +1198,12 @@ function clearCascade(){
 }
 function closeProject({pushUrl=true}={}){
   if(selectedIdx===null)return;
+  closeLightbox();
   const token=++navToken;
   const row=rowOf(selectedIdx);
   selectedIdx=null;
   if(cvOpen)toggleCV(false);
-  nextLinkTarget=null;
+  nextLinkTarget=null;prevLinkTarget=null;
   updateCorners();
   updateNextLinkVisibility();
   closeBtnEl.classList.remove('show');
@@ -1215,6 +1242,7 @@ function closeProject({pushUrl=true}={}){
    description fades in last, already at its final size */
 function selectProject(i,{pushUrl=true,start=0}={}){
   if(selectedIdx===i)return;
+  closeLightbox();
   if(tab!=='project'){
     tab='project';
     document.body.classList.remove('gallery');
@@ -1237,6 +1265,7 @@ function selectProject(i,{pushUrl=true,start=0}={}){
 
   const pos=menuOrder.indexOf(i);
   nextLinkTarget=(pos!==-1&&menuOrder.length>1)?menuOrder[(pos+1)%menuOrder.length]:null;
+  prevLinkTarget=(pos!==-1&&menuOrder.length>1)?menuOrder[(pos-1+menuOrder.length)%menuOrder.length]:null;
   nextLinkEl.classList.remove('show');
   updateCorners();
 
@@ -1324,6 +1353,7 @@ function createMediaEl(m,k,group=null){
       updateNextLinkVisibility();
     });
     const src=sizedUrl(m.url);
+    img.dataset.url=m.url;
     img._load=()=>{if(!img.getAttribute('src'))img.src=src;};
     if(group)img.dataset.g=group;
     if(k<3)img._load();
@@ -1346,6 +1376,7 @@ function createMediaEl(m,k,group=null){
     });
     /* autoplay can start while it's still just off screen */
     vid.addEventListener('play',()=>{if(vid._vis===false){vid.pause();vid._held=true;}});
+    vid.dataset.url=m.url;
     vid._load=()=>{if(!vid.getAttribute('src'))vid.src=m.url;};
     if(group)vid.dataset.g=group;
     whenNear(vid,vidNear,()=>loadGroup(vid));
@@ -1358,15 +1389,23 @@ function createMediaEl(m,k,group=null){
   return ph;
 }
 
-/* "next project" — appears once the strip is scrolled to its end */
+/* "previous project" shows only with the strip all the way left, "next
+   project" only all the way right — nothing in between */
 const nextLinkEl=document.getElementById('nextProject');
-let nextLinkTarget=null;
+const prevLinkEl=document.getElementById('prevProject');
+let nextLinkTarget=null,prevLinkTarget=null;
 function updateNextLinkVisibility(){
-  if(nextLinkTarget===null){nextLinkEl.classList.remove('show');updateCounter();return;}
+  const open=selectedIdx!==null&&!homeMode;
   const atEnd=stripEl.scrollLeft+stripEl.clientWidth>=stripEl.scrollWidth-4;
-  nextLinkEl.classList.toggle('show',atEnd);
+  const atStart=stripEl.scrollLeft<=4;
+  nextLinkEl.classList.toggle('show',open&&nextLinkTarget!==null&&atEnd);
+  prevLinkEl.classList.toggle('show',open&&prevLinkTarget!==null&&atStart);
   updateCounter();
 }
+prevLinkEl.addEventListener('click',e=>{
+  e.preventDefault();
+  if(prevLinkTarget!==null)selectProject(prevLinkTarget);
+});
 stripEl.addEventListener('scroll',updateNextLinkVisibility,{passive:true});
 nextLinkEl.addEventListener('click',e=>{
   e.preventDefault();
@@ -1390,7 +1429,7 @@ function updateCorners(){updateCounter();}
 function updateCounter(){
   const items=[...stripEl.children].filter(c=>c.classList.contains('strip-item'));
   const n=items.length;
-  if(selectedIdx===null||!n){cornerBL.classList.remove('on');return;}
+  if(selectedIdx===null||!n||prevLinkEl.classList.contains('show')){cornerBL.classList.remove('on');return;}
   const max=stripEl.scrollWidth-stripEl.clientWidth;
   const box=stripEl.getBoundingClientRect();
   const centred=getComputedStyle(stripEl).scrollSnapType.startsWith('x');
@@ -1418,17 +1457,12 @@ if(hoverCapable){
   let mx=0,my=0,over=false;
   const refresh=()=>{
     if(!over)return;
-    const max=stripEl.scrollWidth-stripEl.clientWidth;
-    const pos=stripTarget??stripEl.scrollLeft;
-    const left=mx<innerWidth/2;
     let text='';
     if(homeMode){
       const el=document.elementFromPoint(mx,my)?.closest?.('#strip [data-p]');
       text=el&&+el.dataset.p>=0?projName(projects[+el.dataset.p]):'';
     }
-    else if(left&&pos>2)text='← prev';
-    else if(!left&&pos<max-2)text='next →';
-    else if(!left&&nextLinkTarget!==null)text='next project →';
+
     if(cursorEl.textContent!==text)cursorEl.textContent=text;
     const w=cursorEl.offsetWidth;
     const x=mx+16+w>innerWidth-8?mx-16-w:mx+16;
@@ -1443,11 +1477,54 @@ if(hoverCapable){
   });
   stripEl.addEventListener('mouseleave',()=>{over=false;cursorEl.classList.remove('on');});
   stripEl.addEventListener('scroll',refresh,{passive:true});
-  stripEl.addEventListener('click',e=>{
-    if(e.target.closest?.('video[controls]')||homeMode)return;
-    stepStrip(e.clientX<innerWidth/2?-1:1);
-  });
 }
+/* in a project, a click on a media shows it large */
+stripEl.addEventListener('click',e=>{
+  if(homeMode)return;
+  const item=e.target.closest?.('.strip-item');
+  if(!item||item.matches('video[controls]')||item.classList.contains('ph'))return;
+  openLightbox([...stripEl.children].filter(c=>c.classList.contains('strip-item')&&!c.classList.contains('ph')).indexOf(item));
+});
+
+/* ── LIGHTBOX ── */
+const lbEl=document.getElementById('lightbox');
+let lbOpen=false,lbIdx=0;
+function lbItems(){return [...stripEl.children].filter(c=>c.classList.contains('strip-item')&&!c.classList.contains('ph'));}
+function showInLightbox(k){
+  const items=lbItems();
+  if(!items.length)return;
+  lbIdx=(k+items.length)%items.length;
+  const src=items[lbIdx];
+  lbEl.querySelectorAll('video').forEach(v=>{v.pause();v.removeAttribute('src');v.load();});
+  lbEl.innerHTML='';
+  let el;
+  if(src.tagName==='VIDEO'){
+    el=document.createElement('video');
+    el.controls=true;el.loop=true;el.playsInline=true;el.autoplay=true;
+    el.src=src.dataset.url;
+    el.play().catch(()=>{el.muted=true;el.play().catch(()=>{});});
+  }else{
+    el=new Image();
+    el.alt='';el.decoding='async';
+    el.src=sizedUrl(src.dataset.url,innerHeight);
+  }
+  lbEl.appendChild(el);
+}
+function openLightbox(k){
+  if(k<0)return;
+  lbOpen=true;
+  stripEl.querySelectorAll('video').forEach(v=>v.pause());
+  showInLightbox(k);
+  lbEl.classList.add('on');
+}
+function closeLightbox(){
+  if(!lbOpen)return;
+  lbOpen=false;
+  lbEl.classList.remove('on');
+  setTimeout(()=>{if(!lbOpen){lbEl.querySelectorAll('video').forEach(v=>{v.pause();v.removeAttribute('src');v.load();});lbEl.innerHTML='';}},260);
+  stripEl.querySelectorAll('video').forEach(v=>{if(v._vis)v.play().catch(()=>{});});
+}
+lbEl.addEventListener('click',e=>{if(e.target.tagName!=='VIDEO')closeLightbox();});
 /* a media in the home band opens its project, on that very media */
 stripEl.addEventListener('click',e=>{
   if(!homeMode)return;
