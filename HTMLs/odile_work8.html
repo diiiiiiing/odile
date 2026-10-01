@@ -7,6 +7,11 @@
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>
+/* phones and small touch tablets get the dedicated mobile page */
+if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.width,screen.height)<=900&&!/[?&]desktop\b/.test(location.search))
+  location.replace('odile_work8m.html'+location.hash);
+</script>
 <link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
 <link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
 <style>

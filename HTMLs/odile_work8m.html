@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#808080">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no,email=no,address=no">
+<title>ODILE — WORK</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
+<link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
+<script>
+/* a computer belongs on the desktop page */
+if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&]m\b/.test(location.search))
+  location.replace('odile_work8.html'+location.hash);
+</script>
+<style>
+  /* work8, phone edition: one vertical column of media, edge to edge,
+     nothing else on screen but Ding and two words. Native scrolling only,
+     space reserved for every media before it loads, off-screen rows
+     skipped by the renderer, videos playing only while seen. */
+  :root{
+    --bg:#808080;--fg:#000;--dim:#3a3a3a;
+    --fs:13px;--pad:16px;
+    --top:env(safe-area-inset-top,0px);--bottom:env(safe-area-inset-bottom,0px);
+    --bar:calc(44px + var(--top));
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html{background:var(--bg);-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  body{
+    background:var(--bg);color:var(--fg);
+    font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
+    font-size:var(--fs);line-height:1.25;letter-spacing:.02em;text-transform:uppercase;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+    -webkit-user-select:none;user-select:none;
+    min-height:100svh;
+    overflow-anchor:none; /* scroll is compensated by hand when a video above grows, see row() */
+  }
+  a,a:visited{color:var(--fg);text-decoration:none;}
+  button{font:inherit;color:inherit;background:none;border:0;letter-spacing:inherit;text-transform:inherit;cursor:pointer;}
+
+  /* ── BAR ── */
+  #bar{
+    position:fixed;left:0;right:0;top:0;z-index:10;height:var(--bar);
+    padding:var(--top) var(--pad) 0;
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--bg);
+  }
+  #bar button,#bar a{padding:12px 0;}
+  #tabs{display:flex;gap:28px;}
+  #tabs a.on{font-weight:700;}
+  #ding.on{font-weight:700;}
+  #back{display:none;}
+  body.proj #tabs{display:none;}
+  body.proj #back{display:block;}
+
+  /* ── VIEWS ── */
+  main{padding-top:var(--bar);}
+  .view{display:none;animation:in .3s ease both;}
+  body.feed #feed,body.proj #proj,body.info #info{display:block;}
+  @keyframes in{from{opacity:0}to{opacity:1}}
+
+  /* ── MEDIA ── full width, no gaps; each row keeps its own height off
+     screen (aspect-ratio) while the renderer skips its content */
+  .m{
+    display:block;width:100%;position:relative;
+    content-visibility:auto;
+    scroll-margin-top:var(--bar);
+    background:var(--bg);
+  }
+  .m img,.m video{display:block;width:100%;height:100%;object-fit:cover;}
+  .m img{opacity:0;transition:opacity .35s ease;}
+  .m img.ok{opacity:1;}
+  .m.ph{background:#cdcdcd;}
+  .m.ph:nth-child(3n+2){background:#e2e2e2;}
+  .m.ph:nth-child(3n){background:#d6d6d6;}
+  #feed .m[data-p]{cursor:pointer;}
+
+  /* ── PROJECT ── */
+  .txt{padding:22px var(--pad) 26px;text-align:center;}
+  .txt h1{font-size:inherit;font-weight:700;margin-bottom:10px;}
+  .txt .meta{color:var(--dim);margin-bottom:12px;}
+  .txt .desc{text-transform:none;letter-spacing:0;color:var(--dim);-webkit-user-select:text;user-select:text;}
+  .txt .desc p{margin-bottom:.5em;}
+  .txt .desc a{color:var(--fg);text-decoration:underline;}
+  .end{display:flex;justify-content:space-between;padding:22px var(--pad) calc(26px + var(--bottom));}
+
+  /* ── INFO ── */
+  #info{padding:28px var(--pad) calc(40px + var(--bottom));text-align:center;}
+  #info p{margin-bottom:14px;}
+  #info a,#info a:visited,#info a:active{color:#000;text-decoration:underline;}
+  #info .h{font-weight:700;margin:26px 0 6px;}
+  #info .row{margin-bottom:10px;}
+  #info .row span{display:block;}
+  #info .role{color:var(--dim);}
+
+  #more{height:1px;}
+  @media (prefers-reduced-motion:reduce){.view,.m img{animation:none;transition:none;}}
+</style>
+</head>
+<body class="feed">
+
+<header id="bar">
+  <button id="ding" aria-label="information">Ding</button>
+  <nav id="tabs">
+    <a href="#" data-tab="projects" class="on">Projects</a>
+    <a href="#gallery" data-tab="gallery">Gallery</a>
+  </nav>
+  <button id="back">Back</button>
+</header>
+
+<main>
+  <div id="feed" class="view"></div>
+  <div id="proj" class="view"></div>
+  <div id="info" class="view">
+    <p>Thomas Ding<br>B.2004 Paris, France</p>
+    <p>Currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></p>
+    <p><a href="mailto:thomasding227@gmail.com">thomasding227@gmail.com</a><br><a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a></p>
+    <div class="h">Experiences</div>
+    <div class="row"><span>2026 — now · UNVEIL®</span><span class="role">multi-disciplinary designer</span></div>
+    <div class="row"><span>2025 — 2026 · UNVEIL®</span><span class="role">creative intern</span></div>
+    <div class="row"><span>2023 — 2025 · Women Management</span><span class="role">graphic designer &amp; image editor</span></div>
+    <div class="row"><span>2022 — 2023 · Dream Factory</span><span class="role">graphic designer</span></div>
+    <div class="h">Services</div>
+    <p>Art direction, graphic design, image, video, AI</p>
+  </div>
+  <div id="more"></div>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const feedEl=$('#feed'),projEl=$('#proj'),moreEl=$('#more');
+const nameOf=p=>p.displayTitle||p.client||p.title;
+let projects=[],order=[],GALLERY=[];
+let view='feed',tab='projects',openIdx=null,feedY=0;
+
+/* Sanity images at the phone's real width; GIFs untouched */
+const W=Math.min(1600,Math.ceil(innerWidth*Math.min(3,devicePixelRatio||1)/200)*200);
+const sized=u=>/^https:\/\/cdn\.sanity\.io\/images\//.test(u)&&!/\.gif(\?|$)/i.test(u)?`${u}?w=${W}&fit=max&auto=format&q=80`:u;
+
+/* ── VIDEOS ── loaded within a couple of screens, unloaded beyond (iOS
+   caps how many it will hold), playing only while mostly on screen */
+const near=new IntersectionObserver(es=>es.forEach(({target:v,isIntersecting})=>{
+  if(isIntersecting){if(!v.getAttribute('src'))v.src=v.dataset.src;}
+  else if(v.getAttribute('src')){v.pause();v.removeAttribute('src');v.load();}
+}),{rootMargin:'150% 0px'});
+const seen=new IntersectionObserver(es=>es.forEach(({target:v,isIntersecting})=>{
+  v._seen=isIntersecting;
+  if(isIntersecting){if(v.getAttribute('src'))v.play().catch(()=>{});}
+  else v.pause();
+}),{threshold:.35});
+document.addEventListener('visibilitychange',()=>{
+  document.querySelectorAll('video').forEach(v=>{if(document.hidden)v.pause();else if(v._seen&&v.getAttribute('src'))v.play().catch(()=>{});});
+});
+function release(root){
+  root.querySelectorAll('video').forEach(v=>{near.unobserve(v);seen.unobserve(v);v.pause();v.removeAttribute('src');v.load();});
+  root.innerHTML='';
+}
+
+/* one row: its height is reserved from the aspect ratio before anything loads */
+function row(m,{p=-1,k=0,eager=false}={}){
+  const f=document.createElement('figure');
+  f.className='m';
+  f.style.aspectRatio=String(m.ar||(m.type==='video'?16/9:1));
+  if(p>=0){f.dataset.p=p;f.dataset.k=k;}
+  if(m.type==='image'){
+    const img=new Image();
+    img.alt='';img.decoding='async';
+    img.loading=eager?'eager':'lazy';
+    if(eager)img.fetchPriority='high';
+    img.onload=()=>img.classList.add('ok');
+    img.src=sized(m.url);
+    f.appendChild(img);
+  }else if(m.type==='video'){
+    const v=document.createElement('video');
+    v.muted=true;v.loop=true;v.playsInline=true;v.autoplay=true;v.preload='none';
+    v.setAttribute('playsinline','');v.setAttribute('muted','');
+    v.disablePictureInPicture=true;
+    v.dataset.src=m.url;
+    v.addEventListener('loadedmetadata',()=>{
+      /* a video only reveals its real proportions once loaded; if it sits
+         above what's being looked at, the scroll absorbs the change so
+         nothing on screen moves */
+      if(v.videoWidth){
+        const before=f.offsetHeight;
+        f.style.aspectRatio=`${v.videoWidth}/${v.videoHeight}`;
+        const d=f.offsetHeight-before;
+        if(d&&f.getBoundingClientRect().bottom<=innerHeight*.15)scrollBy(0,d);
+      }
+      if(view==='proj'&&v.duration>=18)v.controls=true;
+    });
+    v.addEventListener('play',()=>{if(v._seen===false)v.pause();});
+    f.appendChild(v);
+    near.observe(v);seen.observe(v);
+  }else f.classList.add('ph');
+  return f;
+}
+
+/* ── FEED ── every project's first media, dealt round-robin; more of the
+   same is appended as the bottom comes near, so it never runs out and
+   never jumps (a jump would kill iOS's momentum) */
+function feedList(){
+  if(tab==='gallery'){
+    if(GALLERY.length)return GALLERY.map(m=>({m,p:-1,k:0}));
+    const AR=[1,4/5,3/4,1,2/3,4/5];
+    return Array.from({length:18},(_,n)=>({m:{type:'ph',ar:AR[n%AR.length]},p:-1,k:0}));
+  }
+  const lists=order.map(i=>projects[i].media.slice(0,5).map((m,k)=>({m,p:i,k})));
+  const out=[];
+  for(let k=0,more=true;more;k++){more=false;lists.forEach(l=>{if(l[k]){out.push(l[k]);more=true;}});}
+  return out;
+}
+let batches=0;
+function appendFeed(){
+  const list=feedList();
+  if(!list.length)return;
+  const frag=document.createDocumentFragment();
+  list.forEach((it,n)=>frag.appendChild(row(it.m,{p:it.p,k:it.k,eager:batches===0&&n<2})));
+  feedEl.appendChild(frag);
+  batches++;
+}
+function buildFeed(){release(feedEl);batches=0;appendFeed();}
+new IntersectionObserver(es=>{
+  if(es[0].isIntersecting&&view==='feed'&&batches<30)appendFeed();
+},{rootMargin:'250% 0px'}).observe(moreEl);
+
+feedEl.addEventListener('click',e=>{
+  const f=e.target.closest('.m[data-p]');
+  if(f)openProject(+f.dataset.p,{at:+f.dataset.k});
+});
+
+/* ── PROJECT ── its text, all its media, then onward */
+function openProject(i,{at=0,push=true}={}){
+  const p=projects[i];
+  if(!p)return;
+  if(view==='feed')feedY=scrollY;
+  openIdx=i;
+  release(projEl);
+  const txt=document.createElement('div');txt.className='txt';
+  const h=document.createElement('h1');h.textContent=nameOf(p);txt.appendChild(h);
+  const meta=[p.year,(p.tags||[]).join(' · ')].filter(Boolean).join(' — ');
+  if(meta){const d=document.createElement('div');d.className='meta';d.textContent=meta;txt.appendChild(d);}
+  const desc=document.createElement('div');desc.className='desc';
+  (p.description||[]).forEach(runs=>{
+    const para=document.createElement('p');
+    runs.forEach(r=>{
+      if(r.href){const a=document.createElement('a');a.href=/^([a-z][a-z0-9+.-]*:|\/|#)/i.test(r.href)?r.href:'https://'+r.href;a.target='_blank';a.rel='noopener';a.textContent=r.text;para.appendChild(a);}
+      else para.appendChild(document.createTextNode(r.text));
+    });
+    desc.appendChild(para);
+  });
+  if(p.link){const a=document.createElement('a');a.href=p.link;a.target='_blank';a.rel='noopener';a.textContent='visit project';desc.appendChild(a);}
+  txt.appendChild(desc);
+  projEl.appendChild(txt);
+  const frag=document.createDocumentFragment();
+  p.media.forEach((m,k)=>frag.appendChild(row(m,{eager:k===at||k<1})));
+  projEl.appendChild(frag);
+  const end=document.createElement('div');end.className='end';
+  const top=document.createElement('button');top.textContent='Top ↑';
+  top.onclick=()=>scrollTo({top:0,behavior:'smooth'});
+  const pos=order.indexOf(i),next=order[(pos+1)%order.length];
+  const nx=document.createElement('a');nx.href='#'+projects[next].slug;nx.textContent='Next project →';
+  nx.onclick=e=>{e.preventDefault();openProject(next);};
+  end.append(top,nx);
+  projEl.appendChild(end);
+  setView('proj');
+  const target=at>0?projEl.querySelectorAll('.m')[at]:null;
+  if(target)target.scrollIntoView({block:'start'});else scrollTo(0,0);
+  document.title=`${nameOf(p)} — ODILE — WORK`.toUpperCase();
+  if(push)history.pushState({p:i},'','#'+p.slug);
+}
+function closeProject({push=true}={}){
+  if(view!=='proj')return;
+  openIdx=null;
+  setView('feed');
+  release(projEl);
+  scrollTo(0,feedY);
+  document.title='ODILE — WORK';
+  if(push)history.pushState(null,'',location.pathname+location.search+(tab==='gallery'?'#gallery':''));
+}
+function setView(v){
+  view=v;
+  document.body.className=v;
+  $('#ding').classList.toggle('on',v==='info');
+}
+$('#back').addEventListener('click',()=>{if(history.state&&history.state.p!==undefined)history.back();else closeProject();});
+
+/* ── INFO ── Ding opens a plain list of who/where/what; Ding closes it */
+let infoFrom='feed';
+$('#ding').addEventListener('click',()=>{
+  if(view==='info'){setView(infoFrom);scrollTo(0,infoFrom==='feed'?feedY:0);return;}
+  if(view==='feed')feedY=scrollY;
+  infoFrom=view;
+  setView('info');scrollTo(0,0);
+});
+
+/* ── TABS ── */
+function setTab(t,{push=true}={}){
+  tab=t;
+  document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab===t));
+  if(view!=='feed')setView('feed');
+  buildFeed();scrollTo(0,0);
+  if(push)history.pushState(null,'',location.pathname+location.search+(t==='gallery'?'#gallery':''));
+}
+$('#tabs').addEventListener('click',e=>{
+  const a=e.target.closest('a[data-tab]');if(!a)return;
+  e.preventDefault();
+  if(a.dataset.tab!==tab||view!=='feed')setTab(a.dataset.tab);
+});
+
+addEventListener('popstate',()=>{
+  const h=decodeURIComponent(location.hash.slice(1));
+  const i=projects.findIndex(p=>p.slug===h);
+  if(i!==-1){if(i!==openIdx)openProject(i,{push:false});return;}
+  if(view==='proj')closeProject({push:false});
+  const want=h==='gallery'?'gallery':'projects';
+  if(want!==tab)setTab(want,{push:false});
+});
+history.scrollRestoration='manual';
+
+/* ── DATA ── the same CMS as the desktop page */
+const PID='zgrgr7sj',DS='production';
+const Q=`{
+  "projects":*[_type=="project"]|order(year desc){
+    title,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
+    "tags":tags[]->title,
+    "media":media[]{_type,"hidden":hidden==true,
+      _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+      _type=="file"=>{"url":asset->url},
+      _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
+      _type=="mediaVideo"=>{"url":video.asset->url}}
+  },
+  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio}
+}`;
+const CAT_ORDER=['videos','images','graphic design'];
+function category(p){
+  if((p.title||'').toLowerCase()==="runner's high")return 'images';
+  const t=p.tags;
+  if(t.includes('film')||t.includes('music video')||t.includes('video'))return 'videos';
+  if(t.includes('graphic design'))return 'graphic design';
+  return 'images';
+}
+const SLUG={'ø':'o','œ':'oe','æ':'ae','ð':'d','þ':'th','ł':'l','ß':'ss'};
+const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG[c]).normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'project';
+(async()=>{
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(Q)}`);
+    const{result}=await res.json();
+    projects=(result.projects||[]).map(p=>({
+      title:p.title||'',client:p.client||'',displayTitle:p.displayTitle||'',year:p.year||'',
+      favorite:!!p.favorite,link:p.link||'',
+      tags:(p.tags||[]).filter(Boolean).map(t=>t.toLowerCase().trim()),
+      description:Array.isArray(p.description)?p.description.filter(b=>b._type==='block'&&Array.isArray(b.children)).map(b=>{
+        const defs=Object.fromEntries((b.markDefs||[]).map(d=>[d._key,d]));
+        return b.children.map(c=>({text:c.text||'',href:(c.marks||[]).map(k=>defs[k]).find(d=>d&&d._type==='link')?.href||null}));
+      }).filter(r=>r.some(x=>x.text.trim())):[],
+      media:(p.media||[]).filter(m=>m&&!m.hidden&&m.url).map(m=>m._type==='image'||m._type==='mediaImage'?{type:'image',url:m.url,ar:m.ar||1}:{type:'video',url:m.url}),
+    }));
+    GALLERY=(result.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});
+  }catch(e){console.warn('[Sanity]',e.message);}
+  const seenSlugs=new Set();
+  projects.forEach(p=>{let b=slugify(nameOf(p)),s=b,n=2;while(seenSlugs.has(s))s=b+'-'+(n++);seenSlugs.add(s);p.slug=s;});
+  /* same order as the desktop index: by medium, favourites first */
+  order=projects.map((_,i)=>i).sort((a,b)=>{
+    const ca=CAT_ORDER.indexOf(category(projects[a])),cb=CAT_ORDER.indexOf(category(projects[b]));
+    return ca-cb||(projects[b].favorite-projects[a].favorite);
+  });
+  const h=decodeURIComponent(location.hash.slice(1));
+  if(h==='gallery'){tab='gallery';document.querySelectorAll('#tabs a').forEach(a=>a.classList.toggle('on',a.dataset.tab==='gallery'));}
+  buildFeed();
+  const i=projects.findIndex(p=>p.slug===h);
+  if(i!==-1){history.replaceState(null,'',location.pathname+location.search);openProject(i);}
+})();
+</script>
+</body>
+</html>
