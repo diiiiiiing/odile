@@ -318,22 +318,50 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     .strip-item{scroll-snap-align:center;}
   }
 
-  /* ── LOADER — the target cut into horizontal strips, out of register,
-     see the script ── */
-  #loader{position:fixed;inset:0;z-index:900;overflow:hidden;background:#fff;}
-  #loader.built{background:none;}
-  #loader.out{pointer-events:none;}
-  #loader .ls{position:absolute;overflow:hidden;background:#fff;color:#000;will-change:transform;}
-  #loader .ls.inv{background:#000;color:#fff;}
-  #loader .ls svg{position:absolute;overflow:visible;}
+  /* ── LOADER — full-screen overlay; text reveal after it fades ─ */
+  #loader{
+    position:fixed;inset:0;z-index:900;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--bg);
+    opacity:1;transition:opacity 1.4s cubic-bezier(0.4,0,0.2,1);
+    pointer-events:auto;
+  }
+  #loader.loaded{opacity:0;pointer-events:none;}
+  @keyframes loader-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+  #loader svg{
+    width:min(74vw,74vh);height:min(74vw,74vh);
+    overflow:visible;
+    animation:loader-in 1.2s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  @media (max-width:640px) and (orientation:portrait){#loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}}
   /* content hidden until loader reveals it */
   #menu,#siteTitle,#tabs{opacity:0;}
   #siteTitle{transition:opacity .5s ease;}
+  #loader .cls-1{fill:var(--fg)!important;}
+  #loader .cls-2{stroke:var(--fg)!important;fill:none!important;}
+
+  @keyframes spin-ccw {to{transform:rotate(-360deg);}}
+  @keyframes snap-in  {to{opacity:1}}
+  @keyframes snap-out {from{opacity:1}to{opacity:0}}
+  @keyframes ci-in{from{opacity:0}to{opacity:var(--ci-op,1)}}
+  @keyframes ci-out{from{opacity:var(--ci-op,1)}to{opacity:0}}
+  #lg-circles{transform-origin:570.86px 570.86px;animation:spin-ccw 40s linear infinite;}
+  #lg-circles circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
+  #lg-circles .ci-9{--ci-op:.7;animation:ci-in .4s ease 0.00s both;}
+  #lg-circles .ci-8{--ci-op:.6;animation:ci-in .4s ease 0.09s both;}
+  #lg-circles .ci-7{--ci-op:.7;animation:ci-in .4s ease 0.18s both;}
+  #lg-circles .ci-6{--ci-op:.6;animation:ci-in .4s ease 0.27s both;}
+  #lg-circles .ci-5{--ci-op:.7;animation:ci-in .4s ease 0.36s both;}
+  #lg-circles .ci-4{--ci-op:.6;animation:ci-in .4s ease 0.45s both;}
+  #lg-circles .ci-3{--ci-op:.7;animation:ci-in .4s ease 0.54s both;}
+  #lg-circles .ci-2{--ci-op:.6;animation:ci-in .4s ease 0.63s both;}
+  #lg-circles .ci-1{--ci-op:.7;animation:ci-in .4s ease 0.72s both;}
 
   /* motion-sensitive visitors keep every fade, but the title jumps to its
      new place instead of gliding and the loader target stops spinning */
   @media (prefers-reduced-motion:reduce){
     #menu{transition:opacity .5s ease;}
+    #lg-circles{animation:none;}
     .strip-item{translate:none;}
   }
 </style>
@@ -390,118 +418,77 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <div id="menu"></div>
 
 <script>
-/* ── LOADER ── the target (loadersvg.svg, without its rats) cut across
-   the whole screen into strips of uneven height, each a white band with
-   its slice of the target. They shoot in from both sides and land out of
-   register; while the page loads they keep shifting, a strip at a time,
-   like a print being lined up — one or two printed in negative. When the
-   page is ready, every strip snaps into register, the negatives cut to
-   white, the target holds whole for a beat, then the strips leave the way
-   they came, from the middle outwards, uncovering the site. Translate
-   only, on the compositor. */
+/* loader — fetch SVG, add group IDs for CSS animation, inject inline.
+   Unchanged from work4: page-agnostic chrome. */
 const loaderEl=document.getElementById('loader');
 const loaderStart=Date.now();
-const loaderRM=matchMedia('(prefers-reduced-motion:reduce)').matches;
-let loaderParts=null;   // {strips:[{el,anims}]}
-const EASE_OUT='cubic-bezier(.16,1,.3,1)';
-const SNAP='cubic-bezier(.85,0,.15,1)';
+// filled once the SVG is parsed, read back by hideLoader() to mirror the
+// entrance stagger (inside-out) on the way out
+let tickExitPaths=[];
 fetch('./loadersvg.svg')
   .then(r=>r.text())
   .then(text=>{
-    const NS='http://www.w3.org/2000/svg';
-    const src=new DOMParser().parseFromString(text,'image/svg+xml').documentElement;
-    [...src.children].filter(n=>n.tagName==='g')[1]?.remove();   // no rats
-    src.querySelector('defs')?.remove();
-    src.querySelectorAll('circle').forEach(c=>{c.removeAttribute('class');c.setAttribute('fill','none');c.setAttribute('stroke','currentColor');c.setAttribute('stroke-width','1.3');});
-    src.querySelectorAll('path').forEach(p=>{p.removeAttribute('class');p.setAttribute('fill','currentColor');});
-    /* drawn once, shown in every strip through <use> */
-    const lib=document.createElementNS(NS,'svg');
-    lib.setAttribute('width','0');lib.setAttribute('height','0');lib.style.position='absolute';
-    const sym=document.createElementNS(NS,'symbol');
-    sym.id='ltgt';sym.setAttribute('viewBox',src.getAttribute('viewBox'));
-    [...src.children].forEach(n=>sym.appendChild(document.importNode(n,true)));
-    lib.appendChild(sym);loaderEl.appendChild(lib);
-
-    const W=innerWidth,H=innerHeight;
-    const b=Math.round(W<=640&&H>W?Math.min(W*.88,H*.66):Math.min(W*.74,H*.74));
-    /* strips of uneven height, edges on whole pixels */
-    const N=13,wts=Array.from({length:N},()=>.35+Math.random()*1.5),sum=wts.reduce((x,y)=>x+y,0);
-    let acc=0;const edges=[0,...wts.map(w=>Math.round((acc+=w)/sum*H))];
-    /* wider than the screen, so a strip out of register never opens a gap */
-    const X=Math.ceil(W*.3);
-    /* two negatives: one across the target, one anywhere */
-    const ty=(H-b)/2,across=[...Array(N).keys()].filter(i=>edges[i+1]>ty+b*.15&&edges[i]<ty+b*.85);
-    const inv=new Set([across[Math.floor(Math.random()*across.length)]]);
-    while(inv.size<2)inv.add(Math.floor(Math.random()*N));
-    const strips=[];
-    for(let i=0;i<N;i++){
-      const el=document.createElement('div');
-      el.className='ls'+(inv.has(i)?' inv':'');
-      el.style.cssText=`top:${edges[i]}px;height:${edges[i+1]-edges[i]}px;left:${-X}px;width:${W+2*X}px;`;
-      const svg=document.createElementNS(NS,'svg');
-      svg.setAttribute('width',b);svg.setAttribute('height',b);
-      svg.style.left=(X+Math.round((W-b)/2))+'px';svg.style.top=(Math.round((H-b)/2)-edges[i])+'px';
-      const use=document.createElementNS(NS,'use');use.setAttribute('href','#ltgt');
-      svg.appendChild(use);el.appendChild(svg);loaderEl.appendChild(el);
-      strips.push({el,anims:[]});
+    const doc=new DOMParser().parseFromString(text,'image/svg+xml');
+    const svg=doc.documentElement;
+    const groups=[...svg.children].filter(n=>n.tagName==='g');
+    if(groups[0]){
+      groups[0].id='lg-circles';
+      [...groups[0].children].forEach((c,i)=>c.classList.add('ci-'+(i+1)));
     }
-    loaderEl.classList.add('built');
-    loaderParts={strips,X};
-    if(loaderRM)return;
-    /* each strip's own sequence of misregistrations, held, then a snap
-       to the next; about a third of the time it sits true */
-    const SLOTS=4,SLOT=2100,MOVE=.2;
-    strips.forEach((st,i)=>{
-      const xs=Array.from({length:SLOTS},()=>Math.random()<.35?0:Math.round((Math.random()*2-1)*b*.24));
-      const side=i%2?1:-1,delay=Math.round(Math.random()*480);
-      st.anims.push(st.el.animate([{translate:`${side*(W+X+60)}px 0px`},{translate:`${xs[0]}px 0px`}],
-        {duration:1000,delay,easing:EASE_OUT,fill:'backwards'}));
-      const kf=[];
-      for(let k=0;k<SLOTS;k++){
-        kf.push({offset:k/SLOTS,translate:`${xs[k]}px 0px`,easing:'linear'});
-        kf.push({offset:(k+1-MOVE)/SLOTS,translate:`${xs[k]}px 0px`,easing:SNAP});
-      }
-      kf.push({offset:1,translate:`${xs[0]}px 0px`});
-      st.anims.push(st.el.animate(kf,{duration:SLOTS*SLOT,delay:delay+1000+Math.round(Math.random()*SLOT),iterations:Infinity}));
+    // groups[1] is the ring of mouse ornaments — dropped per request, never
+    // appended to the DOM at all
+    if(groups[1])groups[1].remove();
+    const CX=570.86,CY=570.86,TOL=18;
+    const paths=[...svg.children].filter(n=>n.tagName==='path');
+    svg.style.cssText='position:fixed;top:-9999px;width:1px;height:1px;overflow:visible;';
+    document.body.appendChild(svg);
+    const radii=paths.map(p=>{
+      const b=p.getBBox();
+      const cx=b.x+b.width/2, cy=b.y+b.height/2;
+      return Math.round(Math.sqrt((cx-CX)**2+(cy-CY)**2)/TOL)*TOL;
     });
+    document.body.removeChild(svg);
+    svg.style.cssText='';
+    const sortedR=[...new Set(radii)].sort((a,b)=>a-b);
+    const stepMap=Object.fromEntries(sortedR.map((r,i)=>[r,i]));
+    const maxStep=sortedR.length-1;
+    const STEP=0.04, START=0.05;
+    const STEP_OUT=0.035, START_OUT=0;
+    paths.forEach((p,i)=>{
+      const delay=(START+stepMap[radii[i]]*STEP).toFixed(3);
+      p.style.opacity='0';
+      p.style.animation=`snap-in 0.12s ease ${delay}s both`;
+      // reversed order: the innermost ring of ticks (highest stepMap index
+      // is furthest out, so invert it) fades first, mirroring the entrance
+      const exitDelay=(START_OUT+(maxStep-stepMap[radii[i]])*STEP_OUT).toFixed(3);
+      tickExitPaths.push({el:p,delay:exitDelay});
+    });
+    loaderEl.appendChild(svg);
   }).catch(()=>{});
-
-function revealPage(at){
-  ['siteTitle','tabs','menu'].forEach((id,i)=>{
-    const el=document.getElementById(id);
-    if(!el)return;
-    setTimeout(()=>{
-      el.style.opacity='1';
-      if(!loaderRM)el.animate([{translate:'0 10px'},{translate:'0 0'}],{duration:1000,easing:EASE_OUT});
-    },at+i*110);
-  });
-  if(!loaderRM)stripZoneEl.animate([{scale:'.96'},{scale:'1'}],{duration:1600,delay:Math.max(0,at-250),easing:EASE_OUT,fill:'backwards'});
-}
 function hideLoader(){
-  const wait=Math.max(0,2400-(Date.now()-loaderStart));
+  const elapsed=Date.now()-loaderStart;
+  const wait=Math.max(0,2200-elapsed);
   setTimeout(()=>{
-    loaderEl.classList.add('out');
-    const P=loaderParts;
-    if(loaderRM||!P){
-      loaderEl.animate([{opacity:1},{opacity:0}],{duration:700,easing:'ease',fill:'forwards'}).finished.then(()=>loaderEl.remove(),()=>{});
-      revealPage(250);
-      return;
-    }
-    const W=innerWidth+P.X,N=P.strips.length,mid=(N-1)/2;
-    /* 1 — every strip snaps into register; the negatives cut to white */
-    const REG=620,HOLD=420;
-    P.strips.forEach(({el,anims})=>{
-      const at=getComputedStyle(el).translate;
-      anims.forEach(a=>a.cancel());
-      el.animate([{translate:at==='none'?'0px 0px':at},{translate:'0px 0px'}],{duration:REG,easing:SNAP,fill:'forwards'});
+    // the target closes up from the centre outward — same order it opened
+    // in, just reversed to opacity 0 — while the grey backdrop behind it
+    // fades on its own, slightly slower timeline (#loader.loaded below)
+    document.querySelectorAll('#lg-circles circle').forEach(c=>{
+      const cls=[...c.classList].find(cl=>/^ci-\d$/.test(cl));
+      const idx=cls?parseInt(cls.slice(3),10):9;
+      const delay=((9-idx)*0.06).toFixed(2);
+      c.style.animation=`ci-out .3s ease ${delay}s both`;
     });
-    setTimeout(()=>P.strips.forEach(({el})=>el.classList.remove('inv')),REG);
-    /* 2 — whole for a beat, then out the way they came, middle first */
-    const done=P.strips.map(({el},i)=>el.animate(
-      [{translate:'0px 0px'},{translate:`${(i%2?1:-1)*(W+60)}px 0px`}],
-      {duration:780,delay:REG+HOLD+Math.round(Math.abs(i-mid)*55),easing:'cubic-bezier(.7,0,.84,0)',fill:'forwards'}).finished);
-    Promise.all(done).then(()=>loaderEl.remove(),()=>loaderEl.remove());
-    revealPage(REG+HOLD+250);
+    tickExitPaths.forEach(({el,delay})=>{
+      el.style.animation=`snap-out .16s ease ${delay}s both`;
+    });
+    loaderEl.classList.add('loaded');
+    loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
+    setTimeout(()=>{
+      ['menu','siteTitle','tabs'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el)el.style.opacity='1';
+      });
+    },700);
   },wait);
 }
 
