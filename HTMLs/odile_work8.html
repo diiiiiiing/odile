@@ -318,22 +318,20 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     .strip-item{scroll-snap-align:center;}
   }
 
-  /* ── LOADER — the target taken apart into layers the compositor moves
-     on its own (each ring with its numbers, each rat), see the script ── */
+  /* ── LOADER — white; the target alone, taken apart into one layer per
+     ring (with its numbers), see the script ── */
   #loader{
     position:fixed;inset:0;z-index:900;
     display:flex;align-items:center;justify-content:center;
     overflow:hidden;
   }
-  /* the grey is its own layer: it lifts while the rats are still running */
-  #loader .lbg{position:absolute;inset:0;background:var(--bg);}
+  #loader .lbg{position:absolute;inset:0;background:#fff;will-change:transform,opacity;}
   #loader.out{pointer-events:none;}
-  #loader .lt{position:relative;width:min(74vw,74vh);aspect-ratio:1;flex-shrink:0;}
+  #loader .lt{position:relative;width:min(74vw,74vh);aspect-ratio:1;flex-shrink:0;will-change:transform,opacity;}
   @media (max-width:640px) and (orientation:portrait){#loader .lt{width:min(88vw,66vh);}}
-  #loader .lt>div{position:absolute;inset:0;}
   #loader svg{position:absolute;overflow:visible;will-change:transform,opacity;}
-  #loader .cls-1{fill:var(--fg);}
-  #loader circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
+  #loader .cls-1{fill:#000;}
+  #loader circle{fill:none;stroke:#000;stroke-miterlimit:10;}
   /* content hidden until loader reveals it */
   #menu,#siteTitle,#tabs{opacity:0;}
   #siteTitle{transition:opacity .5s ease;}
@@ -398,16 +396,17 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <div id="menu"></div>
 
 <script>
-/* ── LOADER ── loadersvg.svg taken apart into layers: each ring with its
-   own numbers, and each of the eleven rats. In: the rings ripple out from
-   the bullseye, the rats arrive one behind the other and run round the
-   target while it turns slowly the other way. Out: the rings ripple on
-   and dissolve, the rats bolt off the screen, the grey lifts and the page
-   settles in underneath. Transform and opacity only. */
+/* ── LOADER ── on white, the target alone, one layer per ring (each
+   carrying its own numbers). While the page loads, the target is a cone
+   being aimed: the outer ring stays put, each ring further in drifts a
+   little more, and the bullseye traces a slow figure of eight. Once the
+   page is ready it locks — flat, perfectly concentric — the bullseye opens
+   onto the site, and we dive through it. Transform and opacity only, all
+   on the compositor, so it stays fluid while the page is still busy. */
 const loaderEl=document.getElementById('loader');
 const loaderStart=Date.now();
 const loaderRM=matchMedia('(prefers-reduced-motion:reduce)').matches;
-let loaderParts=null;   // {box, rings:[svg], rats:[{el,ux,uy}]}
+let loaderParts=null;   // {box, rings:[svg] inside out, sway:[Animation], hole:px}
 const EASE_OUT='cubic-bezier(.16,1,.3,1)';
 fetch('./loadersvg.svg')
   .then(r=>r.text())
@@ -416,52 +415,47 @@ fetch('./loadersvg.svg')
     const src=new DOMParser().parseFromString(text,'image/svg+xml').documentElement;
     const groups=[...src.children].filter(n=>n.tagName==='g');
     const circles=groups[0]?[...groups[0].querySelectorAll('circle')]:[];
-    const rats=groups[1]?[...groups[1].children]:[];
     const digits=[...src.children].filter(n=>n.tagName==='path');
     /* measured once, off screen */
     src.style.cssText='position:fixed;left:-9999px;top:0;width:10px;height:10px;visibility:hidden;';
     document.body.appendChild(src);
-    const bb=el=>{const b=el.getBBox();return{x:b.x,y:b.y,w:b.width,h:b.height,cx:b.x+b.width/2,cy:b.y+b.height/2};};
-    const ratBox=rats.map(bb),digitBox=digits.map(bb);
+    const digitBox=digits.map(d=>{const b=d.getBBox();return{cx:b.x+b.width/2,cy:b.y+b.height/2};});
     src.remove();
-    const layer=(nodes,x,y,w,h)=>{
-      const s=document.createElementNS(NS,'svg');
-      s.setAttribute('viewBox',`${x} ${y} ${w} ${h}`);
-      s.style.cssText=`left:${x/V*100}%;top:${y/V*100}%;width:${w/V*100}%;height:${h/V*100}%;`;
-      nodes.forEach(n=>s.appendChild(document.importNode(n,true)));
-      return s;
-    };
     const box=document.createElement('div');box.className='lt';
-    const target=document.createElement('div'),pack=document.createElement('div');
     /* rings, inside out; a number belongs to the first ring outside it */
     const ring=circles.map(c=>({c,r:+c.getAttribute('r'),d:[]})).sort((a,b)=>a.r-b.r);
     digits.forEach((d,i)=>{
-      const b=digitBox[i],dist=Math.hypot(b.cx-C,b.cy-C);
+      const dist=Math.hypot(digitBox[i].cx-C,digitBox[i].cy-C);
       (ring.find(g=>g.r>dist)||ring[ring.length-1]).d.push(d);
     });
     const rings=ring.map((g,i)=>{
-      g.c.setAttribute('stroke-opacity',i%2?'.62':'.75');
-      const h=g.r+2;
-      return target.appendChild(layer([g.c,...g.d],C-h,C-h,2*h,2*h));
+      g.c.setAttribute('stroke-opacity',i%2?'.6':'.78');
+      const h=g.r+2,s=document.createElementNS(NS,'svg');
+      s.setAttribute('viewBox',`${C-h} ${C-h} ${2*h} ${2*h}`);
+      s.style.cssText=`left:${(C-h)/V*100}%;top:${(C-h)/V*100}%;width:${2*h/V*100}%;height:${2*h/V*100}%;`;
+      [g.c,...g.d].forEach(n=>s.appendChild(document.importNode(n,true)));
+      return box.appendChild(s);
     });
-    /* rats, clockwise from the top — the way they run */
-    const ratParts=rats.map((r,i)=>{
-      const b=ratBox[i],dist=Math.hypot(b.cx-C,b.cy-C)||1;
-      return{r,b,ux:(b.cx-C)/dist,uy:(b.cy-C)/dist,a:(Math.atan2(b.cy-C,b.cx-C)+Math.PI*2.5)%(Math.PI*2)};
-    }).sort((p,q)=>p.a-q.a).map(p=>({el:pack.appendChild(layer([p.r],p.b.x-3,p.b.y-3,p.b.w+6,p.b.h+6)),ux:p.ux,uy:p.uy}));
-    box.append(target,pack);
     loaderEl.appendChild(box);
-    loaderParts={box,rings,rats:ratParts};
+    const W=box.offsetWidth;
+    loaderParts={box,rings,sway:[],hole:ring[1]?ring[1].r/V*W:8};
     if(loaderRM)return;
-    const k=box.offsetWidth/V;   // px per SVG unit
-    rings.forEach((el,i)=>el.animate(
-      [{opacity:0,transform:'scale(.5)'},{opacity:1,transform:'none'}],
-      {duration:1150,delay:60+i*80,easing:EASE_OUT,fill:'backwards'}));
-    ratParts.forEach(({el,ux,uy},j)=>el.animate(
-      [{opacity:0,transform:`translate(${uy*90*k}px,${-ux*90*k}px)`},{opacity:1,transform:'none'}],
-      {duration:1000,delay:320+j*75,easing:EASE_OUT,fill:'backwards'}));
-    target.animate([{transform:'rotate(0deg)'},{transform:'rotate(-360deg)'}],{duration:90000,iterations:Infinity});
-    pack.animate([{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}],{duration:17000,iterations:Infinity});
+    /* the frame first, then each ring further in */
+    const n=rings.length;
+    rings.forEach((el,i)=>el.animate([{opacity:0},{opacity:1}],
+      {duration:700,delay:100+(n-1-i)*70,easing:'ease',fill:'backwards'}));
+    /* the sway: x = sin t, y = sin 2t / 2, sampled — starts and ends at the
+       centre, so the target unfolds from flat */
+    const A=W*.075,STEPS=64;
+    rings.forEach((el,i)=>{
+      const depth=(n-1-i)/(n-1);   // 1 at the bullseye, 0 on the frame
+      const kf=[];
+      for(let k=0;k<=STEPS;k++){
+        const t=k/STEPS*Math.PI*2;
+        kf.push({translate:`${(Math.sin(t)*A*depth).toFixed(2)}px ${(Math.sin(2*t)/2*A*depth).toFixed(2)}px`});
+      }
+      loaderParts.sway.push(el.animate(kf,{duration:4200,iterations:Infinity,easing:'linear'}));
+    });
   }).catch(()=>{});
 
 function revealPage(at){
@@ -479,31 +473,33 @@ function hideLoader(){
   const wait=Math.max(0,2300-(Date.now()-loaderStart));
   setTimeout(()=>{
     loaderEl.classList.add('out');
-    const P=loaderParts;
+    const P=loaderParts,bg=loaderEl.querySelector('.lbg');
     if(loaderRM||!P){
       loaderEl.animate([{opacity:1},{opacity:0}],{duration:700,easing:'ease',fill:'forwards'}).finished.then(()=>loaderEl.remove(),()=>{});
       revealPage(250);
       return;
     }
-    const done=[];
-    /* the rats bolt — onwards and outwards, faster and faster, across the
-       page that is appearing and off the screen */
-    const far=Math.max(innerWidth,innerHeight)*1.15;
-    P.rats.forEach(({el,ux,uy},j)=>{
-      const dx=-uy*.8+ux*.6,dy=ux*.8+uy*.6;
-      done.push(el.animate([
-        {transform:'none'},
-        {transform:`translate(${dx*far}px,${dy*far}px)`},
-      ],{duration:1500,delay:j*40,easing:'cubic-bezier(.42,0,.72,.45)',fill:'forwards'}).finished);
+    /* 1 — lock: the cone folds back flat, wherever the sway had got to */
+    const LOCK=700;
+    P.rings.forEach((el,i)=>{
+      const at=getComputedStyle(el).translate;
+      P.sway[i]?.cancel();
+      el.animate([{translate:at==='none'?'0px 0px':at},{translate:'0px 0px'}],{duration:LOCK,easing:'cubic-bezier(.65,0,.35,1)',fill:'forwards'});
     });
-    /* the rings ripple on from the bullseye and dissolve */
-    P.rings.forEach((el,i)=>done.push(el.animate(
-      [{opacity:1,transform:'none'},{opacity:0,transform:`scale(${1.28+i*.05})`}],
-      {duration:1000,delay:120+i*55,easing:'cubic-bezier(.33,0,.15,1)',fill:'forwards'}).finished));
-    /* the grey lifts once the ripple has passed */
-    done.push(loaderEl.querySelector('.lbg').animate([{opacity:1},{opacity:0}],{duration:1100,delay:380,easing:'cubic-bezier(.45,0,.2,1)',fill:'forwards'}).finished);
+    /* 2 — the bullseye opens onto the site (a hole in the white, the size
+       of the second ring), then we dive through it: target and hole grow
+       together until the hole is wider than the screen */
+    const S=Math.hypot(innerWidth,innerHeight)/2/P.hole*1.08;
+    const DIVE=1300,dive={duration:DIVE,delay:LOCK+140,easing:'cubic-bezier(.7,0,.12,1)',fill:'forwards'};
+    setTimeout(()=>{
+      bg.style.background=`radial-gradient(circle at 50% 50%,transparent ${P.hole-.5}px,#fff ${P.hole+.5}px)`;
+    },LOCK+60);
+    const done=[
+      P.box.animate([{transform:'none',opacity:1},{opacity:1,offset:.2},{opacity:0,offset:.55},{transform:`scale(${S})`,opacity:0}],dive).finished,
+      bg.animate([{transform:'none',opacity:1},{opacity:1,offset:.75},{transform:`scale(${S})`,opacity:0}],dive).finished,
+    ];
     Promise.all(done).then(()=>loaderEl.remove(),()=>loaderEl.remove());
-    revealPage(650);
+    revealPage(LOCK+140+DIVE*.45);
   },wait);
 }
 
