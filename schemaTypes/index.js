@@ -6,5 +6,6 @@ import resource from './resource'
 import article from './article'
 import workGallery from './workGallery'
 import popups from './popups'
+import about from './about'
 
-export const schemaTypes = [project, workGallery, popups, tag, gallery, personal, resource, article]
+export const schemaTypes = [project, workGallery, popups, about, tag, gallery, personal, resource, article]

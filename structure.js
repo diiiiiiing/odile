@@ -1,6 +1,6 @@
 /* the Studio's left-hand tree, trimmed to what the site actually uses;
    older content types are kept, untouched, under "Archives (ancien)" */
-export const SINGLETONS = ['workGallery', 'popups']
+export const SINGLETONS = ['workGallery', 'popups', 'about']
 
 const singleton = (S, id, title) =>
   S.listItem().title(title).id(id).child(S.document().schemaType(id).documentId(id).title(title))
@@ -11,6 +11,7 @@ export const structure = (S) =>
     .items([
       S.documentTypeListItem('project').title('Projets'),
       singleton(S, 'workGallery', 'Galerie'),
+      singleton(S, 'about', 'Infos (Ding)'),
       S.listItem()
         .title('Assets')
         .id('assets')

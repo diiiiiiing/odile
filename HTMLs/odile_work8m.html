@@ -321,6 +321,31 @@ $('#ding').addEventListener('click',()=>{
   setView('info');scrollTo(0,0);
 });
 
+/* the CMS's Infos document (Studio ▸ Infos (Ding)) replaces the text
+   written in the page, which stays as the fallback */
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ext=(label,url)=>url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`:esc(label);
+function renderInfo(d){
+  if(!d)return;
+  const sec=lines=>{lines=lines.filter(Boolean);return lines.length?`<section>${lines.map(l=>`<div>${l}</div>`).join('')}</section>`:'';};
+  let html=sec([esc(d.name),[esc(d.location),d.showTime?'<span class="paris-time"></span>':''].filter(Boolean).join(' ')]);
+  if(d.currentText||d.currentPlace)html+=sec([[esc(d.currentText),ext(d.currentPlace,d.currentUrl)].filter(Boolean).join(' ')]);
+  const h=(d.instagram||'').replace(/^@/,'');
+  html+=sec([
+    d.email&&`<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>`,
+    h&&ext('@'+h,'https://instagram.com/'+encodeURIComponent(h)),
+    ...(d.links||[]).filter(l=>l&&l.label).map(l=>ext(l.label,l.url)),
+  ]);
+  const xp=(d.experiences||[]).filter(x=>x&&(x.company||x.role));
+  if(xp.length)html+=`<section><div class="h">Experiences</div><div class="rows">${xp.map(x=>
+    `<span>${esc([x.from,x.to].filter(Boolean).join(' — '))}</span><span><span class="co">${ext(x.company,x.url)}</span><span class="role">${esc(x.role)}</span></span>`).join('')}</div></section>`;
+  if(d.services)html+=`<section><div class="h">Services</div><div>${esc(d.services)}</div></section>`;
+  const cl=(d.clients||[]).filter(c=>c&&c.name);
+  if(cl.length)html+=`<section><div class="h">Clients</div><div>${cl.map(c=>ext(c.name,c.url)).join(', ')}</div></section>`;
+  $('#info').innerHTML=html;
+  window.tickParis?.();
+}
+
 /* ── TABS ── */
 function setTab(t,{push=true}={}){
   tab=t;
@@ -357,7 +382,8 @@ const Q=`{
       _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
       _type=="mediaVideo"=>{"url":video.asset->url}}
   },
-  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio}
+  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+  "about":*[_id=="about"][0]
 }`;
 const CAT_ORDER=['videos','images','graphic design'];
 function category(p){
@@ -386,6 +412,7 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
         return{media:all.filter(m=>!m.hidden),homeOnly:all.filter(m=>m.hidden)}; // "Masqué": feed only, never in the project
       })(),
     }));
+    renderInfo(result.about);
     GALLERY=(result.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});
   }catch(e){console.warn('[Sanity]',e.message);}
   const seenSlugs=new Set();
@@ -406,6 +433,7 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
 (()=>{
   const fmt=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
   const tick=()=>document.querySelectorAll('.paris-time').forEach(e=>{e.textContent=fmt.format(new Date());});
+  window.tickParis=tick;
   tick();setInterval(tick,15000);
 })();
 </script>

@@ -108,6 +108,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   #info .h{font-weight:700;}
   #info .vert{writing-mode:vertical-rl;transform:rotate(180deg);}
   #info .rows{display:grid;grid-template-columns:auto auto auto;gap:0 14px;margin-left:10px;}
+  #info .wrap{white-space:normal;width:max-content;max-width:min(42ch,34vw);}
 
   /* ── POP-UPS — a small image dropped wherever the home is clicked in
      the void ── */
@@ -382,7 +383,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <!-- INFO — the CV as floating fragments, placed anew on each opening -->
 <div id="info" aria-hidden="true">
   <div class="frag">Thomas Ding</div>
-  <div class="frag"><a href="#" id="emailCopy">thomasding227@gmail.com</a></div>
+  <div class="frag"><a href="#" id="emailCopy" data-email="thomasding227@gmail.com">thomasding227@gmail.com</a></div>
   <div class="frag"><a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a></div>
   <div class="frag">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></div>
   <div class="frag">Paris, France <span class="paris-time"></span></div>
@@ -572,13 +573,16 @@ window.addEventListener('keydown',e=>{
 
 /* email copy */
 function copyEmail(el){
-  navigator.clipboard.writeText('thomasding227@gmail.com');
-  const original=el.textContent;
+  const email=el.dataset.email;
+  navigator.clipboard.writeText(email);
   el.textContent='copied';
-  setTimeout(()=>{el.textContent=original;},1200);
+  setTimeout(()=>{el.textContent=email;},1200);
 }
-const emailCopy=document.getElementById('emailCopy');
-emailCopy.addEventListener('click',e=>{e.preventDefault();copyEmail(emailCopy);});
+/* delegated: the info is rebuilt from the CMS once it arrives */
+document.addEventListener('click',e=>{
+  const a=e.target.closest?.('#emailCopy');
+  if(a){e.preventDefault();copyEmail(a);}
+});
 
 /* CV — opens directly on Ding, no intermediate bio-only step.
    #cvInner gets its own real cap: the actual gap between where it starts
@@ -592,7 +596,7 @@ const menuEl=document.getElementById('menu');
    below Ding, biggest first, each kept clear of the ones already placed
    (best of a few dozen tries), each with its own slow drift */
 const infoEl=document.getElementById('info');
-const frags=[...infoEl.querySelectorAll('.frag')];
+let frags=[...infoEl.querySelectorAll('.frag')];
 function scatter(){
   const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||24;
   const top=pad;
@@ -629,6 +633,32 @@ function toggleCV(force){
   infoEl.setAttribute('aria-hidden',String(!cvOpen));
   document.body.classList.toggle('info',cvOpen);
   siteTitle.classList.toggle('active',cvOpen);
+}
+
+/* the CMS's Infos document (Studio ▸ Infos (Ding)) replaces the text
+   written above, which stays as the fallback */
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ext=(label,url)=>url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`:esc(label);
+function renderInfo(d){
+  if(!d)return;
+  const out=[];
+  if(d.name)out.push(esc(d.name));
+  if(d.email)out.push(`<a href="#" id="emailCopy" data-email="${esc(d.email)}">${esc(d.email)}</a>`);
+  if(d.instagram){const h=d.instagram.replace(/^@/,'');out.push(ext('@'+h,'https://instagram.com/'+encodeURIComponent(h)));}
+  (d.links||[]).filter(l=>l&&l.label).forEach(l=>out.push(ext(l.label,l.url)));
+  if(d.currentText||d.currentPlace)out.push([esc(d.currentText),ext(d.currentPlace,d.currentUrl)].filter(Boolean).join(' '));
+  if(d.location||d.showTime)out.push([esc(d.location),d.showTime?'<span class="paris-time"></span>':''].filter(Boolean).join(' '));
+  let html=out.map(t=>`<div class="frag">${t}</div>`).join('');
+  const xp=(d.experiences||[]).filter(x=>x&&(x.company||x.role));
+  if(xp.length)html+=`<div class="frag vert"><span class="h">Experiences</span><div class="rows">${xp.map(x=>
+    `<span>${esc([x.from,x.to].filter(Boolean).join(' — '))}</span>${ext(x.company,x.url)}<span>${esc(x.role)}</span>`).join('')}</div></div>`;
+  if(d.services)html+=`<div class="frag vert"><span class="h">Services</span>&nbsp;&nbsp;${esc(d.services)}</div>`;
+  const cl=(d.clients||[]).filter(c=>c&&c.name);
+  if(cl.length)html+=`<div class="frag wrap"><span class="h">Clients</span>&nbsp;&nbsp;${cl.map(c=>ext(c.name,c.url)).join(', ')}</div>`;
+  infoEl.innerHTML=html;
+  frags=[...infoEl.querySelectorAll('.frag')];
+  window.tickParis?.();
+  if(cvOpen){scatter();toggleCV(true);}
 }
 
 const siteTitle=document.getElementById('siteTitle');
@@ -783,11 +813,12 @@ async function loadFromSanity(){
   /* the gallery page and the pop-up images are single documents in the
      CMS (Galerie, Assets ▸ Pop-up) */
   try{
-    const q=`{"gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"popups":*[_id=="popups"][0].images[]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio}}`;
+    const q=`{"gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"popups":*[_id=="popups"][0].images[]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"about":*[_id=="about"][0]}`;
     const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(q)}`);
     const{result}=await res.json();
     GALLERY=(result?.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});
     POPUPS=(result?.popups||[]).filter(m=>m&&m.url);
+    renderInfo(result?.about);
   }catch(e){console.warn('[Sanity gallery/popups]',e.message);}
   if(!projects.length)projects=FALLBACK_PROJECTS;
   assignSlugs();
@@ -1522,6 +1553,7 @@ loadFromSanity();
 (()=>{
   const fmt=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
   const tick=()=>document.querySelectorAll('.paris-time').forEach(e=>{e.textContent=fmt.format(new Date());});
+  window.tickParis=tick;
   tick();setInterval(tick,15000);
 })();
 </script>
