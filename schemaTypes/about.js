@@ -66,17 +66,9 @@ export default {
     {
       name: 'clients',
       title: 'Clients',
-      description: 'Ceux avec qui tu as déjà travaillé, dans l’ordre d’affichage.',
-      type: 'array',
-      of: [{
-        type: 'object',
-        name: 'client',
-        fields: [
-          {name: 'name', title: 'Nom', type: 'string'},
-          link('url', 'Lien (optionnel)'),
-        ],
-        preview: {select: {title: 'name', subtitle: 'url'}},
-      }],
+      description: 'Un nom par ligne, dans l’ordre d’affichage. (Coller une liste séparée par des virgules marche aussi.)',
+      type: 'text',
+      rows: 14,
     },
   ],
   preview: {prepare: () => ({title: 'Infos'})},

@@ -654,6 +654,7 @@ function toggleCV(force){
    written above, which stays as the fallback */
 const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ext=(label,url)=>url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`:esc(label);
+const clientList=c=>(typeof c==='string'?c.split(/[\n,]+/):(c||[]).map(x=>x&&x.name)).map(x=>(x||'').trim()).filter(Boolean);
 function renderInfo(d){
   if(!d)return;
   const out=[];
@@ -668,8 +669,9 @@ function renderInfo(d){
   if(xp.length)html+=`<div class="frag vert"><span class="h">Experiences</span><div class="rows">${xp.map(x=>
     `<span>${esc([x.from,x.to].filter(Boolean).join(' — '))}</span>${ext(x.company,x.url)}<span>${esc(x.role)}</span>`).join('')}</div></div>`;
   if(d.services)html+=`<div class="frag vert"><span class="h">Services</span>&nbsp;&nbsp;${esc(d.services)}</div>`;
-  const cl=(d.clients||[]).filter(c=>c&&c.name);
-  if(cl.length)html+=`<div class="frag wrap"><span class="h">Clients</span>&nbsp;&nbsp;${cl.map(c=>ext(c.name,c.url)).join(', ')}</div>`;
+  /* typed in the Studio as one name per line (or comma-separated) */
+  const cl=clientList(d.clients);
+  if(cl.length)html+=`<div class="frag wrap"><span class="h">Clients</span>&nbsp;&nbsp;${cl.map(esc).join(', ')}</div>`;
   infoEl.innerHTML=html;
   frags=[...infoEl.querySelectorAll('.frag')];
   window.tickParis?.();

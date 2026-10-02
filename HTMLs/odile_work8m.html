@@ -325,6 +325,7 @@ $('#ding').addEventListener('click',()=>{
    written in the page, which stays as the fallback */
 const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ext=(label,url)=>url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`:esc(label);
+const clientList=c=>(typeof c==='string'?c.split(/[\n,]+/):(c||[]).map(x=>x&&x.name)).map(x=>(x||'').trim()).filter(Boolean);
 function renderInfo(d){
   if(!d)return;
   const sec=lines=>{lines=lines.filter(Boolean);return lines.length?`<section>${lines.map(l=>`<div>${l}</div>`).join('')}</section>`:'';};
@@ -340,8 +341,9 @@ function renderInfo(d){
   if(xp.length)html+=`<section><div class="h">Experiences</div><div class="rows">${xp.map(x=>
     `<span>${esc([x.from,x.to].filter(Boolean).join(' — '))}</span><span><span class="co">${ext(x.company,x.url)}</span><span class="role">${esc(x.role)}</span></span>`).join('')}</div></section>`;
   if(d.services)html+=`<section><div class="h">Services</div><div>${esc(d.services)}</div></section>`;
-  const cl=(d.clients||[]).filter(c=>c&&c.name);
-  if(cl.length)html+=`<section><div class="h">Clients</div><div>${cl.map(c=>ext(c.name,c.url)).join(', ')}</div></section>`;
+  /* typed in the Studio as one name per line (or comma-separated) */
+  const cl=clientList(d.clients);
+  if(cl.length)html+=`<section><div class="h">Clients</div><div>${cl.map(esc).join(', ')}</div></section>`;
   $('#info').innerHTML=html;
   window.tickParis?.();
 }
