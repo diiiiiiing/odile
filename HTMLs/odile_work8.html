@@ -16,9 +16,9 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
 <style>
   :root{
-    /* one palette, no modes — same as work4 */
-    --bg:#808080; --fg:#000;
-    --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
+    /* one palette, no modes: white */
+    --bg:#fff; --fg:#000;
+    --dim1:#707070; --dim2:rgba(0,0,0,.3);
     --pad:24px;
     --font:-apple-system,'Helvetica Neue',sans-serif;
     --fs:10px;
@@ -251,7 +251,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   }
   .corner.on{opacity:1;}
   /* off the centre axis, turned on their side in the bottom corners —
-     always over the page's own grey, never over the media */
+     always over the page's own white, never over the media */
   .corner.bl{left:var(--pad);bottom:var(--pad);writing-mode:vertical-rl;transform:rotate(180deg);}
 
   /* ── INDEX — category heads in the same type as the names, only bold ── */
@@ -318,20 +318,14 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     .strip-item{scroll-snap-align:center;}
   }
 
-  /* ── LOADER — white; the target alone, taken apart into one layer per
-     ring (with its numbers), see the script ── */
-  #loader{
-    position:fixed;inset:0;z-index:900;
-    display:flex;align-items:center;justify-content:center;
-    overflow:hidden;
-  }
-  #loader .lbg{position:absolute;inset:0;background:#fff;will-change:transform,opacity;}
+  /* ── LOADER — the target cut into horizontal strips, out of register,
+     see the script ── */
+  #loader{position:fixed;inset:0;z-index:900;overflow:hidden;background:#fff;}
+  #loader.built{background:none;}
   #loader.out{pointer-events:none;}
-  #loader .lt{position:relative;width:min(74vw,74vh);aspect-ratio:1;flex-shrink:0;will-change:transform,opacity;}
-  @media (max-width:640px) and (orientation:portrait){#loader .lt{width:min(88vw,66vh);}}
-  #loader svg{position:absolute;overflow:visible;will-change:transform,opacity;}
-  #loader .cls-1{fill:#000;}
-  #loader circle{fill:none;stroke:#000;stroke-miterlimit:10;}
+  #loader .ls{position:absolute;overflow:hidden;background:#fff;color:#000;will-change:transform;}
+  #loader .ls.inv{background:#000;color:#fff;}
+  #loader .ls svg{position:absolute;overflow:visible;}
   /* content hidden until loader reveals it */
   #menu,#siteTitle,#tabs{opacity:0;}
   #siteTitle{transition:opacity .5s ease;}
@@ -345,7 +339,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 </style>
 </head>
 <body class="home">
-<div id="loader"><div class="lbg"></div></div>
+<div id="loader"></div>
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 
@@ -396,65 +390,79 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <div id="menu"></div>
 
 <script>
-/* ── LOADER ── on white, the target alone, one layer per ring (each
-   carrying its own numbers). While the page loads, the target is a cone
-   being aimed: the outer ring stays put, each ring further in drifts a
-   little more, and the bullseye traces a slow figure of eight. Once the
-   page is ready it locks — flat, perfectly concentric — the bullseye opens
-   onto the site, and we dive through it. Transform and opacity only, all
-   on the compositor, so it stays fluid while the page is still busy. */
+/* ── LOADER ── the target (loadersvg.svg, without its rats) cut across
+   the whole screen into strips of uneven height, each a white band with
+   its slice of the target. They shoot in from both sides and land out of
+   register; while the page loads they keep shifting, a strip at a time,
+   like a print being lined up — one or two printed in negative. When the
+   page is ready, every strip snaps into register, the negatives cut to
+   white, the target holds whole for a beat, then the strips leave the way
+   they came, from the middle outwards, uncovering the site. Translate
+   only, on the compositor. */
 const loaderEl=document.getElementById('loader');
 const loaderStart=Date.now();
 const loaderRM=matchMedia('(prefers-reduced-motion:reduce)').matches;
-let loaderParts=null;   // {box, rings:[svg] inside out, sway:[Animation], hole:px}
+let loaderParts=null;   // {strips:[{el,anims}]}
 const EASE_OUT='cubic-bezier(.16,1,.3,1)';
+const SNAP='cubic-bezier(.85,0,.15,1)';
 fetch('./loadersvg.svg')
   .then(r=>r.text())
   .then(text=>{
-    const NS='http://www.w3.org/2000/svg',V=1141.73,C=570.86;
+    const NS='http://www.w3.org/2000/svg';
     const src=new DOMParser().parseFromString(text,'image/svg+xml').documentElement;
-    const groups=[...src.children].filter(n=>n.tagName==='g');
-    const circles=groups[0]?[...groups[0].querySelectorAll('circle')]:[];
-    const digits=[...src.children].filter(n=>n.tagName==='path');
-    /* measured once, off screen */
-    src.style.cssText='position:fixed;left:-9999px;top:0;width:10px;height:10px;visibility:hidden;';
-    document.body.appendChild(src);
-    const digitBox=digits.map(d=>{const b=d.getBBox();return{cx:b.x+b.width/2,cy:b.y+b.height/2};});
-    src.remove();
-    const box=document.createElement('div');box.className='lt';
-    /* rings, inside out; a number belongs to the first ring outside it */
-    const ring=circles.map(c=>({c,r:+c.getAttribute('r'),d:[]})).sort((a,b)=>a.r-b.r);
-    digits.forEach((d,i)=>{
-      const dist=Math.hypot(digitBox[i].cx-C,digitBox[i].cy-C);
-      (ring.find(g=>g.r>dist)||ring[ring.length-1]).d.push(d);
-    });
-    const rings=ring.map((g,i)=>{
-      g.c.setAttribute('stroke-opacity',i%2?'.6':'.78');
-      const h=g.r+2,s=document.createElementNS(NS,'svg');
-      s.setAttribute('viewBox',`${C-h} ${C-h} ${2*h} ${2*h}`);
-      s.style.cssText=`left:${(C-h)/V*100}%;top:${(C-h)/V*100}%;width:${2*h/V*100}%;height:${2*h/V*100}%;`;
-      [g.c,...g.d].forEach(n=>s.appendChild(document.importNode(n,true)));
-      return box.appendChild(s);
-    });
-    loaderEl.appendChild(box);
-    const W=box.offsetWidth;
-    loaderParts={box,rings,sway:[],hole:ring[1]?ring[1].r/V*W:8};
+    [...src.children].filter(n=>n.tagName==='g')[1]?.remove();   // no rats
+    src.querySelector('defs')?.remove();
+    src.querySelectorAll('circle').forEach(c=>{c.removeAttribute('class');c.setAttribute('fill','none');c.setAttribute('stroke','currentColor');c.setAttribute('stroke-width','1.3');});
+    src.querySelectorAll('path').forEach(p=>{p.removeAttribute('class');p.setAttribute('fill','currentColor');});
+    /* drawn once, shown in every strip through <use> */
+    const lib=document.createElementNS(NS,'svg');
+    lib.setAttribute('width','0');lib.setAttribute('height','0');lib.style.position='absolute';
+    const sym=document.createElementNS(NS,'symbol');
+    sym.id='ltgt';sym.setAttribute('viewBox',src.getAttribute('viewBox'));
+    [...src.children].forEach(n=>sym.appendChild(document.importNode(n,true)));
+    lib.appendChild(sym);loaderEl.appendChild(lib);
+
+    const W=innerWidth,H=innerHeight;
+    const b=Math.round(W<=640&&H>W?Math.min(W*.88,H*.66):Math.min(W*.74,H*.74));
+    /* strips of uneven height, edges on whole pixels */
+    const N=13,wts=Array.from({length:N},()=>.35+Math.random()*1.5),sum=wts.reduce((x,y)=>x+y,0);
+    let acc=0;const edges=[0,...wts.map(w=>Math.round((acc+=w)/sum*H))];
+    /* wider than the screen, so a strip out of register never opens a gap */
+    const X=Math.ceil(W*.3);
+    /* two negatives: one across the target, one anywhere */
+    const ty=(H-b)/2,across=[...Array(N).keys()].filter(i=>edges[i+1]>ty+b*.15&&edges[i]<ty+b*.85);
+    const inv=new Set([across[Math.floor(Math.random()*across.length)]]);
+    while(inv.size<2)inv.add(Math.floor(Math.random()*N));
+    const strips=[];
+    for(let i=0;i<N;i++){
+      const el=document.createElement('div');
+      el.className='ls'+(inv.has(i)?' inv':'');
+      el.style.cssText=`top:${edges[i]}px;height:${edges[i+1]-edges[i]}px;left:${-X}px;width:${W+2*X}px;`;
+      const svg=document.createElementNS(NS,'svg');
+      svg.setAttribute('width',b);svg.setAttribute('height',b);
+      svg.style.left=(X+Math.round((W-b)/2))+'px';svg.style.top=(Math.round((H-b)/2)-edges[i])+'px';
+      const use=document.createElementNS(NS,'use');use.setAttribute('href','#ltgt');
+      svg.appendChild(use);el.appendChild(svg);loaderEl.appendChild(el);
+      strips.push({el,anims:[]});
+    }
+    loaderEl.classList.add('built');
+    loaderParts={strips,X};
     if(loaderRM)return;
-    /* the frame first, then each ring further in */
-    const n=rings.length;
-    rings.forEach((el,i)=>el.animate([{opacity:0},{opacity:1}],
-      {duration:700,delay:100+(n-1-i)*70,easing:'ease',fill:'backwards'}));
-    /* the sway: x = sin t, y = sin 2t / 2, sampled — starts and ends at the
-       centre, so the target unfolds from flat */
-    const A=W*.075,STEPS=64;
-    rings.forEach((el,i)=>{
-      const depth=(n-1-i)/(n-1);   // 1 at the bullseye, 0 on the frame
+    /* each strip's own sequence of misregistrations, held, then a snap
+       to the next; about a third of the time it sits true */
+    const SLOTS=4,SLOT=2100,MOVE=.2;
+    strips.forEach((st,i)=>{
+      const xs=Array.from({length:SLOTS},()=>Math.random()<.35?0:Math.round((Math.random()*2-1)*b*.24));
+      const side=i%2?1:-1,delay=Math.round(Math.random()*480);
+      st.anims.push(st.el.animate([{translate:`${side*(W+X+60)}px 0px`},{translate:`${xs[0]}px 0px`}],
+        {duration:1000,delay,easing:EASE_OUT,fill:'backwards'}));
       const kf=[];
-      for(let k=0;k<=STEPS;k++){
-        const t=k/STEPS*Math.PI*2;
-        kf.push({translate:`${(Math.sin(t)*A*depth).toFixed(2)}px ${(Math.sin(2*t)/2*A*depth).toFixed(2)}px`});
+      for(let k=0;k<SLOTS;k++){
+        kf.push({offset:k/SLOTS,translate:`${xs[k]}px 0px`,easing:'linear'});
+        kf.push({offset:(k+1-MOVE)/SLOTS,translate:`${xs[k]}px 0px`,easing:SNAP});
       }
-      loaderParts.sway.push(el.animate(kf,{duration:4200,iterations:Infinity,easing:'linear'}));
+      kf.push({offset:1,translate:`${xs[0]}px 0px`});
+      st.anims.push(st.el.animate(kf,{duration:SLOTS*SLOT,delay:delay+1000+Math.round(Math.random()*SLOT),iterations:Infinity}));
     });
   }).catch(()=>{});
 
@@ -470,36 +478,30 @@ function revealPage(at){
   if(!loaderRM)stripZoneEl.animate([{scale:'.96'},{scale:'1'}],{duration:1600,delay:Math.max(0,at-250),easing:EASE_OUT,fill:'backwards'});
 }
 function hideLoader(){
-  const wait=Math.max(0,2300-(Date.now()-loaderStart));
+  const wait=Math.max(0,2400-(Date.now()-loaderStart));
   setTimeout(()=>{
     loaderEl.classList.add('out');
-    const P=loaderParts,bg=loaderEl.querySelector('.lbg');
+    const P=loaderParts;
     if(loaderRM||!P){
       loaderEl.animate([{opacity:1},{opacity:0}],{duration:700,easing:'ease',fill:'forwards'}).finished.then(()=>loaderEl.remove(),()=>{});
       revealPage(250);
       return;
     }
-    /* 1 — lock: the cone folds back flat, wherever the sway had got to */
-    const LOCK=700;
-    P.rings.forEach((el,i)=>{
+    const W=innerWidth+P.X,N=P.strips.length,mid=(N-1)/2;
+    /* 1 — every strip snaps into register; the negatives cut to white */
+    const REG=620,HOLD=420;
+    P.strips.forEach(({el,anims})=>{
       const at=getComputedStyle(el).translate;
-      P.sway[i]?.cancel();
-      el.animate([{translate:at==='none'?'0px 0px':at},{translate:'0px 0px'}],{duration:LOCK,easing:'cubic-bezier(.65,0,.35,1)',fill:'forwards'});
+      anims.forEach(a=>a.cancel());
+      el.animate([{translate:at==='none'?'0px 0px':at},{translate:'0px 0px'}],{duration:REG,easing:SNAP,fill:'forwards'});
     });
-    /* 2 — the bullseye opens onto the site (a hole in the white, the size
-       of the second ring), then we dive through it: target and hole grow
-       together until the hole is wider than the screen */
-    const S=Math.hypot(innerWidth,innerHeight)/2/P.hole*1.08;
-    const DIVE=1300,dive={duration:DIVE,delay:LOCK+140,easing:'cubic-bezier(.7,0,.12,1)',fill:'forwards'};
-    setTimeout(()=>{
-      bg.style.background=`radial-gradient(circle at 50% 50%,transparent ${P.hole-.5}px,#fff ${P.hole+.5}px)`;
-    },LOCK+60);
-    const done=[
-      P.box.animate([{transform:'none',opacity:1},{opacity:1,offset:.2},{opacity:0,offset:.55},{transform:`scale(${S})`,opacity:0}],dive).finished,
-      bg.animate([{transform:'none',opacity:1},{opacity:1,offset:.75},{transform:`scale(${S})`,opacity:0}],dive).finished,
-    ];
+    setTimeout(()=>P.strips.forEach(({el})=>el.classList.remove('inv')),REG);
+    /* 2 — whole for a beat, then out the way they came, middle first */
+    const done=P.strips.map(({el},i)=>el.animate(
+      [{translate:'0px 0px'},{translate:`${(i%2?1:-1)*(W+60)}px 0px`}],
+      {duration:780,delay:REG+HOLD+Math.round(Math.abs(i-mid)*55),easing:'cubic-bezier(.7,0,.84,0)',fill:'forwards'}).finished);
     Promise.all(done).then(()=>loaderEl.remove(),()=>loaderEl.remove());
-    revealPage(LOCK+140+DIVE*.45);
+    revealPage(REG+HOLD+250);
   },wait);
 }
 
