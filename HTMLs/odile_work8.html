@@ -318,7 +318,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     .strip-item{scroll-snap-align:center;}
   }
 
-  /* ── LOADER — the ring of rats, spun twice fast on its centre ── */
+  /* ── LOADER — the ring of rats as a phenakistoscope, see the script ── */
   #loader{
     position:fixed;inset:0;z-index:900;
     display:flex;align-items:center;justify-content:center;
@@ -396,20 +396,23 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <div id="menu"></div>
 
 <script>
-/* ── LOADER ── loader_rats.png: fades in, turns twice on its centre,
-   fast, and comes to rest; the loader lifts once the page is ready and
-   the spin has finished, whichever is later */
+/* ── LOADER ── loader_rats.png as a phenakistoscope: the disc jumps on by
+   exactly one rat (45°) twelve times a second, so each rat takes the place
+   of the one before and the eight of them run on the spot. The loader
+   lifts once the page is ready, after at least two turns of the disc. */
 const loaderEl=document.getElementById('loader');
 const loaderImg=new Image();
 loaderImg.src='./loader_rats.png';loaderImg.alt='';loaderImg.decoding='async';
 loaderEl.appendChild(loaderImg);
 const loaderRM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const FRAMES=8,FRAME_MS=84;
 const loaderSpin=new Promise(done=>{
   const go=()=>{
-    loaderImg.animate([{opacity:0},{opacity:1}],{duration:250,easing:'ease',fill:'forwards'});
+    loaderImg.animate([{opacity:0},{opacity:1}],{duration:200,easing:'ease',fill:'forwards'});
     if(loaderRM){setTimeout(done,600);return;}
-    loaderImg.animate([{transform:'rotate(0deg)'},{transform:'rotate(720deg)'}],
-      {duration:1200,delay:150,easing:'cubic-bezier(.6,0,.25,1)',fill:'forwards'}).finished.then(done,done);
+    loaderImg.animate([{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}],
+      {duration:FRAMES*FRAME_MS,iterations:Infinity,easing:`steps(${FRAMES},end)`});
+    setTimeout(done,2*FRAMES*FRAME_MS);
   };
   if(loaderImg.complete)go();else{loaderImg.onload=go;loaderImg.onerror=done;}
 });
