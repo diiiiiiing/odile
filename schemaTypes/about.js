@@ -1,29 +1,52 @@
 /* everything that appears when Ding is clicked on the work page (desktop
-   and phone): who, where, contact, experiences, services, clients */
+   and phone): who, where, contact, experiences, services, clients — each
+   category in its own box, with a switch to keep it off the site */
 const link = (name, title, description) => ({name, title, type: 'url', description,
   validation: (R) => R.uri({allowRelative: false, scheme: ['http', 'https', 'mailto']})})
+
+/* the "hide" switch of a category; nothing set = shown */
+const hide = (name, fieldset) => ({name, fieldset, title: 'Masquer sur le site', type: 'boolean', initialValue: false})
+
+const box = (name, title) => ({name, title, options: {collapsible: true, collapsed: false}})
 
 export default {
   name: 'about',
   title: 'Infos',
   type: 'document',
   fieldsets: [
-    {name: 'current', title: 'Poste actuel', options: {columns: 2}},
+    box('fsName', 'Nom'),
+    box('fsLocation', 'Ville'),
+    box('fsCurrent', 'Poste actuel'),
+    box('fsEmail', 'Email'),
+    box('fsInstagram', 'Instagram'),
+    box('fsLinks', 'Autres liens'),
+    box('fsExperiences', 'Expériences'),
+    box('fsServices', 'Services'),
+    box('fsClients', 'Clients'),
   ],
   fields: [
-    {name: 'name', title: 'Nom', type: 'string', initialValue: 'Thomas Ding'},
-    {name: 'location', title: 'Ville', type: 'string', description: 'ex. Paris, France'},
-    {name: 'showTime', title: 'Afficher l’heure de Paris à côté', type: 'boolean', initialValue: true},
+    {name: 'name', title: 'Nom', type: 'string', fieldset: 'fsName', initialValue: 'Thomas Ding'},
+    hide('hideName', 'fsName'),
 
-    {name: 'currentText', title: 'Phrase', type: 'string', fieldset: 'current', description: 'ex. Currently designer at'},
-    {name: 'currentPlace', title: 'Studio / entreprise', type: 'string', fieldset: 'current'},
-    {...link('currentUrl', 'Lien du studio'), fieldset: 'current'},
+    {name: 'location', title: 'Ville', type: 'string', fieldset: 'fsLocation', description: 'ex. Paris, France'},
+    {name: 'showTime', title: 'Afficher l’heure de Paris à côté', type: 'boolean', fieldset: 'fsLocation', initialValue: true},
+    hide('hideLocation', 'fsLocation'),
 
-    {name: 'email', title: 'Email', type: 'string', description: 'Un clic sur l’adresse la copie.'},
-    {name: 'instagram', title: 'Instagram', type: 'string', description: 'Le pseudo, sans @'},
+    {name: 'currentText', title: 'Phrase', type: 'string', fieldset: 'fsCurrent', description: 'ex. Currently designer at'},
+    {name: 'currentPlace', title: 'Studio / entreprise', type: 'string', fieldset: 'fsCurrent'},
+    {...link('currentUrl', 'Lien du studio'), fieldset: 'fsCurrent'},
+    hide('hideCurrent', 'fsCurrent'),
+
+    {name: 'email', title: 'Email', type: 'string', fieldset: 'fsEmail', description: 'Un clic sur l’adresse la copie.'},
+    hide('hideEmail', 'fsEmail'),
+
+    {name: 'instagram', title: 'Instagram', type: 'string', fieldset: 'fsInstagram', description: 'Le pseudo, sans @'},
+    hide('hideInstagram', 'fsInstagram'),
+
     {
       name: 'links',
       title: 'Autres liens',
+      fieldset: 'fsLinks',
       description: 'Optionnel — ex. LinkedIn, Vimeo…',
       type: 'array',
       of: [{
@@ -35,10 +58,12 @@ export default {
         preview: {select: {title: 'label', subtitle: 'url'}},
       }],
     },
+    hide('hideLinks', 'fsLinks'),
 
     {
       name: 'experiences',
       title: 'Expériences',
+      fieldset: 'fsExperiences',
       description: 'Dans l’ordre d’affichage (la plus récente en premier). Glisser-déposer pour réordonner.',
       type: 'array',
       of: [{
@@ -60,16 +85,20 @@ export default {
         },
       }],
     },
+    hide('hideExperiences', 'fsExperiences'),
 
-    {name: 'services', title: 'Services', type: 'string', description: 'ex. Art direction, graphic design, image, video, AI'},
+    {name: 'services', title: 'Services', type: 'string', fieldset: 'fsServices', description: 'ex. Art direction, graphic design, image, video, AI'},
+    hide('hideServices', 'fsServices'),
 
     {
       name: 'clients',
       title: 'Clients',
+      fieldset: 'fsClients',
       description: 'Un nom par ligne, dans l’ordre d’affichage. (Coller une liste séparée par des virgules marche aussi.)',
       type: 'text',
       rows: 14,
     },
+    hide('hideClients', 'fsClients'),
   ],
   preview: {prepare: () => ({title: 'Infos'})},
 }

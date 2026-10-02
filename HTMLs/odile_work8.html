@@ -657,6 +657,13 @@ const ext=(label,url)=>url?`<a href="${esc(url)}" target="_blank" rel="noopener"
 const clientList=c=>(typeof c==='string'?c.split(/[\n,]+/):(c||[]).map(x=>x&&x.name)).map(x=>(x||'').trim()).filter(Boolean);
 function renderInfo(d){
   if(!d)return;
+  /* each category can be switched off in the Studio ("Masquer sur le site") */
+  const off=(flag,...keys)=>{if(d[flag])keys.forEach(k=>{d[k]=null;});};
+  d={...d};
+  off('hideName','name');off('hideLocation','location','showTime');
+  off('hideCurrent','currentText','currentPlace');off('hideEmail','email');
+  off('hideInstagram','instagram');off('hideLinks','links');
+  off('hideExperiences','experiences');off('hideServices','services');off('hideClients','clients');
   const out=[];
   if(d.name)out.push(esc(d.name));
   if(d.email)out.push(`<a href="#" id="emailCopy" data-email="${esc(d.email)}">${esc(d.email)}</a>`);
