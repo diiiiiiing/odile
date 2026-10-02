@@ -318,56 +318,36 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     .strip-item{scroll-snap-align:center;}
   }
 
-  /* ── LOADER — full-screen overlay; text reveal after it fades ─ */
+  /* ── LOADER — the target taken apart into layers the compositor moves
+     on its own (each ring with its numbers, each rat), see the script ── */
   #loader{
     position:fixed;inset:0;z-index:900;
     display:flex;align-items:center;justify-content:center;
-    background:var(--bg);
-    opacity:1;transition:opacity 1.4s cubic-bezier(0.4,0,0.2,1);
-    pointer-events:auto;
+    overflow:hidden;
   }
-  #loader.loaded{opacity:0;pointer-events:none;}
-  @keyframes loader-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
-  #loader svg{
-    width:min(74vw,74vh);height:min(74vw,74vh);
-    overflow:visible;
-    animation:loader-in 1.2s cubic-bezier(0.22,1,0.36,1) both;
-  }
-  @media (max-width:640px) and (orientation:portrait){#loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}}
+  /* the grey is its own layer: it lifts while the rats are still running */
+  #loader .lbg{position:absolute;inset:0;background:var(--bg);}
+  #loader.out{pointer-events:none;}
+  #loader .lt{position:relative;width:min(74vw,74vh);aspect-ratio:1;flex-shrink:0;}
+  @media (max-width:640px) and (orientation:portrait){#loader .lt{width:min(88vw,66vh);}}
+  #loader .lt>div{position:absolute;inset:0;}
+  #loader svg{position:absolute;overflow:visible;will-change:transform,opacity;}
+  #loader .cls-1{fill:var(--fg);}
+  #loader circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
   /* content hidden until loader reveals it */
   #menu,#siteTitle,#tabs{opacity:0;}
   #siteTitle{transition:opacity .5s ease;}
-  #loader .cls-1{fill:var(--fg)!important;}
-  #loader .cls-2{stroke:var(--fg)!important;fill:none!important;}
-
-  @keyframes spin-ccw {to{transform:rotate(-360deg);}}
-  @keyframes snap-in  {to{opacity:1}}
-  @keyframes snap-out {from{opacity:1}to{opacity:0}}
-  @keyframes ci-in{from{opacity:0}to{opacity:var(--ci-op,1)}}
-  @keyframes ci-out{from{opacity:var(--ci-op,1)}to{opacity:0}}
-  #lg-circles{transform-origin:570.86px 570.86px;animation:spin-ccw 40s linear infinite;}
-  #lg-circles circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
-  #lg-circles .ci-9{--ci-op:.7;animation:ci-in .4s ease 0.00s both;}
-  #lg-circles .ci-8{--ci-op:.6;animation:ci-in .4s ease 0.09s both;}
-  #lg-circles .ci-7{--ci-op:.7;animation:ci-in .4s ease 0.18s both;}
-  #lg-circles .ci-6{--ci-op:.6;animation:ci-in .4s ease 0.27s both;}
-  #lg-circles .ci-5{--ci-op:.7;animation:ci-in .4s ease 0.36s both;}
-  #lg-circles .ci-4{--ci-op:.6;animation:ci-in .4s ease 0.45s both;}
-  #lg-circles .ci-3{--ci-op:.7;animation:ci-in .4s ease 0.54s both;}
-  #lg-circles .ci-2{--ci-op:.6;animation:ci-in .4s ease 0.63s both;}
-  #lg-circles .ci-1{--ci-op:.7;animation:ci-in .4s ease 0.72s both;}
 
   /* motion-sensitive visitors keep every fade, but the title jumps to its
      new place instead of gliding and the loader target stops spinning */
   @media (prefers-reduced-motion:reduce){
     #menu{transition:opacity .5s ease;}
-    #lg-circles{animation:none;}
     .strip-item{translate:none;}
   }
 </style>
 </head>
 <body class="home">
-<div id="loader"></div>
+<div id="loader"><div class="lbg"></div></div>
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 
@@ -418,77 +398,112 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <div id="menu"></div>
 
 <script>
-/* loader — fetch SVG, add group IDs for CSS animation, inject inline.
-   Unchanged from work4: page-agnostic chrome. */
+/* ── LOADER ── loadersvg.svg taken apart into layers: each ring with its
+   own numbers, and each of the eleven rats. In: the rings ripple out from
+   the bullseye, the rats arrive one behind the other and run round the
+   target while it turns slowly the other way. Out: the rings ripple on
+   and dissolve, the rats bolt off the screen, the grey lifts and the page
+   settles in underneath. Transform and opacity only. */
 const loaderEl=document.getElementById('loader');
 const loaderStart=Date.now();
-// filled once the SVG is parsed, read back by hideLoader() to mirror the
-// entrance stagger (inside-out) on the way out
-let tickExitPaths=[];
+const loaderRM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+let loaderParts=null;   // {box, rings:[svg], rats:[{el,ux,uy}]}
+const EASE_OUT='cubic-bezier(.16,1,.3,1)';
 fetch('./loadersvg.svg')
   .then(r=>r.text())
   .then(text=>{
-    const doc=new DOMParser().parseFromString(text,'image/svg+xml');
-    const svg=doc.documentElement;
-    const groups=[...svg.children].filter(n=>n.tagName==='g');
-    if(groups[0]){
-      groups[0].id='lg-circles';
-      [...groups[0].children].forEach((c,i)=>c.classList.add('ci-'+(i+1)));
-    }
-    // groups[1] is the ring of mouse ornaments — dropped per request, never
-    // appended to the DOM at all
-    if(groups[1])groups[1].remove();
-    const CX=570.86,CY=570.86,TOL=18;
-    const paths=[...svg.children].filter(n=>n.tagName==='path');
-    svg.style.cssText='position:fixed;top:-9999px;width:1px;height:1px;overflow:visible;';
-    document.body.appendChild(svg);
-    const radii=paths.map(p=>{
-      const b=p.getBBox();
-      const cx=b.x+b.width/2, cy=b.y+b.height/2;
-      return Math.round(Math.sqrt((cx-CX)**2+(cy-CY)**2)/TOL)*TOL;
+    const NS='http://www.w3.org/2000/svg',V=1141.73,C=570.86;
+    const src=new DOMParser().parseFromString(text,'image/svg+xml').documentElement;
+    const groups=[...src.children].filter(n=>n.tagName==='g');
+    const circles=groups[0]?[...groups[0].querySelectorAll('circle')]:[];
+    const rats=groups[1]?[...groups[1].children]:[];
+    const digits=[...src.children].filter(n=>n.tagName==='path');
+    /* measured once, off screen */
+    src.style.cssText='position:fixed;left:-9999px;top:0;width:10px;height:10px;visibility:hidden;';
+    document.body.appendChild(src);
+    const bb=el=>{const b=el.getBBox();return{x:b.x,y:b.y,w:b.width,h:b.height,cx:b.x+b.width/2,cy:b.y+b.height/2};};
+    const ratBox=rats.map(bb),digitBox=digits.map(bb);
+    src.remove();
+    const layer=(nodes,x,y,w,h)=>{
+      const s=document.createElementNS(NS,'svg');
+      s.setAttribute('viewBox',`${x} ${y} ${w} ${h}`);
+      s.style.cssText=`left:${x/V*100}%;top:${y/V*100}%;width:${w/V*100}%;height:${h/V*100}%;`;
+      nodes.forEach(n=>s.appendChild(document.importNode(n,true)));
+      return s;
+    };
+    const box=document.createElement('div');box.className='lt';
+    const target=document.createElement('div'),pack=document.createElement('div');
+    /* rings, inside out; a number belongs to the first ring outside it */
+    const ring=circles.map(c=>({c,r:+c.getAttribute('r'),d:[]})).sort((a,b)=>a.r-b.r);
+    digits.forEach((d,i)=>{
+      const b=digitBox[i],dist=Math.hypot(b.cx-C,b.cy-C);
+      (ring.find(g=>g.r>dist)||ring[ring.length-1]).d.push(d);
     });
-    document.body.removeChild(svg);
-    svg.style.cssText='';
-    const sortedR=[...new Set(radii)].sort((a,b)=>a-b);
-    const stepMap=Object.fromEntries(sortedR.map((r,i)=>[r,i]));
-    const maxStep=sortedR.length-1;
-    const STEP=0.04, START=0.05;
-    const STEP_OUT=0.035, START_OUT=0;
-    paths.forEach((p,i)=>{
-      const delay=(START+stepMap[radii[i]]*STEP).toFixed(3);
-      p.style.opacity='0';
-      p.style.animation=`snap-in 0.12s ease ${delay}s both`;
-      // reversed order: the innermost ring of ticks (highest stepMap index
-      // is furthest out, so invert it) fades first, mirroring the entrance
-      const exitDelay=(START_OUT+(maxStep-stepMap[radii[i]])*STEP_OUT).toFixed(3);
-      tickExitPaths.push({el:p,delay:exitDelay});
+    const rings=ring.map((g,i)=>{
+      g.c.setAttribute('stroke-opacity',i%2?'.62':'.75');
+      const h=g.r+2;
+      return target.appendChild(layer([g.c,...g.d],C-h,C-h,2*h,2*h));
     });
-    loaderEl.appendChild(svg);
+    /* rats, clockwise from the top — the way they run */
+    const ratParts=rats.map((r,i)=>{
+      const b=ratBox[i],dist=Math.hypot(b.cx-C,b.cy-C)||1;
+      return{r,b,ux:(b.cx-C)/dist,uy:(b.cy-C)/dist,a:(Math.atan2(b.cy-C,b.cx-C)+Math.PI*2.5)%(Math.PI*2)};
+    }).sort((p,q)=>p.a-q.a).map(p=>({el:pack.appendChild(layer([p.r],p.b.x-3,p.b.y-3,p.b.w+6,p.b.h+6)),ux:p.ux,uy:p.uy}));
+    box.append(target,pack);
+    loaderEl.appendChild(box);
+    loaderParts={box,rings,rats:ratParts};
+    if(loaderRM)return;
+    const k=box.offsetWidth/V;   // px per SVG unit
+    rings.forEach((el,i)=>el.animate(
+      [{opacity:0,transform:'scale(.5)'},{opacity:1,transform:'none'}],
+      {duration:1150,delay:60+i*80,easing:EASE_OUT,fill:'backwards'}));
+    ratParts.forEach(({el,ux,uy},j)=>el.animate(
+      [{opacity:0,transform:`translate(${uy*90*k}px,${-ux*90*k}px)`},{opacity:1,transform:'none'}],
+      {duration:1000,delay:320+j*75,easing:EASE_OUT,fill:'backwards'}));
+    target.animate([{transform:'rotate(0deg)'},{transform:'rotate(-360deg)'}],{duration:90000,iterations:Infinity});
+    pack.animate([{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}],{duration:17000,iterations:Infinity});
   }).catch(()=>{});
-function hideLoader(){
-  const elapsed=Date.now()-loaderStart;
-  const wait=Math.max(0,2200-elapsed);
-  setTimeout(()=>{
-    // the target closes up from the centre outward — same order it opened
-    // in, just reversed to opacity 0 — while the grey backdrop behind it
-    // fades on its own, slightly slower timeline (#loader.loaded below)
-    document.querySelectorAll('#lg-circles circle').forEach(c=>{
-      const cls=[...c.classList].find(cl=>/^ci-\d$/.test(cl));
-      const idx=cls?parseInt(cls.slice(3),10):9;
-      const delay=((9-idx)*0.06).toFixed(2);
-      c.style.animation=`ci-out .3s ease ${delay}s both`;
-    });
-    tickExitPaths.forEach(({el,delay})=>{
-      el.style.animation=`snap-out .16s ease ${delay}s both`;
-    });
-    loaderEl.classList.add('loaded');
-    loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
+
+function revealPage(at){
+  ['siteTitle','tabs','menu'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    if(!el)return;
     setTimeout(()=>{
-      ['menu','siteTitle','tabs'].forEach(id=>{
-        const el=document.getElementById(id);
-        if(el)el.style.opacity='1';
-      });
-    },700);
+      el.style.opacity='1';
+      if(!loaderRM)el.animate([{translate:'0 10px'},{translate:'0 0'}],{duration:1000,easing:EASE_OUT});
+    },at+i*110);
+  });
+  if(!loaderRM)stripZoneEl.animate([{scale:'.96'},{scale:'1'}],{duration:1600,delay:Math.max(0,at-250),easing:EASE_OUT,fill:'backwards'});
+}
+function hideLoader(){
+  const wait=Math.max(0,2300-(Date.now()-loaderStart));
+  setTimeout(()=>{
+    loaderEl.classList.add('out');
+    const P=loaderParts;
+    if(loaderRM||!P){
+      loaderEl.animate([{opacity:1},{opacity:0}],{duration:700,easing:'ease',fill:'forwards'}).finished.then(()=>loaderEl.remove(),()=>{});
+      revealPage(250);
+      return;
+    }
+    const done=[];
+    /* the rats bolt — onwards and outwards, faster and faster, across the
+       page that is appearing and off the screen */
+    const far=Math.max(innerWidth,innerHeight)*1.15;
+    P.rats.forEach(({el,ux,uy},j)=>{
+      const dx=-uy*.8+ux*.6,dy=ux*.8+uy*.6;
+      done.push(el.animate([
+        {transform:'none'},
+        {transform:`translate(${dx*far}px,${dy*far}px)`},
+      ],{duration:1500,delay:j*40,easing:'cubic-bezier(.42,0,.72,.45)',fill:'forwards'}).finished);
+    });
+    /* the rings ripple on from the bullseye and dissolve */
+    P.rings.forEach((el,i)=>done.push(el.animate(
+      [{opacity:1,transform:'none'},{opacity:0,transform:`scale(${1.28+i*.05})`}],
+      {duration:1000,delay:120+i*55,easing:'cubic-bezier(.33,0,.15,1)',fill:'forwards'}).finished));
+    /* the grey lifts once the ripple has passed */
+    done.push(loaderEl.querySelector('.lbg').animate([{opacity:1},{opacity:0}],{duration:1100,delay:380,easing:'cubic-bezier(.45,0,.2,1)',fill:'forwards'}).finished);
+    Promise.all(done).then(()=>loaderEl.remove(),()=>loaderEl.remove());
+    revealPage(650);
   },wait);
 }
 
