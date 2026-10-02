@@ -48,11 +48,11 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
     position:fixed;left:0;right:0;top:0;z-index:10;height:var(--bar);
     padding:var(--top) var(--pad) 0;
     display:flex;align-items:center;justify-content:space-between;
-    background:var(--bg);
+    pointer-events:none; /* no patch: the words float over the media, taps go through */
   }
-  #bar button,#bar a{padding:12px 0;}
-  #tabs{display:flex;gap:28px;}
-  #tabs a.on{font-weight:700;}
+  #bar button,#bar a{padding:12px 0;pointer-events:auto;}
+  /* one word: the room you're not in */
+  #tabs a.on{display:none;}
   #ding.on{font-weight:700;}
   #back{display:none;}
   body.proj #tabs{display:none;}

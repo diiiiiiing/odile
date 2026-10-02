@@ -120,15 +120,16 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 
   /* ── TABS — under Ding, home only: the project index, the gallery, and
      a third room not open yet ── */
-  /* Projects centred in the left half of the screen, Gallery in the right */
+  /* one word, centred: the room you're not in — Gallery from the
+     projects, Projects from the gallery */
   #tabs{
     position:fixed;left:0;right:0;top:calc(var(--pad) + 26px);z-index:70;
-    display:grid;grid-template-columns:1fr 1fr;justify-items:center;white-space:nowrap;transition:opacity .4s ease;
+    display:flex;justify-content:center;white-space:nowrap;transition:opacity .4s ease;
     pointer-events:none;
   }
+  #tabs a.on{display:none;}
   #tabs a{pointer-events:auto;}
   #tabs a,#tabs a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
-  #tabs a.on{font-weight:700;}
   body:not(.home) #tabs{opacity:0!important;pointer-events:none;}
   /* the gallery is the same band with no index under it */
   body.gallery #menu{opacity:0!important;pointer-events:none;}
@@ -170,21 +171,6 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   #stripEmpty{color:var(--fg);opacity:0;animation:phIn .4s ease .25s forwards;}
   @keyframes phIn{to{opacity:1;}}
 
-  /* pinned to the bottom-right corner of the screen — its own fixed
-     spot, same as #menu's bottom padding, rather than tied to the
-     media's position */
-  .next-link{
-    position:fixed;right:var(--pad);bottom:var(--pad);z-index:70;
-    writing-mode:vertical-rl;
-    opacity:0;pointer-events:none;transition:opacity .3s ease;
-  }
-  .next-link.show{opacity:1;pointer-events:auto;}
-  .prev-link{
-    position:fixed;left:var(--pad);bottom:var(--pad);z-index:70;
-    writing-mode:vertical-rl;transform:rotate(180deg);
-    opacity:0;pointer-events:none;transition:opacity .3s ease;
-  }
-  .prev-link.show{opacity:1;pointer-events:auto;}
 
   /* ── LIGHTBOX — a project's media, clicked, shown as large as it goes ── */
   #lightbox{
@@ -313,8 +299,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     html,body{line-height:1.2;}
     #topZone{top:calc(var(--pad) + env(safe-area-inset-top));width:min(88vw,380px);}
     #menu{bottom:calc(var(--pad) + env(safe-area-inset-bottom));width:min(88vw,380px);}
-    .close-link,.next-link,.prev-link,.corner.bl{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
-    .next-link,.prev-link,.corner.bl{writing-mode:horizontal-tb;transform:none;} /* flat on a phone, clear of the description */
+    .close-link,.corner.bl{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
+    .corner.bl{writing-mode:horizontal-tb;transform:none;} /* flat on a phone, clear of the description */
     .menu-cat{padding:7px 0;margin-top:8px;}
     #stripZone{height:min(42vh,380px);}
 
@@ -419,8 +405,6 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <!-- pinned to the screen's own bottom-right corner — kept outside
      #stripZone, whose transform would otherwise become the containing
      block for this fixed-position link instead of the viewport -->
-<a href="#" id="nextProject" class="ext-link next-link">next project</a>
-<a href="#" id="prevProject" class="ext-link prev-link">previous project</a>
 <div id="lightbox"></div>
 <!-- bottom-left counterpart, same reason: a fixed spot regardless of
      the open description's length, not part of #menu's own flow -->
@@ -1052,7 +1036,7 @@ function showHome(delay){swapStrip(fillHome,delay);}
 
 document.addEventListener('click',e=>{
   if(selectedIdx!==null||!POPUPS.length)return;
-  if(e.target.closest?.('a,button,video,[data-p],#menu,#tabs,#topZone,#info .frag,.next-link,.close-link'))return;
+  if(e.target.closest?.('a,button,video,[data-p],#menu,#tabs,#topZone,#info .frag,.close-link'))return;
   const m=POPUPS[Math.random()*POPUPS.length|0];
   const w=Math.round(110+Math.random()*90);
   const img=document.createElement('img');
@@ -1267,7 +1251,6 @@ function selectProject(i,{pushUrl=true,start=0}={}){
   const pos=menuOrder.indexOf(i);
   nextLinkTarget=(pos!==-1&&menuOrder.length>1)?menuOrder[(pos+1)%menuOrder.length]:null;
   prevLinkTarget=(pos!==-1&&menuOrder.length>1)?menuOrder[(pos-1+menuOrder.length)%menuOrder.length]:null;
-  nextLinkEl.classList.remove('show');
   updateCorners();
 
   if(pushUrl&&proj.slug)history.pushState({idx:i},'','#'+proj.slug);
@@ -1390,28 +1373,10 @@ function createMediaEl(m,k,group=null){
   return ph;
 }
 
-/* "previous project" shows only with the strip all the way left, "next
-   project" only all the way right — nothing in between */
-const nextLinkEl=document.getElementById('nextProject');
-const prevLinkEl=document.getElementById('prevProject');
+/* the neighbouring projects, reached through the edge bands (edgeAt) */
 let nextLinkTarget=null,prevLinkTarget=null;
-function updateNextLinkVisibility(){
-  const open=selectedIdx!==null&&!homeMode;
-  const atEnd=stripEl.scrollLeft+stripEl.clientWidth>=stripEl.scrollWidth-4;
-  const atStart=stripEl.scrollLeft<=4;
-  nextLinkEl.classList.toggle('show',open&&nextLinkTarget!==null&&atEnd);
-  prevLinkEl.classList.toggle('show',open&&prevLinkTarget!==null&&atStart);
-  updateCounter();
-}
-prevLinkEl.addEventListener('click',e=>{
-  e.preventDefault();
-  if(prevLinkTarget!==null)selectProject(prevLinkTarget);
-});
+function updateNextLinkVisibility(){updateCounter();}
 stripEl.addEventListener('scroll',updateNextLinkVisibility,{passive:true});
-nextLinkEl.addEventListener('click',e=>{
-  e.preventDefault();
-  if(nextLinkTarget!==null)selectProject(nextLinkTarget);
-});
 
 /* "back" is static HTML (like "next project"), pinned to its own spot
    rather than part of #menu's flow */
@@ -1430,7 +1395,7 @@ function updateCorners(){updateCounter();}
 function updateCounter(){
   const items=[...stripEl.children].filter(c=>c.classList.contains('strip-item'));
   const n=items.length;
-  if(selectedIdx===null||!n||prevLinkEl.classList.contains('show')){cornerBL.classList.remove('on');return;}
+  if(selectedIdx===null||!n){cornerBL.classList.remove('on');return;}
   const max=stripEl.scrollWidth-stripEl.clientWidth;
   const box=stripEl.getBoundingClientRect();
   const centred=getComputedStyle(stripEl).scrollSnapType.startsWith('x');
