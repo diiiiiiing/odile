@@ -318,28 +318,50 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     .strip-item{scroll-snap-align:center;}
   }
 
-  /* ── LOADER — the ring of rats as a phenakistoscope, see the script ── */
+  /* ── LOADER — full-screen overlay; text reveal after it fades ─ */
   #loader{
     position:fixed;inset:0;z-index:900;
     display:flex;align-items:center;justify-content:center;
     background:var(--bg);
-    opacity:1;transition:opacity .9s cubic-bezier(0.4,0,0.2,1);
+    opacity:1;transition:opacity 1.4s cubic-bezier(0.4,0,0.2,1);
     pointer-events:auto;
   }
   #loader.loaded{opacity:0;pointer-events:none;}
-  #loader img{
-    width:min(62vw,62vh,560px);height:auto;display:block;
-    opacity:0;will-change:transform,opacity;
-    -webkit-user-drag:none;user-select:none;
+  @keyframes loader-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+  #loader svg{
+    width:min(74vw,74vh);height:min(74vw,74vh);
+    overflow:visible;
+    animation:loader-in 1.2s cubic-bezier(0.22,1,0.36,1) both;
   }
+  @media (max-width:640px) and (orientation:portrait){#loader svg{width:min(88vw,66vh);height:min(88vw,66vh);}}
   /* content hidden until loader reveals it */
   #menu,#siteTitle,#tabs{opacity:0;}
   #siteTitle{transition:opacity .5s ease;}
+  #loader .cls-1{fill:var(--fg)!important;}
+  #loader .cls-2{stroke:var(--fg)!important;fill:none!important;}
+
+  @keyframes spin-ccw {to{transform:rotate(-360deg);}}
+  @keyframes snap-in  {to{opacity:1}}
+  @keyframes snap-out {from{opacity:1}to{opacity:0}}
+  @keyframes ci-in{from{opacity:0}to{opacity:var(--ci-op,1)}}
+  @keyframes ci-out{from{opacity:var(--ci-op,1)}to{opacity:0}}
+  #lg-circles{transform-origin:570.86px 570.86px;animation:spin-ccw 40s linear infinite;}
+  #lg-circles circle{fill:none;stroke:var(--fg);stroke-miterlimit:10;}
+  #lg-circles .ci-9{--ci-op:.7;animation:ci-in .4s ease 0.00s both;}
+  #lg-circles .ci-8{--ci-op:.6;animation:ci-in .4s ease 0.09s both;}
+  #lg-circles .ci-7{--ci-op:.7;animation:ci-in .4s ease 0.18s both;}
+  #lg-circles .ci-6{--ci-op:.6;animation:ci-in .4s ease 0.27s both;}
+  #lg-circles .ci-5{--ci-op:.7;animation:ci-in .4s ease 0.36s both;}
+  #lg-circles .ci-4{--ci-op:.6;animation:ci-in .4s ease 0.45s both;}
+  #lg-circles .ci-3{--ci-op:.7;animation:ci-in .4s ease 0.54s both;}
+  #lg-circles .ci-2{--ci-op:.6;animation:ci-in .4s ease 0.63s both;}
+  #lg-circles .ci-1{--ci-op:.7;animation:ci-in .4s ease 0.72s both;}
 
   /* motion-sensitive visitors keep every fade, but the title jumps to its
      new place instead of gliding and the loader target stops spinning */
   @media (prefers-reduced-motion:reduce){
     #menu{transition:opacity .5s ease;}
+    #lg-circles{animation:none;}
     .strip-item{translate:none;}
   }
 </style>
@@ -396,28 +418,69 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <div id="menu"></div>
 
 <script>
-/* ── LOADER ── loader_rats.png as a phenakistoscope: the disc jumps on by
-   exactly one rat (45°) twelve times a second, so each rat takes the place
-   of the one before and the eight of them run on the spot. The loader
-   lifts once the page is ready, after at least two turns of the disc. */
+/* loader — fetch SVG, add group IDs for CSS animation, inject inline.
+   Unchanged from work4: page-agnostic chrome. */
 const loaderEl=document.getElementById('loader');
-const loaderImg=new Image();
-loaderImg.src='./loader_rats.png';loaderImg.alt='';loaderImg.decoding='async';
-loaderEl.appendChild(loaderImg);
-const loaderRM=matchMedia('(prefers-reduced-motion:reduce)').matches;
-const FRAMES=8,FRAME_MS=84;
-const loaderSpin=new Promise(done=>{
-  const go=()=>{
-    loaderImg.animate([{opacity:0},{opacity:1}],{duration:200,easing:'ease',fill:'forwards'});
-    if(loaderRM){setTimeout(done,600);return;}
-    loaderImg.animate([{transform:'rotate(0deg)'},{transform:'rotate(360deg)'}],
-      {duration:FRAMES*FRAME_MS,iterations:Infinity,easing:`steps(${FRAMES},end)`});
-    setTimeout(done,2*FRAMES*FRAME_MS);
-  };
-  if(loaderImg.complete)go();else{loaderImg.onload=go;loaderImg.onerror=done;}
-});
+const loaderStart=Date.now();
+// filled once the SVG is parsed, read back by hideLoader() to mirror the
+// entrance stagger (inside-out) on the way out
+let tickExitPaths=[];
+fetch('./loadersvg.svg')
+  .then(r=>r.text())
+  .then(text=>{
+    const doc=new DOMParser().parseFromString(text,'image/svg+xml');
+    const svg=doc.documentElement;
+    const groups=[...svg.children].filter(n=>n.tagName==='g');
+    if(groups[0]){
+      groups[0].id='lg-circles';
+      [...groups[0].children].forEach((c,i)=>c.classList.add('ci-'+(i+1)));
+    }
+    // groups[1] is the ring of mouse ornaments — dropped per request, never
+    // appended to the DOM at all
+    if(groups[1])groups[1].remove();
+    const CX=570.86,CY=570.86,TOL=18;
+    const paths=[...svg.children].filter(n=>n.tagName==='path');
+    svg.style.cssText='position:fixed;top:-9999px;width:1px;height:1px;overflow:visible;';
+    document.body.appendChild(svg);
+    const radii=paths.map(p=>{
+      const b=p.getBBox();
+      const cx=b.x+b.width/2, cy=b.y+b.height/2;
+      return Math.round(Math.sqrt((cx-CX)**2+(cy-CY)**2)/TOL)*TOL;
+    });
+    document.body.removeChild(svg);
+    svg.style.cssText='';
+    const sortedR=[...new Set(radii)].sort((a,b)=>a-b);
+    const stepMap=Object.fromEntries(sortedR.map((r,i)=>[r,i]));
+    const maxStep=sortedR.length-1;
+    const STEP=0.04, START=0.05;
+    const STEP_OUT=0.035, START_OUT=0;
+    paths.forEach((p,i)=>{
+      const delay=(START+stepMap[radii[i]]*STEP).toFixed(3);
+      p.style.opacity='0';
+      p.style.animation=`snap-in 0.12s ease ${delay}s both`;
+      // reversed order: the innermost ring of ticks (highest stepMap index
+      // is furthest out, so invert it) fades first, mirroring the entrance
+      const exitDelay=(START_OUT+(maxStep-stepMap[radii[i]])*STEP_OUT).toFixed(3);
+      tickExitPaths.push({el:p,delay:exitDelay});
+    });
+    loaderEl.appendChild(svg);
+  }).catch(()=>{});
 function hideLoader(){
-  loaderSpin.then(()=>{
+  const elapsed=Date.now()-loaderStart;
+  const wait=Math.max(0,2200-elapsed);
+  setTimeout(()=>{
+    // the target closes up from the centre outward — same order it opened
+    // in, just reversed to opacity 0 — while the grey backdrop behind it
+    // fades on its own, slightly slower timeline (#loader.loaded below)
+    document.querySelectorAll('#lg-circles circle').forEach(c=>{
+      const cls=[...c.classList].find(cl=>/^ci-\d$/.test(cl));
+      const idx=cls?parseInt(cls.slice(3),10):9;
+      const delay=((9-idx)*0.06).toFixed(2);
+      c.style.animation=`ci-out .3s ease ${delay}s both`;
+    });
+    tickExitPaths.forEach(({el,delay})=>{
+      el.style.animation=`snap-out .16s ease ${delay}s both`;
+    });
     loaderEl.classList.add('loaded');
     loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
     setTimeout(()=>{
@@ -425,8 +488,8 @@ function hideLoader(){
         const el=document.getElementById(id);
         if(el)el.style.opacity='1';
       });
-    },450);
-  });
+    },700);
+  },wait);
 }
 
 /* wheel: scrolls whichever panel is actually open. With no ring on this
