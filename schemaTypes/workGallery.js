@@ -9,7 +9,7 @@ export default {
     {
       name: 'media',
       title: 'Médias',
-      description: 'Images et vidéos de l’onglet Gallery, dans cet ordre. Glisser-déposer pour réordonner.',
+      description: 'Images et vidéos de l’onglet Gallery. Sur le site, elles s’affichent de la plus récemment importée à la plus ancienne.',
       type: 'array',
       options: {layout: 'grid'},
       of: [

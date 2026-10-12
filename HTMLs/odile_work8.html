@@ -21,7 +21,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     --dim1:#707070; --dim2:rgba(0,0,0,.3);
     --pad:24px;
     --font:'minion-pro','Minion Pro','Minion',serif;
-    --fs:10px;
+    --fs:12px;
   }
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
   html,body{
@@ -29,7 +29,6 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     background:var(--bg);color:var(--fg);
     font-family:var(--font);font-weight:400;
     font-size:var(--fs);line-height:1;
-    letter-spacing:.02em;text-transform:uppercase;
     overflow:hidden;
     /* a touch device can flash a link's tap state from the same
        touch-drag that starts a scroll — this is decorative, not a focus
@@ -284,7 +283,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      snaps like a native card carousel. Landscape keeps the tablet rules
      above instead — this is deliberately portrait-only. ── */
   @media (max-width:640px) and (orientation:portrait){
-    :root{--pad:18px;--fs:13px;}
+    :root{--pad:18px;--fs:15px;}
     html,body{line-height:1.2;}
     #topZone{top:calc(var(--pad) + env(safe-area-inset-top));width:min(88vw,380px);}
     #menu{bottom:calc(var(--pad) + env(safe-area-inset-bottom));width:min(88vw,380px);}
@@ -807,7 +806,7 @@ async function loadFromSanity(){
   /* the gallery page and the pop-up images are single documents in the
      CMS (Galerie, Assets ▸ Pop-up) */
   try{
-    const q=`{"gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"popups":*[_id=="popups"][0].images[]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"about":*[_id=="about"][0]}`;
+    const q=`{"gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio,"at":asset->_createdAt}|order(at desc),"popups":*[_id=="popups"][0].images[]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"about":*[_id=="about"][0]}`;
     const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(q)}`);
     const{result}=await res.json();
     GALLERY=(result?.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});

@@ -25,7 +25,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
      skipped by the renderer, videos shown as their first frame. */
   :root{
     --bg:#fff;--fg:#000;--dim:#707070;
-    --fs:13px;--pad:16px;
+    --fs:15px;--pad:16px;
     --top:env(safe-area-inset-top,0px);--bottom:env(safe-area-inset-bottom,0px);
     --bar:calc(44px + var(--top));
   }
@@ -34,7 +34,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   body{
     background:var(--bg);color:var(--fg);
     font-family:'minion-pro','Minion Pro','Minion',serif;
-    font-size:var(--fs);line-height:1.25;letter-spacing:.02em;text-transform:uppercase;
+    font-size:var(--fs);line-height:1.25;
     -webkit-tap-highlight-color:transparent;touch-action:manipulation;
     -webkit-user-select:none;user-select:none;
     min-height:100svh;
@@ -393,7 +393,7 @@ const Q=`{
       _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
       _type=="mediaVideo"=>{"url":video.asset->url}}
   },
-  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio,"at":asset->_createdAt}|order(at desc),
   "about":*[_id=="about"][0]
 }`;
 const CAT_ORDER=['videos','images','graphic design'];
