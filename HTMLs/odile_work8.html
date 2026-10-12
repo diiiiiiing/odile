@@ -245,7 +245,17 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      always over the page's own white, never over the media */
   .corner.bl{left:var(--pad);bottom:var(--pad);writing-mode:vertical-rl;transform:rotate(180deg);}
 
-  /* ── INDEX — one plain list, no section heads ── */
+  /* ── INDEX — one plain list, no section heads; hovering a name shows
+     its medium beside it, out of the flow, so the name stays centred ── */
+  .menu-proj-row a{position:relative;}
+  .menu-proj-row a::after{
+    content:attr(data-cat);
+    position:absolute;left:100%;top:50%;translate:0 -50%;margin-left:1.2em;
+    white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s ease;
+  }
+  @media (hover:hover){
+    .menu-proj-row a:hover::after{opacity:.4;}
+  }
   .menu-proj-row a{transition:opacity .25s ease;}
   @media (hover:hover){
     .menu-projects:has(.menu-proj-row a:hover) .menu-proj-row a:not(:hover){opacity:.3;}
@@ -929,6 +939,7 @@ function buildMenuEntry(i){
   a.href='#'+proj.slug;
   a.textContent=projName(proj);
   a.dataset.idx=i;
+  a.dataset.cat={videos:'film',images:'images','graphic design':'graphic design'}[getProjectCategory(proj)]||'';
   if(selectedIdx===i)a.classList.add('active');
   a.addEventListener('click',e=>{
     e.preventDefault();
