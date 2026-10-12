@@ -39,7 +39,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      void (pop-ups) would otherwise highlight the nearest words, the info
      links included, in the system's accent colour. Descriptions stay
      selectable */
-  body{-webkit-user-select:none;user-select:none;}
+  body{-webkit-user-select:none;user-select:none;background:none;}
   .proj-body{-webkit-user-select:text;user-select:text;}
   body{animation:fadeIn .6s ease both;}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -362,9 +362,62 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     #lg-circles{animation:none;}
     .strip-item{translate:none;}
   }
+  /* ── IRIDESCENCE — the hub's background: four soft colour blobs over the
+     grey, drifting toward the pointer (see the script) ── */
+  /* under everything: the grey is on <html> only, so the blobs sit between it and the page */
+  #iri{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
+  #iri i{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;}
 </style>
 </head>
 <body class="home">
+<div id="iri" aria-hidden="true"></div>
+<script>
+/* ── IRIDESCENCE ── the hub's four colour blobs, same colours, sizes and
+   pull toward the pointer. The hub redraws one big gradient every frame;
+   here each blob is its own small layer (drawn at a quarter size and
+   scaled up — a soft gradient loses nothing) that is only ever moved, so
+   it costs no painting. It stops when it has caught up with the pointer. */
+(()=>{
+  const iri=document.getElementById('iri');
+  const DEF=[
+    {x:50,y:100,ax:.38,ay:.30,ease:.05,c:'220,180,60',op:.70,ex:90,ey:70},
+    {x:20,y:60,ax:-.42,ay:.34,ease:.04,c:'200,160,210',op:.50,ex:70,ey:60},
+    {x:80,y:40,ax:.36,ay:-.38,ease:.045,c:'160,210,200',op:.40,ex:60,ey:50},
+    {x:50,y:50,ax:.18,ay:.16,ease:.03,c:'210,200,190',op:.30,ex:80,ey:80},
+  ];
+  const S=4;
+  const blobs=DEF.map(d=>{
+    const el=document.createElement('i');
+    el.style.background=`radial-gradient(ellipse 50% 50% at 50% 50%,rgba(${d.c},${d.op}) 0%,transparent 55%)`;
+    iri.appendChild(el);
+    return{d,el,x:d.x,y:d.y};
+  });
+  let W=0,H=0,mx=.5,my=.5,running=false;
+  const size=()=>{
+    W=innerWidth;H=innerHeight;
+    blobs.forEach(({d,el})=>{el.style.width=(2*d.ex/100*W/S)+'px';el.style.height=(2*d.ey/100*H/S)+'px';});
+  };
+  const place=b=>{
+    const rx=b.d.ex/100*W,ry=b.d.ey/100*H;
+    b.el.style.transform=`translate3d(${(b.x/100*W-rx).toFixed(1)}px,${(b.y/100*H-ry).toFixed(1)}px,0) scale(${S})`;
+  };
+  const tick=()=>{
+    let moving=false;
+    blobs.forEach(b=>{
+      const tx=b.d.x+(mx-.5)*b.d.ax*100,ty=b.d.y+(my-.5)*b.d.ay*100;
+      b.x+=(tx-b.x)*b.d.ease;b.y+=(ty-b.y)*b.d.ease;
+      if(Math.abs(tx-b.x)>.02||Math.abs(ty-b.y)>.02)moving=true;
+      place(b);
+    });
+    running=moving;
+    if(moving)requestAnimationFrame(tick);
+  };
+  const wake=()=>{if(!running){running=true;requestAnimationFrame(tick);}};
+  size();blobs.forEach(place);
+  addEventListener('resize',()=>{size();blobs.forEach(place);});
+  addEventListener('mousemove',e=>{mx=e.clientX/W;my=e.clientY/H;wake();},{passive:true});
+})();
+</script>
 <div id="loader"></div>
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
