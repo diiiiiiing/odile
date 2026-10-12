@@ -980,7 +980,7 @@ async function loadFromSanity(){
   /* the gallery page and the pop-up images are single documents in the
      CMS (Galerie, Assets ▸ Pop-up) */
   try{
-    const q=`{"gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio,"at":asset->_createdAt}|order(at desc),"popups":*[_id=="popups"][0].images[]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"about":*[_id=="about"][0]}`;
+    const q=`{"gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"popups":*[_id=="popups"][0].images[]{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},"about":*[_id=="about"][0]}`;
     const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(q)}`);
     const{result}=await res.json();
     GALLERY=(result?.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});

@@ -459,7 +459,7 @@ const Q=`{
       _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
       _type=="mediaVideo"=>{"url":video.asset->url}}
   },
-  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio,"at":asset->_createdAt}|order(at desc),
+  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
   "about":*[_id=="about"][0]
 }`;
 const CAT_ORDER=['videos','images','graphic design'];
