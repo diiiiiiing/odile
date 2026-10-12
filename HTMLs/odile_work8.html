@@ -99,7 +99,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   #info .h{opacity:.4;}
   #info .vert{writing-mode:vertical-rl;transform:rotate(180deg);}
   #info .rows{display:grid;grid-template-columns:auto auto auto;gap:6px 14px;line-height:1.3;} /* room between lines: the underlines never touch the next one */
-  #info .xp .h{display:block;margin-bottom:8px;}
+  /* the heading to the left of the list, level with its first line */
+  #info .xp{display:flex;align-items:baseline;gap:18px;}
   #info .wrap{white-space:normal;width:max-content;max-width:min(42ch,34vw);}
 
   /* ── POP-UPS — a small image dropped wherever the home is clicked in
