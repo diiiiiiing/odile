@@ -11,6 +11,13 @@ export default {
       type: 'string',
     },
     {
+      name: 'displayTitle',
+      title: 'Titre affiché',
+      description:
+        "Le nom du projet tel qu'il apparaît sur le site (index, page projet). Vide : le client, sinon le titre.",
+      type: 'string',
+    },
+    {
       name: 'subtitle',
       title: 'Sous-titre',
       description:
