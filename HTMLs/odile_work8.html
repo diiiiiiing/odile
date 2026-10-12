@@ -39,7 +39,10 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      void (pop-ups) would otherwise highlight the nearest words, the info
      links included, in the system's accent colour. Descriptions stay
      selectable */
-  body{-webkit-user-select:none;user-select:none;background:none;}
+  /* the body is its own compositing group (isolation), with the grey painted
+     inside it: the colour blobs (z-index -1) sit on it, and the index's
+     difference blend sees grey, blobs and pictures alike */
+  body{-webkit-user-select:none;user-select:none;background:var(--bg);isolation:isolate;}
   .proj-body{-webkit-user-select:text;user-select:text;}
   body{animation:fadeIn .6s ease both;}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -187,6 +190,14 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   body.home.index-open:not(.gallery) #indexBtn.ready{opacity:.45;}
   body.home #menu{bottom:calc(var(--pad) + 30px);}
   body.home:not(.index-open) #menu{opacity:0!important;pointer-events:none;}
+  /* over the band, a name inverts like the title that follows the cursor.
+     #menu is a stacking context, so it's the whole index that blends; on
+     the mid grey a difference can't make white show, so a name off the
+     media is drawn in the background's own grey — which the difference
+     turns black — and a name on a picture in white, which inverts it */
+  body.home #menu{mix-blend-mode:difference;}
+  body.home #menu .menu-proj-row a{color:var(--bg);}
+  body.home #menu .menu-proj-row a.over{color:#fff!important;}
 
   /* ── BOTTOM — the project index ── */
   #menu{
@@ -379,7 +390,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   }
   /* ── IRIDESCENCE — the hub's background: four soft colour blobs over the
      grey, drifting toward the pointer (see the script) ── */
-  /* under everything: the grey is on <html> only, so the blobs sit between it and the page */
+  /* under everything but the body's own grey */
   #iri{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
   #iri i{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;}
 </style>
@@ -430,6 +441,22 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   const wake=()=>{if(!running){running=true;requestAnimationFrame(tick);}};
   size();blobs.forEach(place);
   addEventListener('resize',()=>{size();blobs.forEach(place);});
+  /* the background's colour at a point: the grey with each blob laid over
+     it in turn (colour at full strength at the centre, gone at 55% of its
+     radii) — what the index needs to draw a name that reads black */
+  const BASE=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  const base=[1,3,5].map(i=>parseInt(BASE.slice(i,i+2),16));
+  window.iriColorAt=(x,y)=>{
+    let c=base.slice();
+    blobs.forEach(({d,x:bx,y:by})=>{
+      const rx=d.ex/100*W,ry=d.ey/100*H;
+      const t=Math.hypot((x-bx/100*W)/rx,(y-by/100*H)/ry);
+      const a=t<.55?d.op*(1-t/.55):0;
+      const col=d.c.split(',').map(Number);
+      c=c.map((v,i)=>v*(1-a)+col[i]*a);
+    });
+    return c.map(Math.round);
+  };
   addEventListener('mousemove',e=>{mx=e.clientX/W;my=e.clientY/H;wake();},{passive:true});
 })();
 </script>
@@ -563,9 +590,36 @@ function hideLoader(){
 /* ── INDEX BUTTON ── opens and folds the home index; opening unrolls
    the names upward from the button, one after another */
 const indexBtnEl=document.getElementById('indexBtn');
+/* which names sit on a picture: three points along each name, two of
+   them on a strip item is enough */
+let inkTimer=null,inkFrame=0;
+function clearIndexInk(){
+  document.querySelectorAll('#menu .menu-proj-row a').forEach(a=>{a.classList.remove('over');a.style.color='';});
+}
+function updateIndexInk(){
+  inkFrame=0;
+  if(!document.body.classList.contains('index-open')||!document.body.classList.contains('home')){clearIndexInk();return;}
+  document.querySelectorAll('#menu .menu-proj-row a').forEach(a=>{
+    const r=a.getBoundingClientRect(),y=r.top+r.height/2;
+    const hits=[r.left+2,r.left+r.width/2,r.right-2].filter(x=>
+      document.elementsFromPoint(x,y).some(e=>e.classList?.contains('strip-item')&&!e.classList.contains('ph'))).length;
+    a.classList.toggle('over',hits>=2);
+    /* off the pictures: the exact colour of the background under the
+       name, which the difference turns black */
+    const bg=window.iriColorAt?.(r.left+r.width/2,y);
+    a.style.color=bg?`rgb(${bg})`:'';
+  });
+}
+const queueInk=()=>{if(!inkFrame)inkFrame=requestAnimationFrame(updateIndexInk);};
+document.getElementById('strip').addEventListener('scroll',queueInk,{passive:true});   // stripEl is declared further down
+addEventListener('resize',queueInk);
+addEventListener('mousemove',queueInk,{passive:true});   // the blobs drift with the pointer
 function setIndexOpen(open){
   document.body.classList.toggle('index-open',open);
-  if(!open)return;
+  clearInterval(inkTimer);
+  if(!open){clearIndexInk();return;}
+  updateIndexInk();
+  inkTimer=setInterval(updateIndexInk,400);   // pictures still loading change what's under a name
   const rows=[...document.querySelectorAll('#menu .menu-proj:not(.hidden)')].reverse();
   rows.forEach((r,k)=>r.animate(
     [{opacity:0,translate:'0 8px'},{opacity:1,translate:'0 0'}],
@@ -1190,17 +1244,16 @@ document.getElementById('tabs').addEventListener('click',e=>{
 function placeStripZone(){
   stripZoneEl.style.top='';stripZoneEl.style.height='';stripZoneEl.style.transform='';
   if(selectedIdx!==null||!homeMode)return;
-  /* the home band stays centred on the screen like a project's strip; it
-     only gives up height, symmetrically, to clear Ding and the index. The
-     index's top is taken from its layout (bottom-anchored), not its box,
-     which may still be gliding back into place */
+  /* the home band stays centred on the screen like a project's strip and
+     takes all the height between Ding and the "Index" button — the index,
+     once unrolled, sits over it (see updateIndexInk) */
   const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||24;
-  const css=stripZoneEl.getBoundingClientRect().height;
   const c=innerHeight/2;
   const dingBottom=siteTitle.getBoundingClientRect().bottom;
   const top=dingBottom+24;
-  const bottom=tab==='gallery'?innerHeight-pad-24:menuEl.offsetTop-24;   // the index's room is kept even while it's folded
-  const h=Math.floor(Math.max(140,Math.min(css,2*(c-top),2*(bottom-c))));
+  const btn=document.getElementById('indexBtn');
+  const bottom=tab==='gallery'?innerHeight-pad-24:innerHeight-pad-btn.offsetHeight-20;
+  const h=Math.floor(Math.max(140,Math.min(2*(c-top),2*(bottom-c))));
   stripZoneEl.style.height=h+'px';
 }
 
@@ -1227,6 +1280,7 @@ function playFlip(row,beforeTop){
    (scrolling internally past that) and centred in whatever room is left */
 function layoutMenuOpen(){
   document.body.classList.remove('home');
+  clearIndexInk();
   const wrap=rowOf(selectedIdx);
   document.querySelectorAll('#menu .menu-proj').forEach(w=>{
     const own=w===wrap;
@@ -1278,6 +1332,7 @@ function layoutMenuOpen(){
 }
 function layoutMenuClosed(){
   document.body.classList.add('home'); // before the FLIP measures, so the tighter phone index is part of the commit
+  updateIndexInk();
   document.querySelectorAll('#menu .menu-proj').forEach(w=>{
     w.classList.remove('gone');
     const b=w.querySelector('.proj-body');
