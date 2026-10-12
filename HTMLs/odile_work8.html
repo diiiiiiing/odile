@@ -20,7 +20,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     --bg:#fff; --fg:#000;
     --dim1:#707070; --dim2:rgba(0,0,0,.3);
     --pad:24px;
-    --font:-apple-system,'Helvetica Neue',sans-serif;
+    --font:'minion-pro','Minion Pro','Minion',serif;
     --fs:10px;
   }
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
@@ -55,16 +55,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      before — their own Instagram, say — would otherwise go purple */
   .ext-link,.ext-link:visited{color:var(--fg);text-decoration:none;}
 
-  /* bold on hover/active without the text changing width: an invisible
-     bold copy (data-label) sits in the same grid column, so the box is
-     always as wide as the bold version and centred/right-pinned text
-     never twitches sideways */
-  .bold-safe{display:inline-grid;justify-items:center;text-align:center;}
-  .bold-safe::after{
-    content:attr(data-label);font-weight:700;
-    height:0;overflow:hidden;visibility:hidden;
-    pointer-events:none;user-select:none;
-  }
+  /* one weight only, the regular: emphasis is opacity, never bold */
+  *{font-weight:400!important;font-synthesis:none;}
 
   a:focus-visible,#siteTitle:focus-visible{outline:1px solid var(--fg);outline-offset:3px;}
 
@@ -105,7 +97,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     text-underline-offset:.12em;text-decoration-thickness:1px;
     -webkit-tap-highlight-color:transparent;
   }
-  #info .h{font-weight:700;}
+  #info .h{opacity:.4;}
   #info .vert{writing-mode:vertical-rl;transform:rotate(180deg);}
   #info .rows{display:grid;grid-template-columns:auto auto auto;gap:0 14px;margin-left:10px;}
   #info .wrap{white-space:normal;width:max-content;max-width:min(42ch,34vw);}
@@ -119,13 +111,12 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   }
   .popup.on{opacity:1;scale:1;}
 
-  /* ── TABS — under Ding, home only: the project index, the gallery, and
-     a third room not open yet ── */
-  /* one word, centred: the room you're not in — Gallery from the
-     projects, Projects from the gallery */
+  /* ── TABS — home only, one word in the top-right corner on Ding's
+     line: the room you're not in — Gallery from the projects, Projects
+     from the gallery ── */
   #tabs{
-    position:fixed;left:0;right:0;top:calc(var(--pad) + 26px);z-index:70;
-    display:flex;justify-content:center;white-space:nowrap;transition:opacity .4s ease;
+    position:fixed;right:var(--pad);top:var(--pad);z-index:70;
+    display:flex;white-space:nowrap;transition:opacity .4s ease;
     pointer-events:none;
   }
   #tabs a.on{display:none;}
@@ -203,7 +194,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     white-space:nowrap;flex-shrink:0;
     padding:2px 0;
   }
-  .menu-proj-row a.active{font-weight:700;}
+  /* the open project stays black, the rest of the index steps back */
+  .menu-projects:has(a.active) .menu-proj-row a:not(.active){opacity:.3;}
 
   /* the description is laid out at its final size in one go and only
      fades — no height animation, so nothing around it ever re-flows
@@ -254,9 +246,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      always over the page's own white, never over the media */
   .corner.bl{left:var(--pad);bottom:var(--pad);writing-mode:vertical-rl;transform:rotate(180deg);}
 
-  /* ── INDEX — category heads in the same type as the names, only bold ── */
-  .menu-cat{font-weight:700;padding:2px 0;margin-top:14px;}
-  .menu-cat:first-child{margin-top:0;}
+  /* ── INDEX — one plain list, no section heads ── */
   .menu-proj-row a{transition:opacity .25s ease;}
   @media (hover:hover){
     .menu-projects:has(.menu-proj-row a:hover) .menu-proj-row a:not(:hover){opacity:.3;}
@@ -278,10 +268,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      fire (and stick) from the same tap-drag that starts a scroll, making
      project names/links flash bold mid-scroll */
   @media (hover:hover){
-    .ext-link:hover{font-weight:700;}
-    #tabs a:hover{font-weight:700;}
-    #siteTitle:hover{font-weight:700;}
-    .menu-proj-row a:hover{font-weight:700;}
+    .ext-link,#tabs a,#siteTitle{transition:opacity .25s ease;}
+    .ext-link:hover,#tabs a:hover,#siteTitle:hover{opacity:.4!important;} /* over the inline opacity the reveal leaves */
     .proj-desc-link:hover{color:var(--fg);}
   }
 
@@ -302,14 +290,12 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     #menu{bottom:calc(var(--pad) + env(safe-area-inset-bottom));width:min(88vw,380px);}
     .close-link,.corner.bl{bottom:calc(var(--pad) + env(safe-area-inset-bottom));}
     .corner.bl{writing-mode:horizontal-tb;transform:none;} /* flat on a phone, clear of the description */
-    .menu-cat{padding:7px 0;margin-top:8px;}
     #stripZone{height:min(42vh,380px);}
 
     /* real tap targets on the index — a thumb needs more than a text
        baseline to land on, even if the type itself stays compact */
     .menu-proj-row a{padding:7px 0;}
     body.home .menu-proj-row a{padding:3px 0;}
-    body.home .menu-cat{padding:3px 0;margin-top:6px;}
 
 
     /* the filmstrip reads like a native card carousel, one media
@@ -504,7 +490,6 @@ const FADE=260;
 let navToken=0;
 const BASE_TITLE=document.title;
 function projName(p){return p.displayTitle||p.client||p.title;}
-function boldSafe(el){el.dataset.label=el.textContent;el.classList.add('bold-safe');}
 
 /* the strip eases toward a target instead of jumping a whole wheel notch
    at a time; wheel notches and arrow keys both just move the target */
@@ -928,17 +913,8 @@ function buildMenu(){
 
   const list=document.createElement('div');
   list.className='menu-projects';
-  /* category heads ride along as .menu-proj entries of their own, so the
-     open/close choreography fades and collapses them with everything else */
-  sortedGroups.forEach(([cat,idxs])=>{
-    if(sortedGroups.length>1){
-      const head=document.createElement('div');
-      head.className='menu-proj menu-cat';
-      head.textContent=cat;
-      list.appendChild(head);
-    }
-    idxs.forEach(i=>list.appendChild(buildMenuEntry(i)));
-  });
+  /* still ordered by medium, but one plain list — no section heads */
+  menuOrder.forEach(i=>list.appendChild(buildMenuEntry(i)));
   menu.appendChild(list);
   updateCorners();
 }
@@ -953,7 +929,6 @@ function buildMenuEntry(i){
   const a=document.createElement('a');
   a.href='#'+proj.slug;
   a.textContent=projName(proj);
-  boldSafe(a);
   a.dataset.idx=i;
   if(selectedIdx===i)a.classList.add('active');
   a.addEventListener('click',e=>{
@@ -1121,15 +1096,11 @@ function placeStripZone(){
   const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||24;
   const css=stripZoneEl.getBoundingClientRect().height;
   const c=innerHeight/2;
-  const tabsEl=document.getElementById('tabs');
   const dingBottom=siteTitle.getBoundingClientRect().bottom;
-  const tabsH=tabsEl.offsetHeight;
-  const top=dingBottom+24+tabsH+24;   // room for the tabs between Ding and the band
+  const top=dingBottom+24;
   const bottom=tab==='gallery'?innerHeight-pad-24:innerHeight-pad-menuEl.offsetHeight-24;
   const h=Math.floor(Math.max(140,Math.min(css,2*(c-top),2*(bottom-c))));
   stripZoneEl.style.height=h+'px';
-  /* the tabs sit halfway between Ding and the band, not at a fixed gap */
-  tabsEl.style.top=Math.round((dingBottom+(c-h/2))/2-tabsH/2)+'px';
 }
 
 /* #menu's layout is only ever changed while its transform is cleared and
@@ -1423,7 +1394,6 @@ stripEl.addEventListener('scroll',updateNextLinkVisibility,{passive:true});
 const closeBtnEl=document.getElementById('backBtn');
 closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
 
-[siteTitle,closeBtnEl,...document.querySelectorAll('#tabs a')].forEach(boldSafe);
 
 /* ── COUNTER ── which media of the open project is on screen */
 const cornerBL=document.getElementById('cornerBL');

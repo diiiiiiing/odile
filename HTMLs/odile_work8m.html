@@ -33,7 +33,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   html{background:var(--bg);-webkit-text-size-adjust:100%;text-size-adjust:100%;}
   body{
     background:var(--bg);color:var(--fg);
-    font-family:-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif;
+    font-family:'minion-pro','Minion Pro','Minion',serif;
     font-size:var(--fs);line-height:1.25;letter-spacing:.02em;text-transform:uppercase;
     -webkit-tap-highlight-color:transparent;touch-action:manipulation;
     -webkit-user-select:none;user-select:none;
@@ -53,7 +53,9 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   #bar button,#bar a{padding:12px 0;pointer-events:auto;}
   /* one word: the room you're not in */
   #tabs a.on{display:none;}
-  #ding.on{font-weight:700;}
+  /* one weight only, the regular: emphasis is opacity, never bold */
+  *{font-weight:400!important;font-synthesis:none;}
+  #ding.on{opacity:.4;}
   #back{display:none;}
   body.proj #tabs{display:none;}
   body.proj #back{display:block;}
@@ -82,7 +84,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
 
   /* ── PROJECT ── */
   .txt{padding:22px var(--pad) 26px;text-align:center;}
-  .txt h1{font-size:inherit;font-weight:700;margin-bottom:10px;}
+  .txt h1{font-size:inherit;margin-bottom:10px;}
   .txt .meta{color:var(--dim);margin-bottom:12px;}
   .txt .desc{text-transform:none;letter-spacing:0;color:var(--dim);-webkit-user-select:text;user-select:text;}
   .txt .desc p{margin-bottom:.5em;}
@@ -100,7 +102,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   }
   #info section>*+*{margin-top:4px;}
   #info a,#info a:visited,#info a:active{color:#000;text-decoration:underline;text-underline-offset:.15em;}
-  #info .h{font-weight:700;margin-bottom:14px;}
+  #info .h{opacity:.4;margin-bottom:14px;}
   #info .rows{display:grid;grid-template-columns:max-content 1fr;gap:16px 22px;}
   #info .rows .co{display:block;}
   #info .rows .role{display:block;color:var(--dim);}
