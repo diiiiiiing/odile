@@ -16,8 +16,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
 <style>
   :root{
-    /* one palette, no modes: the hub's grey */
-    --bg:#b8b8bc; --fg:#000;
+    /* one palette, no modes: grey */
+    --bg:#808080; --fg:#000;
     --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
     --pad:24px;
     --font:'minion-pro','Minion Pro','Minion',serif;
@@ -98,7 +98,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   }
   #info .h{opacity:.4;}
   #info .vert{writing-mode:vertical-rl;transform:rotate(180deg);}
-  #info .rows{display:grid;grid-template-columns:auto auto auto;gap:6px 14px;margin-left:10px;line-height:1.3;} /* room between lines: the underlines never touch the next one */
+  #info .rows{display:grid;grid-template-columns:auto auto auto;gap:6px 14px;line-height:1.3;} /* room between lines: the underlines never touch the next one */
+  #info .xp .h{display:block;margin-bottom:8px;}
   #info .wrap{white-space:normal;width:max-content;max-width:min(42ch,34vw);}
 
   /* ── POP-UPS — a small image dropped wherever the home is clicked in
@@ -437,8 +438,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   <div class="frag"><a href="#" id="emailCopy" data-email="thomasding227@gmail.com">thomasding227@gmail.com</a></div>
   <div class="frag"><a href="https://instagram.com/diiiiiiiiiiiiing" target="_blank" rel="noopener">@diiiiiiiiiiiiing</a></div>
   <div class="frag">currently designer at <a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a></div>
-  <div class="frag">Paris, France <span class="paris-time"></span></div>
-  <div class="frag vert">
+  <div class="frag vert">Paris, France <span class="paris-time"></span></div>
+  <div class="frag xp">
     <span class="h">Experiences</span>
     <div class="rows">
       <span>2026 — now</span><a href="https://unveil.fr" target="_blank" rel="noopener">UNVEIL®</a><span>multi-disciplinary designer</span>
@@ -705,10 +706,11 @@ function renderInfo(d){
   if(d.instagram){const h=d.instagram.replace(/^@/,'');out.push(ext('@'+h,'https://instagram.com/'+encodeURIComponent(h)));}
   (d.links||[]).filter(l=>l&&l.label).forEach(l=>out.push(ext(l.label,l.url)));
   if(d.currentText||d.currentPlace)out.push([esc(d.currentText),ext(d.currentPlace,d.currentUrl)].filter(Boolean).join(' '));
-  if(d.location||d.showTime)out.push([esc(d.location),d.showTime?'<span class="paris-time"></span>':''].filter(Boolean).join(' '));
   let html=out.map(t=>`<div class="frag">${t}</div>`).join('');
+  /* the city runs vertically */
+  if(d.location||d.showTime)html+=`<div class="frag vert">${[esc(d.location),d.showTime?'<span class="paris-time"></span>':''].filter(Boolean).join(' ')}</div>`;
   const xp=(d.experiences||[]).filter(x=>x&&(x.company||x.role));
-  if(xp.length)html+=`<div class="frag vert"><span class="h">Experiences</span><div class="rows">${xp.map(x=>
+  if(xp.length)html+=`<div class="frag xp"><span class="h">Experiences</span><div class="rows">${xp.map(x=>
     `<span>${esc([x.from,x.to].filter(Boolean).join(' — '))}</span>${ext(x.company,x.url)}<span>${esc(x.role)}</span>`).join('')}</div></div>`;
   if(d.services)html+=`<div class="frag vert"><span class="h">Services</span>&nbsp;&nbsp;${esc(d.services)}</div>`;
   /* typed in the Studio as one name per line (or comma-separated) */
