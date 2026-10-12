@@ -819,9 +819,20 @@ function renderInfo(d){
   if(cvOpen){scatter();toggleCV(true);}
 }
 
-/* Ding is just the way home: a plain link to this page. "Infos" opens
-   and closes the info */
+/* Ding is the way back, like Escape, without reloading: whatever is open
+   (enlarged media, info, project, index, gallery) closes and the home
+   comes back. A cmd/ctrl-click still opens the page in a new tab.
+   "Infos" opens and closes the info */
 const siteTitle=document.getElementById('siteTitle');
+siteTitle.addEventListener('click',e=>{
+  if(e.metaKey||e.ctrlKey||e.shiftKey)return;
+  e.preventDefault();
+  if(lbOpen)closeLightbox();
+  if(cvOpen)toggleCV(false);
+  if(document.body.classList.contains('index-open'))setIndexOpen(false);
+  if(tab==='gallery')setTab('project');
+  else if(selectedIdx!==null)closeProject();
+});
 document.getElementById('infoBtn').addEventListener('click',e=>{
   e.preventDefault();
   /* with a project open, the CV waits for the index to settle back into

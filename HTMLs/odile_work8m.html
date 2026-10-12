@@ -372,6 +372,16 @@ $('#back').addEventListener('click',()=>{if(history.state&&history.state.p!==und
 
 /* ── INFO ── Ding opens a plain list of who/where/what; Ding closes it */
 let infoFrom='feed';
+/* Ding is the way back, without reloading: out of a project or the info
+   to the list, from the gallery to the projects, or up to the top */
+$('#ding').addEventListener('click',e=>{
+  if(e.metaKey||e.ctrlKey)return;
+  e.preventDefault();
+  if(view==='proj'){closeProject();return;}
+  if(view==='info'){setView('feed');scrollTo(0,feedY);return;}
+  if(tab==='gallery'){setTab('projects');return;}
+  scrollTo({top:0,behavior:'smooth'});
+});
 $('#infoBtn').addEventListener('click',()=>{
   if(view==='info'){setView(infoFrom);scrollTo(0,infoFrom==='feed'?feedY:0);return;}
   if(view==='feed')feedY=scrollY;
