@@ -1245,15 +1245,17 @@ function placeStripZone(){
   stripZoneEl.style.top='';stripZoneEl.style.height='';stripZoneEl.style.transform='';
   if(selectedIdx!==null||!homeMode)return;
   /* the home band stays centred on the screen like a project's strip and
-     takes all the height between Ding and the "Index" button — the index,
+     takes the stylesheet's height (60vh, at most 700px — the gallery's size),
+     giving up some only to clear Ding and the "Index" button; the index,
      once unrolled, sits over it (see updateIndexInk) */
   const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||24;
+  const css=stripZoneEl.getBoundingClientRect().height;
   const c=innerHeight/2;
   const dingBottom=siteTitle.getBoundingClientRect().bottom;
   const top=dingBottom+24;
   const btn=document.getElementById('indexBtn');
   const bottom=tab==='gallery'?innerHeight-pad-24:innerHeight-pad-btn.offsetHeight-20;
-  const h=Math.floor(Math.max(140,Math.min(2*(c-top),2*(bottom-c))));
+  const h=Math.floor(Math.max(140,Math.min(css,2*(c-top),2*(bottom-c))));
   stripZoneEl.style.height=h+'px';
 }
 
