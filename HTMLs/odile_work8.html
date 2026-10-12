@@ -1167,21 +1167,39 @@ function swapStrip(fill,delay=FADE){
    times over and jumps back a copy at either end, so it never runs out;
    every copy of a given media loads together, so the jump never blinks. */
 /* the home band: each project's first five media, plus every media hidden
-   from its project page (which lives only here). Shuffled once per visit —
-   the order holds while you browse — with a picture from a favourite
-   project, picked at random, always first */
+   from its project page (which lives only here). Laid out once per visit
+   — the order holds while you browse — at random but evenly: slot by
+   slot, every project earns credit in proportion to its number of
+   pictures and the one furthest ahead takes the slot, starting from a
+   random credit each, so a project's n pictures come round about every
+   1/n of the loop and no two of the same project end up close. Then the
+   loop is turned so that a picture from a favourite project, picked at
+   random, comes first */
 let homeShuffled=null;
 function homeList(){
   if(homeShuffled)return homeShuffled;
-  const all=menuOrder.flatMap(i=>[
+  const groups=menuOrder.map(i=>[
     ...(projects[i].homeOnly||[]).map(m=>({m,i,k:0})),
     ...(projects[i].media||[]).filter(m=>m.type==='image'||m.type==='video').slice(0,5).map((m,k)=>({m,i,k})),
-  ]);
-  for(let n=all.length-1;n>0;n--){const j=Math.floor(Math.random()*(n+1));[all[n],all[j]]=[all[j],all[n]];}
+  ]).filter(g=>g.length);
+  groups.forEach(g=>{for(let n=g.length-1;n>0;n--){const j=Math.floor(Math.random()*(n+1));[g[n],g[j]]=[g[j],g[n]];}});
+  const share=groups.map(g=>g.length);
+  const N=share.reduce((a,b)=>a+b,0);
+  const credit=groups.map(()=>Math.random());
+  const all=[];
+  for(let t=0;t<N;t++){
+    let best=-1;
+    groups.forEach((g,p)=>{
+      credit[p]+=share[p]/N;
+      if(g.length&&(best<0||credit[p]>credit[best]))best=p;
+    });
+    credit[best]-=1;
+    all.push(groups[best].shift());
+  }
   const favs=all.filter(e=>projects[e.i].favorite);
   if(favs.length){
-    const pick=favs[Math.floor(Math.random()*favs.length)];
-    all.splice(all.indexOf(pick),1);all.unshift(pick);
+    const at=all.indexOf(favs[Math.floor(Math.random()*favs.length)]);
+    all.push(...all.splice(0,at));   // turn the loop; the spacing is unchanged
   }
   return homeShuffled=all;
 }
