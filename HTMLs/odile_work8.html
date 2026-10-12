@@ -60,7 +60,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   /* one weight only, the regular: emphasis is opacity, never bold */
   *{font-weight:400!important;font-synthesis:none;}
 
-  a:focus-visible,#siteTitle:focus-visible{outline:1px solid var(--fg);outline-offset:3px;}
+  a:focus-visible,#siteTitle:focus-visible,#infoBtn:focus-visible{outline:1px solid var(--fg);outline-offset:3px;}
 
   /* ══════════════════════════════════════════════════════
      THREE ZONES, ALL CENTERED, EACH PINNED TO ITS OWN EDGE —
@@ -78,7 +78,15 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     width:min(86vw,480px);
     max-height:calc(100vh - var(--pad)*2);
   }
-  #siteTitle{color:var(--fg);cursor:pointer;flex-shrink:0;}
+  #siteTitle,#siteTitle:visited{color:var(--fg);text-decoration:none;cursor:pointer;flex-shrink:0;}
+  /* "Infos", top-left on Ding's line: opens and closes the info */
+  #infoBtn,#infoBtn:visited{
+    position:fixed;left:var(--pad);top:var(--pad);z-index:70;
+    color:var(--fg);text-decoration:none;cursor:pointer;
+    opacity:0;transition:opacity .5s ease;
+  }
+  #infoBtn.ready{opacity:1;}
+  #infoBtn.ready.active{opacity:.4;}
 
   /* ── INFO — opened from Ding, home only: the CV broken into fragments,
      all in the page's own type size, landing somewhere new on every
@@ -306,8 +314,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      fire (and stick) from the same tap-drag that starts a scroll, making
      project names/links flash bold mid-scroll */
   @media (hover:hover){
-    .ext-link,#tabs a,#siteTitle{transition:opacity .25s ease;}
-    .ext-link:hover,#tabs a:hover,#siteTitle:hover{opacity:.4!important;} /* over the inline opacity the reveal leaves */
+    .ext-link,#tabs a,#siteTitle,#infoBtn{transition:opacity .25s ease;}
+    .ext-link:hover,#tabs a:hover,#siteTitle:hover,#infoBtn.ready:hover{opacity:.4!important;} /* over the inline opacity the reveal leaves */
     .proj-desc-link:hover{color:var(--fg);}
   }
 
@@ -469,8 +477,9 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   <a href="#" data-tab="project" class="on">Projects</a>
   <a href="#gallery" data-tab="gallery">Gallery</a>
 </nav>
+<a href="#" id="infoBtn">Infos</a>
 <div id="topZone">
-  <div id="siteTitle">Ding</div>
+  <a id="siteTitle" href="odile_work8.html">Ding</a>
 </div>
 
 <!-- INFO — the CV as floating fragments, placed anew on each opening -->
@@ -579,6 +588,7 @@ function hideLoader(){
     loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
     setTimeout(()=>{
       document.getElementById('indexBtn').classList.add('ready');
+      document.getElementById('infoBtn').classList.add('ready');
       ['menu','siteTitle','tabs'].forEach(id=>{
         const el=document.getElementById(id);
         if(el)el.style.opacity='1';
@@ -742,7 +752,7 @@ function scatter(){
   const box=el=>{const r=el.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height};};
   const hit=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)+gap-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)+gap-Math.max(a.y,b.y));
   const list=menuEl.querySelector('.menu-projects');
-  const blocked=[box(siteTitle),box(document.getElementById('tabs')),box(document.getElementById('indexBtn')),...(list&&tab!=='gallery'&&document.body.classList.contains('index-open')?[{...box(list),y:menuEl.offsetTop,h:menuEl.offsetHeight}]:[])];
+  const blocked=[box(siteTitle),box(document.getElementById('infoBtn')),box(document.getElementById('tabs')),box(document.getElementById('indexBtn')),...(list&&tab!=='gallery'&&document.body.classList.contains('index-open')?[{...box(list),y:menuEl.offsetTop,h:menuEl.offsetHeight}]:[])];
   const placed=[];
   const band=box(stripZoneEl);
   [...frags].sort((a,b)=>b.offsetWidth*b.offsetHeight-a.offsetWidth*a.offsetHeight).forEach(f=>{
@@ -770,7 +780,7 @@ function toggleCV(force){
   infoEl.classList.toggle('on',cvOpen);
   infoEl.setAttribute('aria-hidden',String(!cvOpen));
   document.body.classList.toggle('info',cvOpen);
-  siteTitle.classList.toggle('active',cvOpen);
+  document.getElementById('infoBtn').classList.toggle('active',cvOpen);
 }
 
 /* the CMS's Infos document (Studio ▸ Infos (Ding)) replaces the text
@@ -809,13 +819,11 @@ function renderInfo(d){
   if(cvOpen){scatter();toggleCV(true);}
 }
 
+/* Ding is just the way home: a plain link to this page. "Infos" opens
+   and closes the info */
 const siteTitle=document.getElementById('siteTitle');
-siteTitle.tabIndex=0;
-siteTitle.setAttribute('role','button');
-siteTitle.addEventListener('keydown',e=>{
-  if(e.key==='Enter'||e.key===' '){e.preventDefault();siteTitle.click();}
-});
-siteTitle.addEventListener('click',()=>{
+document.getElementById('infoBtn').addEventListener('click',e=>{
+  e.preventDefault();
   /* with a project open, the CV waits for the index to settle back into
      its list layout, so its height cap is measured against the real
      final position of the list rather than the mid-close one */
@@ -1206,7 +1214,7 @@ function showHome(delay){swapStrip(fillHome,delay);}
 
 document.addEventListener('click',e=>{
   if(selectedIdx!==null||!POPUPS.length)return;
-  if(e.target.closest?.('a,button,video,[data-p],#menu,#tabs,#topZone,#indexBtn,#info .frag,.close-link'))return;
+  if(e.target.closest?.('a,button,video,[data-p],#menu,#tabs,#topZone,#indexBtn,#infoBtn,#info .frag,.close-link'))return;
   const m=POPUPS[Math.random()*POPUPS.length|0];
   const w=Math.round(110+Math.random()*90);
   const img=document.createElement('img');

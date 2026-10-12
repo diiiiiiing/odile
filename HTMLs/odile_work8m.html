@@ -55,7 +55,9 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   #tabs a.on{display:none;}
   /* one weight only, the regular: emphasis is opacity, never bold */
   *{font-weight:400!important;font-synthesis:none;}
-  #ding.on{opacity:.4;}
+  /* Ding in the middle of the bar, the way home; Infos on the left */
+  #ding{position:absolute;left:50%;bottom:0;transform:translateX(-50%);}
+  #infoBtn.on{opacity:.4;}
   #back{display:none;}
   body.proj #tabs{display:none;}
   body.proj #back{display:block;}
@@ -167,7 +169,8 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
 })();
 </script>
 <header id="bar">
-  <button id="ding" aria-label="information">Ding</button>
+  <button id="infoBtn">Infos</button>
+  <a id="ding" href="odile_work8m.html">Ding</a>
   <nav id="tabs">
     <a href="#" data-tab="projects" class="on">Projects</a>
     <a href="#gallery" data-tab="gallery">Gallery</a>
@@ -363,13 +366,13 @@ function closeProject({push=true}={}){
 function setView(v){
   view=v;
   document.body.className=v;
-  $('#ding').classList.toggle('on',v==='info');
+  $('#infoBtn').classList.toggle('on',v==='info');
 }
 $('#back').addEventListener('click',()=>{if(history.state&&history.state.p!==undefined)history.back();else closeProject();});
 
 /* ── INFO ── Ding opens a plain list of who/where/what; Ding closes it */
 let infoFrom='feed';
-$('#ding').addEventListener('click',()=>{
+$('#infoBtn').addEventListener('click',()=>{
   if(view==='info'){setView(infoFrom);scrollTo(0,infoFrom==='feed'?feedY:0);return;}
   if(view==='feed')feedY=scrollY;
   infoFrom=view;
