@@ -200,6 +200,10 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   body.home.index-open:not(.gallery) #indexBtn.ready{opacity:.45;}
   body.home #menu{bottom:auto;top:50%;translate:0 -50%;}
   body.home:not(.index-open) #menu{opacity:0!important;pointer-events:none;}
+  /* open over the band, only the names catch the pointer: the space
+     around them lets a swipe through to the pictures */
+  body.home #menu{pointer-events:none;}
+  body.home.index-open #menu .menu-proj-row a{pointer-events:auto;}
   /* over the band, a name inverts like the title that follows the cursor.
      #menu is a stacking context, so it's the whole index that blends; on
      the mid grey a difference can't make white show, so a name off the
@@ -715,7 +719,15 @@ function stepStrip(dir){
 window.addEventListener('wheel',e=>{
   if(lbOpen)return; // the enlarged media holds still
   const dy=e.deltaMode===1?e.deltaY*40:e.deltaY;
-  if(selectedIdx===null&&e.target.closest?.('#menu'))return;
+  if(selectedIdx===null&&e.target.closest?.('#menu')){
+    /* over a name of the open index: the index keeps the wheel only if
+       its list is too long for the screen; otherwise the swipe moves the
+       band — horizontal ones too, which wouldn't reach it natively */
+    if(menuEl.scrollHeight>menuEl.clientHeight+1)return;
+    const dx=e.deltaMode===1?e.deltaX*40:e.deltaX;
+    scrollStripBy(Math.abs(dx)>Math.abs(dy)?dx:dy);
+    return;
+  }
   if(Math.abs(e.deltaX)>Math.abs(dy)){stopStripScroll();return;} // a horizontal trackpad swipe scrolls the strip natively
   const desc=e.target.closest?.('.proj-desc');
   if(desc&&desc.scrollHeight>desc.clientHeight+1)return; // a long description scrolls itself
