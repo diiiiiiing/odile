@@ -72,15 +72,16 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 
   /* ── TOP — Ding + CV ── */
   #topZone{
-    position:fixed;top:var(--pad);left:var(--pad);   /* Ding, top-left */
+    position:fixed;top:var(--pad);left:50%;transform:translateX(-50%);
     z-index:70;
-    display:flex;flex-direction:column;align-items:flex-start;
+    display:flex;flex-direction:column;align-items:center;
+    width:min(86vw,480px);
     max-height:calc(100vh - var(--pad)*2);
   }
   #siteTitle,#siteTitle:visited{color:var(--fg);text-decoration:none;cursor:pointer;flex-shrink:0;}
-  /* "Infos", bottom-left: opens and closes the info */
+  /* "Infos", top-left on Ding's line: opens and closes the info */
   #infoBtn,#infoBtn:visited{
-    position:fixed;left:var(--pad);bottom:var(--pad);z-index:70;
+    position:fixed;left:var(--pad);top:var(--pad);z-index:70;
     color:var(--fg);text-decoration:none;cursor:pointer;
     opacity:0;transition:opacity .5s ease;
   }
@@ -100,16 +101,13 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   @keyframes drift{from{translate:0 0}to{translate:var(--dx,0) var(--dy,0)}}
   /* every state spelled out — visited, active and focused links otherwise
      pick up the browser's own tint (a pink/purple/red highlight) */
-  /* over the band the info inverts like the index (see updateIndexInk):
-     the whole layer blends by difference, each piece drawn in the local
-     background colour (reads black) or, on a picture, in white */
-  #info{color:var(--bg);mix-blend-mode:difference;}
   #info a,#info a:link,#info a:visited,#info a:hover,#info a:active,#info a:focus{
-    color:inherit;background:none;outline:none;cursor:pointer;
-    text-decoration:underline;text-decoration-color:currentColor;
+    color:#000;background:none;outline:none;cursor:pointer;
+    text-decoration:underline;text-decoration-color:#000;
     text-underline-offset:.12em;text-decoration-thickness:1px;
     -webkit-tap-highlight-color:transparent;
   }
+  #info .h{opacity:.4;}
   #info .vert{writing-mode:vertical-rl;transform:rotate(180deg);}
   #info .rows{display:grid;grid-template-columns:auto auto auto;gap:6px 14px;line-height:1.3;} /* room between lines: the underlines never touch the next one */
   /* the heading to the left of the list, level with its first line */
@@ -190,15 +188,16 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   #lightbox video{cursor:auto;}
 
   /* ── INDEX BUTTON — at home the index is folded away behind "Index",
-     bottom-right; it opens in the middle of the screen, over the band ── */
+     bottom centre; it unrolls upward above the button (see the script).
+     The band keeps its place either way, so nothing moves when it opens ── */
   #indexBtn{
-    position:fixed;right:var(--pad);bottom:var(--pad);z-index:71;
+    position:fixed;left:50%;bottom:var(--pad);transform:translateX(-50%);z-index:71;
     color:var(--fg);text-decoration:none;cursor:pointer;white-space:nowrap;
     opacity:0;pointer-events:none;transition:opacity .4s ease;
   }
   body.home:not(.gallery) #indexBtn.ready{opacity:1;pointer-events:auto;}
   body.home.index-open:not(.gallery) #indexBtn.ready{opacity:.45;}
-  body.home #menu{bottom:auto;top:50%;translate:0 -50%;}
+  body.home #menu{bottom:calc(var(--pad) + 30px);}
   body.home:not(.index-open) #menu{opacity:0!important;pointer-events:none;}
   /* open over the band, only the names catch the pointer: the space
      around them lets a swipe through to the pictures */
@@ -272,7 +271,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      tall the open description is, rather than trailing the text and
      landing wherever a short description happens to end */
   .close-link{
-    position:fixed;right:var(--pad);bottom:var(--pad);z-index:70;   /* back, bottom-right */
+    position:fixed;left:50%;bottom:var(--pad);transform:translateX(-50%);z-index:70;
     opacity:0;pointer-events:none;transition:opacity .3s ease;
   }
   .close-link.show{opacity:1;pointer-events:auto;}
@@ -286,7 +285,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   .corner.on{opacity:1;}
   /* off the centre axis, turned on their side in the bottom corners —
      always over the page's own grey, never over the media */
-  .corner.bl{left:var(--pad);bottom:calc(var(--pad) + 32px);writing-mode:vertical-rl;transform:rotate(180deg);} /* above "Infos" */
+  .corner.bl{left:var(--pad);bottom:var(--pad);writing-mode:vertical-rl;transform:rotate(180deg);}
 
   /* ── INDEX — one plain list, no section heads; hovering a name shows
      its medium beside it, out of the flow, so the name stays centred ── */
@@ -606,29 +605,9 @@ function hideLoader(){
 /* ── INDEX BUTTON ── opens and folds the home index; opening unrolls
    the names upward from the button, one after another */
 const indexBtnEl=document.getElementById('indexBtn');
-/* index names and info pieces over the band: five points along each,
-   three of them on a picture is enough to draw it in white (inverted);
-   otherwise it takes the exact background colour under it, which the
-   difference turns black */
+/* which names sit on a picture: three points along each name, two of
+   them on a strip item is enough */
 let inkTimer=null,inkFrame=0;
-const onPicture=(x,y)=>document.elementsFromPoint(x,y).some(e=>e.classList?.contains('strip-item')&&!e.classList.contains('ph'));
-function inkOne(el){
-  const r=el.getBoundingClientRect();
-  if(!r.width||!r.height)return;
-  const tall=r.height>r.width*1.5;
-  const hits=[.1,.3,.5,.7,.9].filter(f=>onPicture(
-    tall?r.left+r.width/2:r.left+r.width*f,
-    tall?r.top+r.height*f:r.top+r.height/2)).length;
-  el.classList.toggle('over',hits>=3);
-  const bg=window.iriColorAt?.(r.left+r.width/2,r.top+r.height/2);
-  el.style.color=hits>=3?'#fff':bg?`rgb(${bg})`:'';
-}
-function infoInkTargets(){
-  return frags.flatMap(f=>{
-    const rows=f.querySelector('.rows');
-    return rows?[f.querySelector('.h'),...rows.children].filter(Boolean):[f];
-  });
-}
 let indexInked=false;
 function clearIndexInk(){
   if(!indexInked)return;   // nothing to undo: don't touch the styles at all
@@ -637,28 +616,31 @@ function clearIndexInk(){
 }
 function updateIndexInk(){
   inkFrame=0;
-  const body=document.body.classList;
-  if(body.contains('index-open')&&body.contains('home')){indexInked=true;document.querySelectorAll('#menu .menu-proj-row a').forEach(inkOne);}
-  else clearIndexInk();
-  if(cvOpen)infoInkTargets().forEach(inkOne);
+  if(!document.body.classList.contains('index-open')||!document.body.classList.contains('home')){clearIndexInk();return;}
+  indexInked=true;
+  document.querySelectorAll('#menu .menu-proj-row a').forEach(a=>{
+    const r=a.getBoundingClientRect(),y=r.top+r.height/2;
+    const hits=[r.left+2,r.left+r.width/2,r.right-2].filter(x=>
+      document.elementsFromPoint(x,y).some(e=>e.classList?.contains('strip-item')&&!e.classList.contains('ph'))).length;
+    a.classList.toggle('over',hits>=2);
+    /* off the pictures: the exact colour of the background under the
+       name, which the difference turns black */
+    const bg=window.iriColorAt?.(r.left+r.width/2,y);
+    a.style.color=bg?`rgb(${bg})`:'';
+  });
 }
-/* pictures still loading change what's under a word: re-check while the
-   index or the info is out */
-function syncInkTimer(){
-  clearInterval(inkTimer);
-  const body=document.body.classList;
-  if((body.contains('index-open')&&body.contains('home'))||cvOpen){updateIndexInk();inkTimer=setInterval(updateIndexInk,400);}
-}
-/* only while the index or the info is out — otherwise there's nothing to ink */
-const queueInk=()=>{if(!inkFrame&&(document.body.classList.contains('index-open')||cvOpen))inkFrame=requestAnimationFrame(updateIndexInk);};
+/* only while the index is out — otherwise there's nothing to ink */
+const queueInk=()=>{if(!inkFrame&&document.body.classList.contains('index-open'))inkFrame=requestAnimationFrame(updateIndexInk);};
 document.getElementById('strip').addEventListener('scroll',queueInk,{passive:true});   // stripEl is declared further down
 addEventListener('resize',queueInk);
 addEventListener('mousemove',queueInk,{passive:true});   // the blobs drift with the pointer
 function setIndexOpen(open){
   document.body.classList.toggle('index-open',open);
-  syncInkTimer();
+  clearInterval(inkTimer);
   if(!open){clearIndexInk();return;}
-  const rows=[...document.querySelectorAll('#menu .menu-proj:not(.hidden)')];
+  updateIndexInk();
+  inkTimer=setInterval(updateIndexInk,400);   // pictures still loading change what's under a name
+  const rows=[...document.querySelectorAll('#menu .menu-proj:not(.hidden)')].reverse();
   rows.forEach((r,k)=>r.animate(
     [{opacity:0,translate:'0 8px'},{opacity:1,translate:'0 0'}],
     {duration:460,delay:k*38,easing:'cubic-bezier(.16,1,.3,1)',fill:'backwards'}));
@@ -817,7 +799,6 @@ function toggleCV(force){
   infoEl.setAttribute('aria-hidden',String(!cvOpen));
   document.body.classList.toggle('info',cvOpen);
   document.getElementById('infoBtn').classList.toggle('active',cvOpen);
-  syncInkTimer();
 }
 
 /* the CMS's Infos document (Studio ▸ Infos (Ding)) replaces the text
