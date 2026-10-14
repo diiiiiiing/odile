@@ -55,6 +55,10 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   #tabs a.on{display:none;}
   /* one weight only, the regular: emphasis is opacity, never bold */
   *{font-weight:400!important;font-synthesis:none;}
+  /* never anything that reads as bold: macOS thickens light text on dark
+     grounds (the inverted words over the pictures) unless smoothing is
+     plain greyscale — so every word keeps the same thin regular */
+  html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
   /* Ding in the middle of the bar, the way home; Infos on the left */
   #ding{position:absolute;left:50%;bottom:0;transform:translateX(-50%);}
   #infoBtn.on{opacity:.4;}

@@ -59,6 +59,10 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 
   /* one weight only, the regular: emphasis is opacity, never bold */
   *{font-weight:400!important;font-synthesis:none;}
+  /* never anything that reads as bold: macOS thickens light text on dark
+     grounds (the inverted words over the pictures) unless smoothing is
+     plain greyscale — so every word keeps the same thin regular */
+  html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 
   a:focus-visible,#siteTitle:focus-visible,#infoBtn:focus-visible{outline:1px solid var(--fg);outline-offset:3px;}
 
