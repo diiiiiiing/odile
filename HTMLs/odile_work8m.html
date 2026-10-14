@@ -104,10 +104,10 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   }
   #info section>*+*{margin-top:4px;}
   #info a,#info a:visited,#info a:active{color:#000;text-decoration:underline;text-underline-offset:.15em;}
-  #info .h{opacity:.4;margin-bottom:14px;}
+  #info .h{margin-bottom:14px;}   /* never grey in the info */
   #info .rows{display:grid;grid-template-columns:max-content 1fr;gap:16px 22px;}
   #info .rows .co{display:block;}
-  #info .rows .role{display:block;color:var(--dim);}
+  #info .rows .role{display:block;}
 
   #more{height:1px;}
   @media (prefers-reduced-motion:reduce){.view,.m img{animation:none;transition:none;}}
