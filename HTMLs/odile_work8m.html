@@ -123,6 +123,39 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
 </style>
 </head>
 <body class="feed">
+<script>
+/* ── lowercase ── every word on the page in lowercase, except names set
+   in capitals (COHL, UNVEIL®, AI…): a word whose letters are all capitals,
+   two or more of them, keeps them — a possessive after it ('s) still goes
+   lowercase. Applied to the text already here and to every text that
+   arrives later (CMS, clock, labels) */
+(()=>{
+  const word=w=>{
+    const m=w.match(/^([^a-z]*?)(['’]s)?([^A-Za-zÀ-ÿ]*)$/);
+    if(m&&(m[1].match(/[A-ZÀ-Þ]/g)||[]).length>=2&&!/[a-zß-ÿ]/.test(m[1]))return m[1]+(m[2]||'').toLowerCase()+m[3];
+    return w.toLowerCase();
+  };
+  const lc=t=>t.replace(/\S+/g,word);
+  window.lowerText=lc;
+  const SKIP=new Set(['SCRIPT','STYLE','NOSCRIPT']);
+  const fix=n=>{
+    if(n.nodeType===3){
+      if(n.parentNode&&SKIP.has(n.parentNode.nodeName))return;
+      const v=lc(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v;
+    }else if(n.nodeType===1&&!SKIP.has(n.nodeName)){
+      const w=document.createTreeWalker(n,NodeFilter.SHOW_TEXT);
+      for(let t=w.nextNode();t;t=w.nextNode())fix(t);
+      if(n.dataset?.label)n.dataset.label=lc(n.dataset.label);
+    }
+  };
+  fix(document.body);
+  new MutationObserver(ms=>ms.forEach(m=>{
+    if(m.type==='characterData')fix(m.target);
+    else m.addedNodes.forEach(fix);
+  })).observe(document.body,{subtree:true,childList:true,characterData:true});
+})();
+</script>
+
 
 <div id="iri" aria-hidden="true"></div>
 <script>
@@ -173,13 +206,13 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
 })();
 </script>
 <header id="bar">
-  <button id="infoBtn">Infos</button>
-  <a id="ding" href="odile_work8m.html">Ding</a>
+  <button id="infoBtn">infos</button>
+  <a id="ding" href="odile_work8m.html">ding</a>
   <nav id="tabs">
-    <a href="#" data-tab="projects" class="on">Projects</a>
-    <a href="#gallery" data-tab="gallery">Gallery</a>
+    <a href="#" data-tab="projects" class="on">projects</a>
+    <a href="#gallery" data-tab="gallery">gallery</a>
   </nav>
-  <button id="back">Back</button>
+  <button id="back">back</button>
 </header>
 
 <main>
@@ -217,7 +250,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
 <script>
 const $=s=>document.querySelector(s);
 const feedEl=$('#feed'),projEl=$('#proj'),moreEl=$('#more');
-const nameOf=p=>p.displayTitle||p.client||p.title;
+const nameOf=p=>lowerText(p.displayTitle||p.client||p.title);
 let projects=[],order=[],GALLERY=[];
 let view='feed',tab='projects',openIdx=null,feedY=0;
 

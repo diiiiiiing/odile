@@ -410,6 +410,39 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 </style>
 </head>
 <body class="home">
+<script>
+/* ── lowercase ── every word on the page in lowercase, except names set
+   in capitals (COHL, UNVEIL®, AI…): a word whose letters are all capitals,
+   two or more of them, keeps them — a possessive after it ('s) still goes
+   lowercase. Applied to the text already here and to every text that
+   arrives later (CMS, clock, labels) */
+(()=>{
+  const word=w=>{
+    const m=w.match(/^([^a-z]*?)(['’]s)?([^A-Za-zÀ-ÿ]*)$/);
+    if(m&&(m[1].match(/[A-ZÀ-Þ]/g)||[]).length>=2&&!/[a-zß-ÿ]/.test(m[1]))return m[1]+(m[2]||'').toLowerCase()+m[3];
+    return w.toLowerCase();
+  };
+  const lc=t=>t.replace(/\S+/g,word);
+  window.lowerText=lc;
+  const SKIP=new Set(['SCRIPT','STYLE','NOSCRIPT']);
+  const fix=n=>{
+    if(n.nodeType===3){
+      if(n.parentNode&&SKIP.has(n.parentNode.nodeName))return;
+      const v=lc(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v;
+    }else if(n.nodeType===1&&!SKIP.has(n.nodeName)){
+      const w=document.createTreeWalker(n,NodeFilter.SHOW_TEXT);
+      for(let t=w.nextNode();t;t=w.nextNode())fix(t);
+      if(n.dataset?.label)n.dataset.label=lc(n.dataset.label);
+    }
+  };
+  fix(document.body);
+  new MutationObserver(ms=>ms.forEach(m=>{
+    if(m.type==='characterData')fix(m.target);
+    else m.addedNodes.forEach(fix);
+  })).observe(document.body,{subtree:true,childList:true,characterData:true});
+})();
+</script>
+
 <div id="iri" aria-hidden="true"></div>
 <script>
 /* ── IRIDESCENCE ── the hub's four colour blobs, same colours, sizes and
@@ -479,19 +512,20 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 
 <!-- TOP — Ding on the left; everything else in one bar on the right:
-     Index · Gallery · Infos at home, Projects · Infos in the gallery,
-     Back · Infos in a project -->
+     Infos · Gallery · Index at home (Index last, right above the column
+     its list drops into), Infos · Projects in the gallery, Infos · Back
+     in a project -->
 <div id="bar">
-  <a href="#" id="indexBtn">Index</a>
+  <a href="#" id="infoBtn">infos</a>
   <nav id="tabs">
-    <a href="#" data-tab="project" class="on">Projects</a>
-    <a href="#gallery" data-tab="gallery">Gallery</a>
+    <a href="#" data-tab="project" class="on">projects</a>
+    <a href="#gallery" data-tab="gallery">gallery</a>
   </nav>
-  <a href="#" id="backBtn" class="ext-link close-link">Back</a>
-  <a href="#" id="infoBtn">Infos</a>
+  <a href="#" id="backBtn" class="ext-link close-link">back</a>
+  <a href="#" id="indexBtn">index</a>
 </div>
 <div id="topZone">
-  <a id="siteTitle" href="odile_work8.html">Ding</a>
+  <a id="siteTitle" href="odile_work8.html">ding</a>
 </div>
 
 <!-- INFO — the CV as floating fragments, placed anew on each opening -->
@@ -704,7 +738,7 @@ let selectedIdx=null;
 const FADE=260;
 let navToken=0;
 const BASE_TITLE=document.title;
-function projName(p){return p.displayTitle||p.client||p.title;}
+function projName(p){return lowerText(p.displayTitle||p.client||p.title);}
 
 /* the strip eases toward a target instead of jumping a whole wheel notch
    at a time; wheel notches and arrow keys both just move the target */
