@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#808080">
+<meta name="theme-color" content="#5c5c5e">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="format-detection" content="telephone=no,email=no,address=no">
@@ -24,7 +24,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
      space reserved for every media before it loads, off-screen rows
      skipped by the renderer, videos shown as their first frame. */
   :root{
-    --bg:#808080;--fg:#000;--dim:#3a3a3a;
+    --bg:#5c5c5e;--fg:#000;--dim:var(--fg); /* never grey text */
     --fs:15px;--pad:16px;
     --top:env(safe-area-inset-top,0px);--bottom:env(safe-area-inset-bottom,0px);
     --bar:calc(44px + var(--top));
@@ -34,7 +34,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   body{
     color:var(--fg);
     font-family:'minion-pro','Minion Pro','Minion',serif;
-    font-size:var(--fs);line-height:1.25;
+    font-size:var(--fs);line-height:1.25;letter-spacing:-.03em;
     -webkit-tap-highlight-color:transparent;touch-action:manipulation;
     -webkit-user-select:none;user-select:none;
     min-height:100svh;
@@ -61,7 +61,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
   /* Ding in the middle of the bar, the way home; Infos on the left */
   #ding{position:absolute;left:50%;bottom:0;transform:translateX(-50%);}
-  #infoBtn.on{opacity:.4;}
+  #infoBtn.on{font-style:italic;}   /* open reads in italic, never by fading */
   #back{display:none;}
   body.proj #tabs{display:none;}
   body.proj #back{display:block;}
@@ -92,7 +92,7 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
   .txt{padding:22px var(--pad) 26px;text-align:center;}
   .txt h1{font-size:inherit;margin-bottom:10px;}
   .txt .meta{color:var(--dim);margin-bottom:12px;}
-  .txt .desc{text-transform:none;letter-spacing:0;color:var(--dim);-webkit-user-select:text;user-select:text;}
+  .txt .desc{text-transform:none;color:var(--dim);-webkit-user-select:text;user-select:text;}
   .txt .desc p{margin-bottom:.5em;}
   .txt .desc a{color:var(--fg);text-decoration:underline;}
   .end{display:flex;justify-content:space-between;padding:22px var(--pad) calc(26px + var(--bottom));}
@@ -134,10 +134,10 @@ if(matchMedia('(hover:hover) and (pointer:fine)').matches&&innerWidth>900&&!/[?&
 (()=>{
   const iri=document.getElementById('iri');
   const DEF=[
-    {x:50,y:100,ax:.38,ay:.30,ease:.05,c:'212,184,110',op:.58,ex:90,ey:70}, // the hub's ochre, a touch quieter
-    {x:20,y:60,ax:-.42,ay:.34,ease:.04,c:'200,160,210',op:.50,ex:70,ey:60},
-    {x:80,y:40,ax:.36,ay:-.38,ease:.045,c:'172,202,198',op:.22,ex:95,ey:85}, // the aqua: wider, fainter, greyer — a haze, not a patch
-    {x:50,y:50,ax:.18,ay:.16,ease:.03,c:'210,200,190',op:.30,ex:80,ey:80},
+    {x:50,y:100,ax:.38,ay:.30,ease:.05,c:'212,184,110',op:.40,ex:90,ey:70}, // the hub's ochre, a touch quieter
+    {x:20,y:60,ax:-.42,ay:.34,ease:.04,c:'200,160,210',op:.36,ex:70,ey:60},
+    {x:80,y:40,ax:.36,ay:-.38,ease:.045,c:'172,202,198',op:.16,ex:95,ey:85}, // the aqua: wider, fainter, greyer — a haze, not a patch
+    {x:50,y:50,ax:.18,ay:.16,ease:.03,c:'210,200,190',op:.20,ex:80,ey:80},
   ];
   const S=4;
   const blobs=DEF.map(d=>{

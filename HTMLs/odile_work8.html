@@ -16,9 +16,10 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
 <style>
   :root{
-    /* one palette, no modes: grey */
-    --bg:#808080; --fg:#000;
-    --dim1:#3a3a3a; --dim2:rgba(0,0,0,.3);
+    /* one palette, no modes: a dark grey under the reactive colour; text
+       is always the one ink — never grey */
+    --bg:#5c5c5e; --fg:#000;
+    --dim1:var(--fg); --dim2:var(--fg);
     --pad:24px;
     --font:'minion-pro','Minion Pro','Minion',serif;
     --fs:12px;
@@ -27,7 +28,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   html,body{
     width:100%;height:100%;
     background:var(--bg);color:var(--fg);
-    font-family:var(--font);font-weight:400;
+    font-family:var(--font);font-weight:400;letter-spacing:-.03em;
     font-size:var(--fs);line-height:1;
     overflow:hidden;
     /* a touch device can flash a link's tap state from the same
@@ -76,21 +77,25 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 
   /* ── TOP — Ding + CV ── */
   #topZone{
-    position:fixed;top:var(--pad);left:50%;transform:translateX(-50%);
+    position:fixed;top:var(--pad);left:var(--pad);   /* Ding, top-left */
     z-index:70;
-    display:flex;flex-direction:column;align-items:center;
-    width:min(86vw,480px);
+    display:flex;flex-direction:column;align-items:flex-start;
     max-height:calc(100vh - var(--pad)*2);
   }
   #siteTitle,#siteTitle:visited{color:var(--fg);text-decoration:none;cursor:pointer;flex-shrink:0;}
-  /* "Infos", bottom-left: opens and closes the info */
-  #infoBtn,#infoBtn:visited{
-    position:fixed;left:var(--pad);bottom:var(--pad);z-index:70;
-    color:var(--fg);text-decoration:none;cursor:pointer;
-    opacity:0;transition:opacity .5s ease;
+  /* ── BAR — top-right, one row; only what applies is shown. Selected or
+     open reads in italic, never by fading ── */
+  #bar{
+    position:fixed;top:var(--pad);right:var(--pad);z-index:72;
+    display:flex;align-items:baseline;gap:26px;white-space:nowrap;
   }
-  #infoBtn.ready{opacity:1;}
-  #infoBtn.ready.active{opacity:.4;}
+  #bar a,#bar a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
+  #infoBtn,#indexBtn{opacity:0;transition:opacity .5s ease;}
+  #infoBtn.ready,#indexBtn.ready{opacity:1;}
+  #infoBtn.active{font-style:italic;}
+  /* each word keeps the width of its italic, so nothing beside it shifts */
+  .it-safe{display:inline-grid;}
+  .it-safe::after{content:attr(data-label);font-style:italic;height:0;overflow:hidden;visibility:hidden;pointer-events:none;}
 
   /* ── INFO — opened from Ding, home only: the CV broken into fragments,
      all in the page's own type size, landing somewhere new on every
@@ -134,15 +139,9 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   /* ── TABS — home only, one word in the top-right corner on Ding's
      line: the room you're not in — Gallery from the projects, Projects
      from the gallery ── */
-  #tabs{
-    position:fixed;right:var(--pad);bottom:var(--pad);z-index:70;   /* Gallery, bottom-right */
-    display:flex;white-space:nowrap;transition:opacity .4s ease;
-    pointer-events:none;
-  }
+  #tabs{display:flex;}
   #tabs a.on{display:none;}
-  #tabs a{pointer-events:auto;}
-  #tabs a,#tabs a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
-  body:not(.home) #tabs{opacity:0!important;pointer-events:none;}
+  body:not(.home) #tabs{display:none;}
   /* the gallery is the same band with no index under it */
   body.gallery #menu{opacity:0!important;pointer-events:none;}
 
@@ -198,14 +197,12 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   /* ── INDEX BUTTON — at home the index is folded away behind "Index",
      bottom centre; it unrolls upward above the button (see the script).
      The band keeps its place either way, so nothing moves when it opens ── */
-  #indexBtn{
-    position:fixed;left:50%;bottom:var(--pad);transform:translateX(-50%);z-index:71;
-    color:var(--fg);text-decoration:none;cursor:pointer;white-space:nowrap;
-    opacity:0;pointer-events:none;transition:opacity .4s ease;
-  }
-  body.home:not(.gallery) #indexBtn.ready{opacity:1;pointer-events:auto;}
-  body.home.index-open:not(.gallery) #indexBtn.ready{opacity:.45;}
-  body.home #menu{bottom:calc(var(--pad) + 30px);}
+  body:not(.home) #indexBtn,body.gallery #indexBtn{display:none;}
+  body.index-open #indexBtn{font-style:italic;}
+  /* the open index drops down under the bar, flush right */
+  body.home #menu{bottom:auto;top:calc(var(--pad) + 30px);left:auto;right:var(--pad);transform:none;align-items:flex-end;}
+  body.home .menu-projects,body.home .menu-proj{align-items:flex-end;}
+  body.home .menu-proj-row{justify-content:flex-end;}
   body.home:not(.index-open) #menu{opacity:0!important;pointer-events:none;}
   /* open over the band, only the names catch the pointer: the space
      around them lets a swipe through to the pictures */
@@ -241,7 +238,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     padding:2px 0;
   }
   /* the open project stays black, the rest of the index steps back */
-  .menu-projects:has(a.active) .menu-proj-row a:not(.active){opacity:.3;}
+  .menu-proj-row a.active{font-style:italic;}
 
   /* the description is laid out at its final size in one go and only
      fades — no height animation, so nothing around it ever re-flows
@@ -278,11 +275,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   /* pinned to the bottom, centred — same fixed spot regardless of how
      tall the open description is, rather than trailing the text and
      landing wherever a short description happens to end */
-  .close-link{
-    position:fixed;left:50%;bottom:var(--pad);transform:translateX(-50%);z-index:70;
-    opacity:0;pointer-events:none;transition:opacity .3s ease;
-  }
-  .close-link.show{opacity:1;pointer-events:auto;}
+  .close-link:not(.show){display:none;}
 
   /* ── CORNERS — quiet running metadata framing the three zones ── */
   .corner{
@@ -293,7 +286,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   .corner.on{opacity:1;}
   /* off the centre axis, turned on their side in the bottom corners —
      always over the page's own grey, never over the media */
-  .corner.bl{left:var(--pad);bottom:calc(var(--pad) + 32px);writing-mode:vertical-rl;transform:rotate(180deg);} /* above "Infos" */
+  .corner.bl{display:none;} /* no image count on the project pages */
 
   /* ── INDEX — one plain list, no section heads; hovering a name shows
      its medium beside it, out of the flow, so the name stays centred ── */
@@ -301,14 +294,13 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   .menu-proj-row a::after{
     content:attr(data-cat);
     position:absolute;left:100%;top:50%;translate:0 -50%;margin-left:1.2em;
-    white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s ease;
+    white-space:nowrap;font-style:italic;opacity:0;pointer-events:none;transition:opacity .25s ease;
   }
+  /* flush right at home, so the medium goes to the left of the name */
+  body.home .menu-proj-row a::after{left:auto;right:100%;margin-left:0;margin-right:1.2em;}
   @media (hover:hover){
-    .menu-proj-row a:hover::after{opacity:.65;} /* on the mid grey, less than this barely reads */
-  }
-  .menu-proj-row a{transition:opacity .25s ease;}
-  @media (hover:hover){
-    .menu-projects:has(.menu-proj-row a:hover) .menu-proj-row a:not(:hover){opacity:.3;}
+    .menu-proj-row a:hover::after{opacity:1;}
+    .menu-proj-row a:hover{font-style:italic;}
   }
 
   /* ── STRIP CURSOR — prev/next label trailing the pointer ── */
@@ -327,8 +319,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      fire (and stick) from the same tap-drag that starts a scroll, making
      project names/links flash bold mid-scroll */
   @media (hover:hover){
-    .ext-link,#tabs a,#siteTitle,#infoBtn{transition:opacity .25s ease;}
-    .ext-link:hover,#tabs a:hover,#siteTitle:hover,#infoBtn.ready:hover{opacity:.4!important;} /* over the inline opacity the reveal leaves */
+    .ext-link:hover,#bar a:hover,#siteTitle:hover{font-style:italic;}
     .proj-desc-link:hover{color:var(--fg);}
   }
 
@@ -427,10 +418,10 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 (()=>{
   const iri=document.getElementById('iri');
   const DEF=[
-    {x:50,y:100,ax:.38,ay:.30,ease:.05,c:'212,184,110',op:.58,ex:90,ey:70}, // the hub's ochre, a touch quieter
-    {x:20,y:60,ax:-.42,ay:.34,ease:.04,c:'200,160,210',op:.50,ex:70,ey:60},
-    {x:80,y:40,ax:.36,ay:-.38,ease:.045,c:'172,202,198',op:.22,ex:95,ey:85}, // the aqua: wider, fainter, greyer — a haze, not a patch
-    {x:50,y:50,ax:.18,ay:.16,ease:.03,c:'210,200,190',op:.30,ex:80,ey:80},
+    {x:50,y:100,ax:.38,ay:.30,ease:.05,c:'212,184,110',op:.40,ex:90,ey:70}, // the hub's ochre, a touch quieter
+    {x:20,y:60,ax:-.42,ay:.34,ease:.04,c:'200,160,210',op:.36,ex:70,ey:60},
+    {x:80,y:40,ax:.36,ay:-.38,ease:.045,c:'172,202,198',op:.16,ex:95,ey:85}, // the aqua: wider, fainter, greyer — a haze, not a patch
+    {x:50,y:50,ax:.18,ay:.16,ease:.03,c:'210,200,190',op:.20,ex:80,ey:80},
   ];
   const S=4;
   const blobs=DEF.map(d=>{
@@ -485,12 +476,18 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 
-<!-- TOP — Ding + the merged CV panel -->
-<nav id="tabs">
-  <a href="#" data-tab="project" class="on">Projects</a>
-  <a href="#gallery" data-tab="gallery">Gallery</a>
-</nav>
-<a href="#" id="infoBtn">Infos</a>
+<!-- TOP — Ding on the left; everything else in one bar on the right:
+     Index · Gallery · Infos at home, Projects · Infos in the gallery,
+     Back · Infos in a project -->
+<div id="bar">
+  <a href="#" id="indexBtn">Index</a>
+  <nav id="tabs">
+    <a href="#" data-tab="project" class="on">Projects</a>
+    <a href="#gallery" data-tab="gallery">Gallery</a>
+  </nav>
+  <a href="#" id="backBtn" class="ext-link close-link">Back</a>
+  <a href="#" id="infoBtn">Infos</a>
+</div>
 <div id="topZone">
   <a id="siteTitle" href="odile_work8.html">Ding</a>
 </div>
@@ -522,16 +519,11 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      #stripZone, whose transform would otherwise become the containing
      block for this fixed-position link instead of the viewport -->
 <div id="lightbox"></div>
-<!-- bottom-left counterpart, same reason: a fixed spot regardless of
-     the open description's length, not part of #menu's own flow -->
-<a href="#" id="backBtn" class="ext-link close-link">back</a>
-
 <div id="cornerBL" class="corner bl"></div>
 <div id="cursorLabel"></div>
 
 <!-- BOTTOM — the project index -->
 <div id="menu"></div>
-<a href="#" id="indexBtn">Index</a>
 
 <script>
 /* loader — fetch SVG, add group IDs for CSS animation, inject inline.
@@ -665,9 +657,9 @@ function setIndexOpen(open){
   document.body.classList.toggle('index-open',open);
   syncInkTimer();
   if(!open){clearIndexInk();return;}
-  const rows=[...document.querySelectorAll('#menu .menu-proj:not(.hidden)')].reverse();
+  const rows=[...document.querySelectorAll('#menu .menu-proj:not(.hidden)')];
   rows.forEach((r,k)=>r.animate(
-    [{opacity:0,translate:'0 8px'},{opacity:1,translate:'0 0'}],
+    [{opacity:0,translate:'0 -8px'},{opacity:1,translate:'0 0'}],
     {duration:460,delay:k*38,easing:'cubic-bezier(.16,1,.3,1)',fill:'backwards'}));
 }
 indexBtnEl.addEventListener('click',e=>{
@@ -1342,8 +1334,7 @@ function placeStripZone(){
   const c=innerHeight/2;
   const dingBottom=siteTitle.getBoundingClientRect().bottom;
   const top=dingBottom+24;
-  const btn=document.getElementById('indexBtn');
-  const bottom=tab==='gallery'?innerHeight-pad-24:innerHeight-pad-btn.offsetHeight-20;
+  const bottom=innerHeight-pad-24;
   const h=Math.floor(Math.max(140,Math.min(css,2*(c-top),2*(bottom-c))));
   stripZoneEl.style.height=h+'px';
 }
@@ -1356,10 +1347,14 @@ function freezeMenu(){
   menuEl.style.transform='';
   void menuEl.offsetHeight;
 }
-function playFlip(row,beforeTop){
-  const delta=beforeTop-row.getBoundingClientRect().top;
-  if(Math.abs(delta)>.5){
-    menuEl.style.transform=`translateX(-50%) translateY(${delta}px)`;
+/* the title glides from where it was to where it lands — across too, now
+   that the home index sits flush right and a project's title is centred */
+const flipPoint=row=>{const a=row.querySelector('.menu-proj-row a')||row,r=a.getBoundingClientRect();return{x:r.left+r.width/2,y:row.getBoundingClientRect().top};};
+function playFlip(row,before){
+  const now=flipPoint(row),dx=before.x-now.x,dy=before.y-now.y;
+  if(Math.abs(dx)>.5||Math.abs(dy)>.5){
+    const base=getComputedStyle(menuEl).transform;
+    menuEl.style.transform=`translate(${dx}px,${dy}px)${base&&base!=='none'?' '+base:''}`;
     void menuEl.offsetHeight;
   }
   menuEl.style.transition='';
@@ -1384,7 +1379,7 @@ function layoutMenuOpen(){
   });
   const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||10;
   const top=stripZoneEl.getBoundingClientRect().bottom+20;
-  const backRoom=closeBtnEl.getBoundingClientRect().height+16;
+  const backRoom=28;   // a little air above the bottom edge
   menuEl.style.bottom='auto';
   menuEl.style.top=top+'px';
   menuEl.style.maxHeight=Math.max(80,innerHeight-top-pad-backRoom)+'px';
@@ -1418,7 +1413,7 @@ function layoutMenuOpen(){
     }
   }
   const rowBottom=wrap.querySelector('.menu-proj-row').getBoundingClientRect().bottom;
-  const gap=closeBtnEl.getBoundingClientRect().top-rowBottom-body.offsetHeight;
+  const gap=innerHeight-pad-backRoom-rowBottom-body.offsetHeight;
   if(gap/2>14)body.style.marginTop=gap/2+'px';
 }
 function layoutMenuClosed(){
@@ -1472,7 +1467,7 @@ function closeProject({pushUrl=true}={}){
   setTimeout(()=>{
     if(token!==navToken)return;
     const visible=isShowing(row);
-    const before=visible?row.getBoundingClientRect().top:0;
+    const before=visible?flipPoint(row):null;
     freezeMenu();
     document.querySelectorAll('#menu a.active').forEach(a=>a.classList.remove('active'));
     document.querySelectorAll('#menu .menu-proj').forEach(w=>{if(w!==row||!visible)w.classList.add('hidden');});
@@ -1531,7 +1526,7 @@ function selectProject(i,{pushUrl=true,start=0}={}){
   setTimeout(()=>{
     if(token!==navToken||!row)return;
     const visible=isShowing(row);
-    const before=visible?row.getBoundingClientRect().top:0;
+    const before=visible?flipPoint(row):null;
     freezeMenu();
     if(!visible)row.classList.add('hidden');
     layoutMenuOpen();
@@ -1707,6 +1702,9 @@ stripEl.addEventListener('scroll',updateNextLinkVisibility,{passive:true});
    rather than part of #menu's flow */
 const closeBtnEl=document.getElementById('backBtn');
 closeBtnEl.addEventListener('click',e=>{e.preventDefault();closeProject();});
+/* italic on hover or when open: each word reserves its italic width (an
+   invisible italic copy in the same grid cell), so the bar never twitches */
+[siteTitle,...document.querySelectorAll('#bar a')].forEach(el=>{el.dataset.label=el.textContent;el.classList.add('it-safe');});
 
 
 /* ── COUNTER ── which media of the open project is on screen */
