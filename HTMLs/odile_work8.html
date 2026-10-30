@@ -22,7 +22,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     --dim1:var(--fg); --dim2:var(--fg);
     --pad:24px;
     --font:'minion-pro','Minion Pro','Minion',serif;
-    --fs:12px;
+    --fs:14px;
   }
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
   html,body{
@@ -199,10 +199,12 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      The band keeps its place either way, so nothing moves when it opens ── */
   body:not(.home) #indexBtn,body.gallery #indexBtn{display:none;}
   body.index-open #indexBtn{font-style:italic;}
-  /* the open index drops down under the bar, flush right */
-  body.home #menu{bottom:auto;top:calc(var(--pad) + 30px);left:auto;right:var(--pad);transform:none;align-items:flex-end;}
-  body.home .menu-projects,body.home .menu-proj{align-items:flex-end;}
-  body.home .menu-proj-row{justify-content:flex-end;}
+  /* the index and an open project share one place: a column flush right
+     under the bar. The index drops down there; picking a name keeps it in
+     that column — the others leave, it slides up to the top, and its
+     description unfolds right under it. It may run over the pictures */
+  .menu-projects,.menu-proj{align-items:flex-end!important;}
+  .menu-proj-row{justify-content:flex-end!important;}
   body.home:not(.index-open) #menu{opacity:0!important;pointer-events:none;}
   /* open over the band, only the names catch the pointer: the space
      around them lets a swipe through to the pictures */
@@ -213,17 +215,18 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      the mid grey a difference can't make white show, so a name off the
      media is drawn in the background's own grey — which the difference
      turns black — and a name on a picture in white, which inverts it */
-  body.home #menu{mix-blend-mode:difference;}
-  body.home #menu .menu-proj-row a{color:var(--bg);}
-  body.home #menu .menu-proj-row a.over{color:#fff!important;}
+  #menu{mix-blend-mode:difference;}
+  #menu .menu-proj-row a,#menu .proj-body-inner,#menu .ext-link{color:var(--bg);}
+  #menu .proj-body-inner a{color:inherit;}
+  #menu .over{color:#fff!important;}
 
-  /* ── BOTTOM — the project index ── */
+  /* ── INDEX / PROJECT COLUMN — flush right under the bar (see above) ── */
   #menu{
-    position:fixed;left:50%;bottom:var(--pad);transform:translateX(-50%);
+    position:fixed;right:var(--pad);top:calc(var(--pad) + 32px);
     z-index:70;
     width:min(90vw,640px);
-    max-height:calc(100vh - var(--pad)*2);
-    display:flex;flex-direction:column;align-items:center;
+    max-height:calc(100vh - var(--pad)*2 - 32px);
+    display:flex;flex-direction:column;align-items:flex-end;
     overflow-y:auto;
     transition:opacity .5s ease,transform .55s cubic-bezier(.22,1,.36,1);
   }
@@ -246,13 +249,12 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   .proj-body{display:none;margin-top:14px;}
   .proj-body.open{display:block;}
   .proj-body-inner{
-    display:flex;flex-direction:column;align-items:center;gap:6px;
-    text-align:center;
-    color:var(--dim1);
+    display:flex;flex-direction:column;align-items:flex-end;gap:6px;
+    text-align:right;
     opacity:0;transition:opacity .35s ease;
   }
   .proj-body.shown .proj-body-inner{opacity:1;}
-  .proj-desc{display:flex;flex-direction:column;align-items:center;gap:4px;scrollbar-width:none;}
+  .proj-desc{display:flex;flex-direction:column;align-items:flex-end;gap:4px;scrollbar-width:none;}
   .proj-desc::-webkit-scrollbar{display:none;}
   /* a description long enough to scroll fades out at its lower edge until
      it's read to the end, instead of stopping on a sliced line */
@@ -260,7 +262,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 22px),transparent);
     mask-image:linear-gradient(to bottom,#000 calc(100% - 22px),transparent);
   }
-  .proj-desc-line{text-transform:none;max-width:90ch;}
+  .proj-desc-line{text-transform:none;max-width:min(46ch,42vw);}
   /* too tall for the room under the media: the text spreads sideways
      instead (see layoutMenuOpen) */
   .proj-desc.wide .proj-desc-line{max-width:none;}
@@ -296,8 +298,8 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     position:absolute;left:100%;top:50%;translate:0 -50%;margin-left:1.2em;
     white-space:nowrap;font-style:italic;opacity:0;pointer-events:none;transition:opacity .25s ease;
   }
-  /* flush right at home, so the medium goes to the left of the name */
-  body.home .menu-proj-row a::after{left:auto;right:100%;margin-left:0;margin-right:1.2em;}
+  /* the column is flush right, so the medium goes to the left of the name */
+  .menu-proj-row a::after{left:auto;right:100%;margin-left:0;margin-right:1.2em;}
   @media (hover:hover){
     .menu-proj-row a:hover::after{opacity:1;}
     .menu-proj-row a:hover{font-style:italic;}
@@ -522,7 +524,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <div id="cornerBL" class="corner bl"></div>
 <div id="cursorLabel"></div>
 
-<!-- BOTTOM — the project index -->
+<!-- the project index / the open project's name and text, top-right -->
 <div id="menu"></div>
 
 <script>
@@ -610,17 +612,36 @@ const indexBtnEl=document.getElementById('indexBtn');
    otherwise it takes the exact background colour under it, which the
    difference turns black */
 let inkTimer=null,inkFrame=0;
-const onPicture=(x,y)=>document.elementsFromPoint(x,y).some(e=>e.classList?.contains('strip-item')&&!e.classList.contains('ph'));
-function inkOne(el){
-  const r=el.getBoundingClientRect();
-  if(!r.width||!r.height)return;
-  const tall=r.height>r.width*1.5;
-  const hits=[.1,.3,.5,.7,.9].filter(f=>onPicture(
-    tall?r.left+r.width/2:r.left+r.width*f,
-    tall?r.top+r.height*f:r.top+r.height/2)).length;
-  el.classList.toggle('over',hits>=3);
-  const bg=window.iriColorAt?.(r.left+r.width/2,r.top+r.height/2);
-  el.style.color=hits>=3?'#fff':bg?`rgb(${bg})`:'';
+/* where the pictures are: their boxes, read once per pass (cheap), then
+   each probe is plain arithmetic instead of a hit-test */
+let picRects=[];
+function readPictures(){
+  picRects=stripZoneEl.classList.contains('show')
+    ?[...stripEl.querySelectorAll('.strip-item.show:not(.ph)')].map(e=>e.getBoundingClientRect()).filter(r=>r.right>0&&r.left<innerWidth&&r.width)
+    :[];
+}
+const onPicture=(x,y)=>picRects.some(r=>x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom);
+/* two passes so the page lays out once: measure every piece, then write
+   every colour (reading after each write would recompute the styles each
+   time) */
+function inkAll(els){
+  const jobs=els.map(el=>{
+    const r=el.getBoundingClientRect();
+    if(!r.width||!r.height)return null;
+    const tall=r.height>r.width*1.5;
+    const fs=Math.max(r.width,r.height)<90?[.25,.5,.75]:[.1,.3,.5,.7,.9];
+    const hits=fs.filter(f=>onPicture(
+      tall?r.left+r.width/2:r.left+r.width*f,
+      tall?r.top+r.height*f:r.top+r.height/2)).length;
+    const over=hits*2>fs.length;
+    const bg=over?null:window.iriColorAt?.(r.left+r.width/2,r.top+r.height/2);
+    return{el,over,color:over?'#fff':bg?`rgb(${bg})`:''};
+  });
+  jobs.forEach(j=>{
+    if(!j)return;
+    if(j.el.classList.contains('over')!==j.over)j.el.classList.toggle('over',j.over);
+    if(j.el.style.color!==j.color)j.el.style.color=j.color;
+  });
 }
 function infoInkTargets(){
   return frags.flatMap(f=>{
@@ -632,24 +653,29 @@ let indexInked=false;
 function clearIndexInk(){
   if(!indexInked)return;   // nothing to undo: don't touch the styles at all
   indexInked=false;
-  document.querySelectorAll('#menu .menu-proj-row a').forEach(a=>{a.classList.remove('over');a.style.color='';});
+  document.querySelectorAll('#menu .menu-proj-row a,#menu .w,#menu .proj-link').forEach(a=>{a.classList.remove('over');a.style.color='';});
 }
+const PROJ_INK='#menu .menu-proj-row a.active,#menu .proj-body.open .w,#menu .proj-body.open .proj-link';
 function updateIndexInk(){
   inkFrame=0;
+  readPictures();
   const body=document.body.classList;
-  if(body.contains('index-open')&&body.contains('home')){indexInked=true;document.querySelectorAll('#menu .menu-proj-row a').forEach(inkOne);}
+  const els=[];
+  if(body.contains('index-open')&&body.contains('home')){indexInked=true;els.push(...document.querySelectorAll('#menu .menu-proj-row a'));}
+  else if(selectedIdx!==null){indexInked=true;els.push(...document.querySelectorAll(PROJ_INK));}
   else clearIndexInk();
-  if(cvOpen)infoInkTargets().forEach(inkOne);
+  if(cvOpen)els.push(...infoInkTargets());
+  inkAll(els);
 }
 /* pictures still loading change what's under a word: re-check while the
    index or the info is out */
 function syncInkTimer(){
   clearInterval(inkTimer);
   const body=document.body.classList;
-  if((body.contains('index-open')&&body.contains('home'))||cvOpen){updateIndexInk();inkTimer=setInterval(updateIndexInk,400);}
+  if((body.contains('index-open')&&body.contains('home'))||cvOpen||selectedIdx!==null){updateIndexInk();inkTimer=setInterval(updateIndexInk,400);}
 }
 /* only while the index or the info is out — otherwise there's nothing to ink */
-const queueInk=()=>{if(!inkFrame&&(document.body.classList.contains('index-open')||cvOpen))inkFrame=requestAnimationFrame(updateIndexInk);};
+const queueInk=()=>{if(!inkFrame&&(document.body.classList.contains('index-open')||cvOpen||selectedIdx!==null))inkFrame=requestAnimationFrame(updateIndexInk);};
 document.getElementById('strip').addEventListener('scroll',queueInk,{passive:true});   // stripEl is declared further down
 addEventListener('resize',queueInk);
 addEventListener('mousemove',queueInk,{passive:true});   // the blobs drift with the pointer
@@ -1057,6 +1083,16 @@ window.addEventListener('popstate',()=>{
 
 /* build a project's description accordion (year, description lines, tags,
    link) — reused under its name in the index */
+/* the description is set word by word (each in its own span), so a line
+   that runs half over a picture and half over the grey inverts exactly
+   where the picture is — see updateIndexInk */
+function wordsInto(el,text){
+  text.split(/(\s+)/).forEach(t=>{
+    if(!t)return;
+    if(/^\s+$/.test(t)){el.appendChild(document.createTextNode(t));return;}
+    const w=document.createElement('span');w.className='w';w.textContent=t;el.appendChild(w);
+  });
+}
 function buildProjBody(proj){
   const body=document.createElement('div');
   body.className='proj-body';
@@ -1070,7 +1106,7 @@ function buildProjBody(proj){
     },{passive:true});
     /* year and tags share one quiet metadata line above the text */
     const meta=[proj.year,(proj.tags||[]).join(' · ')].filter(Boolean).join(' — ');
-    if(meta){const m=document.createElement('div');m.className='proj-meta';m.textContent=meta;desc.appendChild(m);}
+    if(meta){const m=document.createElement('div');m.className='proj-meta';wordsInto(m,meta);desc.appendChild(m);}
     proj.description?.forEach(line=>{
       const p=document.createElement('div');
       p.className='proj-desc-line';
@@ -1080,10 +1116,10 @@ function buildProjBody(proj){
           const link=document.createElement('a');
           link.href=normalizeUrl(run.href);link.target='_blank';link.rel='noopener';
           link.className='proj-desc-link';
-          link.textContent=run.text;
+          wordsInto(link,run.text);
           p.appendChild(link);
         }else{
-          p.appendChild(document.createTextNode(run.text));
+          wordsInto(p,run.text);
         }
       });
       desc.appendChild(p);
@@ -1378,11 +1414,10 @@ function layoutMenuOpen(){
     if(!own){b.classList.remove('shown');b.style.marginTop='';}
   });
   const pad=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pad'))||10;
-  const top=stripZoneEl.getBoundingClientRect().bottom+20;
-  const backRoom=28;   // a little air above the bottom edge
-  menuEl.style.bottom='auto';
-  menuEl.style.top=top+'px';
-  menuEl.style.maxHeight=Math.max(80,innerHeight-top-pad-backRoom)+'px';
+  /* the column stays where the index was (top-right, under the bar);
+     the description may run down over the pictures, never off screen */
+  const top=menuEl.offsetTop;
+  menuEl.style.maxHeight=Math.max(80,innerHeight-top-pad)+'px';
   menuEl.scrollTop=0;
   if(!wrap)return;
   const body=wrap.querySelector('.proj-body');
@@ -1412,13 +1447,11 @@ function layoutMenuOpen(){
       desc.classList.remove('at-end');
     }
   }
-  const rowBottom=wrap.querySelector('.menu-proj-row').getBoundingClientRect().bottom;
-  const gap=innerHeight-pad-backRoom-rowBottom-body.offsetHeight;
-  if(gap/2>14)body.style.marginTop=gap/2+'px';
+  syncInkTimer();
 }
 function layoutMenuClosed(){
   document.body.classList.add('home'); // before the FLIP measures, so the tighter phone index is part of the commit
-  updateIndexInk();
+  syncInkTimer();
   document.querySelectorAll('#menu .menu-proj').forEach(w=>{
     w.classList.remove('gone');
     const b=w.querySelector('.proj-body');
