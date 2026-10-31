@@ -65,7 +65,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      plain greyscale — so every word keeps the same thin regular */
   html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 
-  a:focus-visible,#siteTitle:focus-visible,#infoBtn:focus-visible{outline:1px solid var(--fg);outline-offset:3px;}
+  a:focus-visible,#siteTitle:focus-visible{outline:1px solid var(--fg);outline-offset:3px;}
 
   /* ══════════════════════════════════════════════════════
      THREE ZONES, ALL CENTERED, EACH PINNED TO ITS OWN EDGE —
@@ -90,9 +90,9 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     display:flex;align-items:baseline;gap:26px;white-space:nowrap;
   }
   #bar a,#bar a:visited{color:var(--fg);text-decoration:none;cursor:pointer;}
-  #infoBtn,#indexBtn{opacity:0;transition:opacity .5s ease;}
-  #infoBtn.ready,#indexBtn.ready{opacity:1;}
-  #infoBtn.active{font-style:italic;}
+  #indexBtn{opacity:0;transition:opacity .5s ease;}
+  #indexBtn.ready{opacity:1;}
+  #siteTitle.active{font-style:italic;}   /* the info is out */
   /* each word keeps the width of its italic, so nothing beside it shifts */
   .it-safe{display:inline-grid;}
   .it-safe::after{content:attr(data-label);font-style:italic;height:0;overflow:hidden;visibility:hidden;pointer-events:none;}
@@ -511,12 +511,11 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 
-<!-- TOP — Ding on the left; everything else in one bar on the right:
-     Infos · Gallery · Index at home (Index last, right above the column
-     its list drops into), Infos · Projects in the gallery, Infos · Back
-     in a project -->
+<!-- TOP — Ding on the left (on the work it shows the info, elsewhere it
+     brings the work back); on the right, Gallery · Index at home (Index
+     last, right above the column its list drops into), Projects in the
+     gallery, Back in a project -->
 <div id="bar">
-  <a href="#" id="infoBtn">infos</a>
   <nav id="tabs">
     <a href="#" data-tab="project" class="on">projects</a>
     <a href="#gallery" data-tab="gallery">gallery</a>
@@ -629,7 +628,6 @@ function hideLoader(){
     loaderEl.addEventListener('transitionend',()=>loaderEl.remove(),{once:true});
     setTimeout(()=>{
       document.getElementById('indexBtn').classList.add('ready');
-      document.getElementById('infoBtn').classList.add('ready');
       ['menu','siteTitle','tabs'].forEach(id=>{
         const el=document.getElementById(id);
         if(el)el.style.opacity='1';
@@ -847,7 +845,7 @@ function scatter(){
   const box=el=>{const r=el.getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height};};
   const hit=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)+gap-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)+gap-Math.max(a.y,b.y));
   const list=menuEl.querySelector('.menu-projects');
-  const blocked=[box(siteTitle),box(document.getElementById('infoBtn')),box(document.getElementById('tabs')),box(document.getElementById('indexBtn')),...(list&&tab!=='gallery'&&document.body.classList.contains('index-open')?[{...box(list),y:menuEl.offsetTop,h:menuEl.offsetHeight}]:[])];
+  const blocked=[box(siteTitle),box(document.getElementById('tabs')),box(document.getElementById('indexBtn')),...(list&&tab!=='gallery'&&document.body.classList.contains('index-open')?[{...box(list),y:menuEl.offsetTop,h:menuEl.offsetHeight}]:[])];
   const placed=[];
   const band=box(stripZoneEl);
   [...frags].sort((a,b)=>b.offsetWidth*b.offsetHeight-a.offsetWidth*a.offsetHeight).forEach(f=>{
@@ -875,7 +873,7 @@ function toggleCV(force){
   infoEl.classList.toggle('on',cvOpen);
   infoEl.setAttribute('aria-hidden',String(!cvOpen));
   document.body.classList.toggle('info',cvOpen);
-  document.getElementById('infoBtn').classList.toggle('active',cvOpen);
+  siteTitle.classList.toggle('active',cvOpen);
   syncInkTimer();
 }
 
@@ -915,32 +913,20 @@ function renderInfo(d){
   if(cvOpen){scatter();toggleCV(true);}
 }
 
-/* Ding is the way back, like Escape, without reloading: whatever is open
-   (enlarged media, info, project, index, gallery) closes and the home
-   comes back. A cmd/ctrl-click still opens the page in a new tab.
-   "Infos" opens and closes the info */
+/* Ding: on the work itself (the band, no project open) it shows and hides
+   the info; anywhere else — a project, the enlarged media, the gallery —
+   it brings the work back, without reloading. A cmd/ctrl-click still
+   opens the page in a new tab */
 const siteTitle=document.getElementById('siteTitle');
 siteTitle.addEventListener('click',e=>{
   if(e.metaKey||e.ctrlKey||e.shiftKey)return;
   e.preventDefault();
+  const onWork=selectedIdx===null&&tab!=='gallery'&&!lbOpen;
+  if(onWork){toggleCV();return;}
   if(lbOpen)closeLightbox();
   if(cvOpen)toggleCV(false);
-  if(document.body.classList.contains('index-open'))setIndexOpen(false);
   if(tab==='gallery')setTab('project');
   else if(selectedIdx!==null)closeProject();
-});
-document.getElementById('infoBtn').addEventListener('click',e=>{
-  e.preventDefault();
-  /* with a project open, the CV waits for the index to settle back into
-     its list layout, so its height cap is measured against the real
-     final position of the list rather than the mid-close one */
-  if(selectedIdx!==null){
-    closeProject();
-    const token=navToken;
-    setTimeout(()=>{if(token===navToken)toggleCV(true);},FADE+90);
-    return;
-  }
-  toggleCV();
 });
 
 window.addEventListener('resize',()=>{
@@ -1357,7 +1343,7 @@ function showHome(delay){swapStrip(fillHome,delay);}
 
 document.addEventListener('click',e=>{
   if(selectedIdx!==null||!POPUPS.length)return;
-  if(e.target.closest?.('a,button,video,[data-p],#menu,#tabs,#topZone,#indexBtn,#infoBtn,#info .frag,.close-link'))return;
+  if(e.target.closest?.('a,button,video,[data-p],#menu,#tabs,#topZone,#indexBtn,#info .frag,.close-link'))return;
   const m=POPUPS[Math.random()*POPUPS.length|0];
   const w=Math.round(110+Math.random()*90);
   const img=document.createElement('img');
