@@ -23,7 +23,7 @@
      open, never bold, never grey. */
   :root{
     --bg:#5c5c5e;--fg:#000;
-    --fs:15px;--pad:16px;
+    --fs:11.232px;--pad:14px;
     --top:env(safe-area-inset-top,0px);--bottom:env(safe-area-inset-bottom,0px);
     --head:calc(48px + var(--top));
     --foot:calc(64px + var(--bottom));
@@ -37,7 +37,7 @@
   }
   body{
     color:var(--fg);
-    font-family:'minion-pro','Minion Pro','Minion',serif;
+    font-family:Times,'Times New Roman',serif;
     font-size:var(--fs);line-height:1.3;letter-spacing:-.03em;
     -webkit-tap-highlight-color:transparent;
     -webkit-user-select:none;user-select:none;
@@ -56,7 +56,7 @@
     padding:var(--top) var(--pad) 0;
     display:flex;align-items:center;justify-content:space-between;
   }
-  #bar nav{display:flex;gap:20px;}
+  #bar nav{display:flex;gap:16px;}
   #bar button,#bar a{height:44px;display:flex;align-items:center;}
   #bar .on{font-style:italic;}
 
@@ -107,6 +107,33 @@
   .rows{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;}
   .ptext p{margin-bottom:.7em;}
 
+  /* ── GALLERY — work8's band: pieces of varied height side by side, no
+     gap, scrolling sideways without end ── */
+  #gallery{
+    position:fixed;left:0;right:0;top:var(--head);bottom:var(--foot);z-index:12;
+    display:flex;align-items:center;
+    opacity:0;visibility:hidden;transition:opacity .3s ease,visibility 0s linear .3s;
+  }
+  #gallery.on{opacity:1;visibility:visible;transition:opacity .3s ease;}
+  #band{
+    width:100%;height:min(60vh,700px);display:flex;align-items:center;gap:0;
+    overflow-x:auto;overflow-y:hidden;scrollbar-width:none;overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  #band::-webkit-scrollbar{display:none;}
+  #band .it{flex:0 0 auto;height:100%;display:block;background:rgba(0,0,0,.05);}
+  #band .it img,#band .it video{display:block;height:100%;width:100%;object-fit:cover;opacity:0;transition:opacity .3s ease;}
+  #band .it .ok{opacity:1;}
+  body.g #stage,body.g #zones,body.g #cap{visibility:hidden;}
+  /* on a phone the band is lower, so several pieces sit side by side */
+  @media (max-width:640px) and (orientation:portrait){#band{height:40svh;}}
+
+  /* ── a project's pieces under its text: three to a row, square, a tap
+     shows that piece ── */
+  .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;margin-top:22px;}
+  .pgrid button{display:block;aspect-ratio:1;overflow:hidden;background:rgba(0,0,0,.05);}
+  .pgrid img,.pgrid video{display:block;width:100%;height:100%;object-fit:cover;}
+
   #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;}
   @media (prefers-reduced-motion:reduce){.slide,.sheet,#cap .line{transition:none;}}
 </style>
@@ -148,6 +175,7 @@
   <a href="#" id="ding">ding</a>
   <nav>
     <button id="bIndex">index</button>
+    <button id="bGallery">gallery</button>
     <button id="bInfos">infos</button>
   </nav>
 </header>
@@ -156,6 +184,7 @@
 <div id="zones"><div class="l" aria-label="previous"></div><div class="r" aria-label="next"></div></div>
 <div id="cap"><div class="line"></div></div>
 <div id="loading">…</div>
+<div id="gallery" aria-hidden="true"><div id="band"></div></div>
 
 <div id="index" class="sheet" aria-hidden="true"><div class="in ix"></div></div>
 <div id="infos" class="sheet" aria-hidden="true"><div class="in inf"></div></div>
@@ -164,13 +193,18 @@
 <script>
 const $=s=>document.querySelector(s);
 const stageEl=$('#stage'),capEl=$('#cap .line');
-let projects=[],order=[],seq=[],cur=0,sheet=null;
+let projects=[],order=[],seq=[],cur=0,sheet=null,GALLERY=[];
 const nameOf=p=>p.displayTitle||p.client||p.title;
 const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* Sanity images at this screen's real size; GIFs untouched */
 const PX=Math.min(2000,Math.ceil(Math.max(innerWidth,innerHeight*.75)*Math.min(3,devicePixelRatio||1)/200)*200);
-const sized=u=>/^https:\/\/cdn\.sanity\.io\/images\//.test(u)&&!/\.gif(\?|$)/i.test(u)?`${u}?w=${PX}&fit=max&auto=format&q=82`:u;
+const isSanity=u=>/^https:\/\/cdn\.sanity\.io\/images\//.test(u)&&!/\.gif(\?|$)/i.test(u);
+const sized=u=>isSanity(u)?`${u}?w=${PX}&fit=max&auto=format&q=82`:u;
+/* small square crops for the grid, and band pieces at the band's height */
+const TH=Math.ceil(innerWidth/3*Math.min(3,devicePixelRatio||1)/100)*100;
+const thumb=u=>isSanity(u)?`${u}?w=${TH}&h=${TH}&fit=crop&auto=format&q=75`:u;
+const bandSize=u=>isSanity(u)?`${u}?h=${Math.min(2000,Math.ceil(innerHeight*Math.min(3,devicePixelRatio||1)/200)*200)}&fit=max&auto=format&q=80`:u;
 
 /* ── THE SEQUENCE ── every visible piece of every project, project after
    project in the index's order. Each slide is built once; only the
@@ -224,8 +258,8 @@ function show(k,{fromHash=false}={}){
 const MEDIUM={videos:'film',images:'images','graphic design':'graphic design'};
 function caption(pi){
   const p=projects[pi];
-  const bits=[nameOf(p),[MEDIUM[p.cat]||p.cat,...p.tags.filter(t=>t!==p.cat&&t!==MEDIUM[p.cat])].slice(0,2).join(', '),p.year].filter(Boolean);
-  const hasText=p.description.length||p.link;
+  const bits=[nameOf(p),p.year].filter(Boolean);
+  const hasText=true;   // "more" always has something: the text and/or the pieces
   capEl.style.opacity=0;
   setTimeout(()=>{
     capEl.innerHTML=`${bits.map(esc).join('. ')}.${hasText?' <button class="more u">more</button>':''}`;
@@ -237,8 +271,8 @@ $('#zones .l').addEventListener('click',prev);
 $('#zones .r').addEventListener('click',next);
 capEl.addEventListener('click',e=>{if(e.target.closest('.more'))openText(seq[cur].p);});
 addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeSheet();return;}
-  if(sheet)return;
+  if(e.key==='Escape'){if(sheet)closeSheet();else closeGallery();return;}
+  if(sheet||galleryOn)return;
   if(e.key==='ArrowRight')next();
   if(e.key==='ArrowLeft')prev();
 });
@@ -274,11 +308,12 @@ function closeSheet(){
   const el=$('#'+sheet);el.classList.remove('on');el.setAttribute('aria-hidden','true');
   document.querySelectorAll('#bar .on').forEach(b=>b.classList.remove('on'));
   sheet=null;
-  const v=seq[cur]?.el.firstChild;if(v&&v.tagName==='VIDEO')v.play().catch(()=>{});
+  const v=seq[cur]?.el.firstChild;if(v&&v.tagName==='VIDEO'&&!galleryOn)v.play().catch(()=>{});
 }
 $('#bIndex').addEventListener('click',()=>openSheet('index',$('#bIndex')));
 $('#bInfos').addEventListener('click',()=>openSheet('infos',$('#bInfos')));
-$('#ding').addEventListener('click',e=>{e.preventDefault();closeSheet();show(0);});
+$('#ding').addEventListener('click',e=>{e.preventDefault();closeSheet();closeGallery();show(0);});
+$('#bGallery').addEventListener('click',()=>{closeSheet();galleryOn?closeGallery():openGallery();});
 document.querySelectorAll('.sheet').forEach(s=>s.addEventListener('click',e=>{if(e.target.closest('.close'))closeSheet();}));
 
 function buildIndex(){
@@ -290,7 +325,7 @@ function buildIndex(){
     a.innerHTML='<span class="t"></span><span class="c"></span>';
     a.querySelector('.t').textContent=nameOf(p);
     a.querySelector('.c').textContent=MEDIUM[p.cat]||p.cat;
-    a.addEventListener('click',e=>{e.preventDefault();closeSheet();show(firstOf(i));});
+    a.addEventListener('click',e=>{e.preventDefault();closeSheet();closeGallery();show(firstOf(i));});
     ix.appendChild(a);
   });
   const c=document.createElement('button');c.className='close u';c.textContent='close';ix.appendChild(c);
@@ -328,6 +363,16 @@ function openText(pi){
     box.appendChild(d);
   }
   if(p.link){const b=document.createElement('div');b.className='blk';b.innerHTML=`<a class="u" target="_blank" rel="noopener"></a>`;b.firstChild.href=normalizeUrl(p.link);b.firstChild.textContent='visit project ↗';box.appendChild(b);}
+  /* every piece of the project, small; a tap closes the sheet on it */
+  const grid=document.createElement('div');grid.className='pgrid';
+  p.media.forEach((m,k)=>{
+    const b=document.createElement('button');b.setAttribute('aria-label','piece '+(k+1));
+    if(m.type==='image'){const img=new Image();img.alt='';img.decoding='async';img.loading='lazy';img.src=thumb(m.url);b.appendChild(img);}
+    else{const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='metadata';v.setAttribute('playsinline','');v.src=m.url+'#t=0.1';b.appendChild(v);}
+    b.addEventListener('click',()=>{closeSheet();show(firstOf(pi)+k);});
+    grid.appendChild(b);
+  });
+  box.appendChild(grid);
   const c=document.createElement('button');c.className='close u';c.textContent='close';box.appendChild(c);
   openSheet('text',null);
 }
@@ -359,6 +404,71 @@ function renderInfo(d){
   window.tickParis?.();
 }
 
+/* ── GALLERY ── the CMS's gallery as work8's band: three copies laid end to
+   end; when the scroll runs into the first or the last, it jumps by one
+   copy's width to the same picture in the middle one — so it never ends.
+   Heights vary (48–100% of the band, the same each visit); every piece
+   has its width before it loads, and all three copies of a piece load
+   together */
+let galleryOn=false;
+const bandEl=$('#band');
+let arCache={};
+try{arCache=JSON.parse(localStorage.getItem('odile-video-ar')||'{}')||{};}catch(e){}
+const bandNear=new IntersectionObserver(es=>es.forEach(en=>{
+  if(!en.isIntersecting)return;
+  bandEl.querySelectorAll(`[data-g="${en.target.dataset.g}"]`).forEach(x=>{
+    bandNear.unobserve(x);
+    const m=x.firstChild;
+    if(!m.getAttribute('src'))m.src=m.dataset.src;
+  });
+}),{root:bandEl,rootMargin:'0px 1200px'});
+const bandPlay=new IntersectionObserver(es=>es.forEach(({target,isIntersecting})=>{
+  const v=target.firstChild;if(v.tagName!=='VIDEO')return;
+  if(isIntersecting&&galleryOn)v.play().catch(()=>{});else v.pause();
+}),{root:bandEl,threshold:.5});
+function buildBand(){
+  bandEl.innerHTML='';
+  if(!GALLERY.length)return;
+  let seed=2004;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+  const hs=GALLERY.map(()=>Math.round(48+rnd()*52));
+  for(let c=0;c<3;c++)GALLERY.forEach((m,n)=>{
+    const it=document.createElement('div');it.className='it';it.dataset.g=n;
+    it.style.height=hs[n]+'%';
+    it.style.aspectRatio=String(m.ar||arCache[m.url]||16/9);
+    let el;
+    if(m.type==='image'){el=new Image();el.alt='';el.decoding='async';el.dataset.src=bandSize(m.url);el.onload=()=>el.classList.add('ok');}
+    else{el=document.createElement('video');el.muted=true;el.loop=true;el.playsInline=true;el.preload='metadata';el.setAttribute('playsinline','');el.dataset.src=m.url+'#t=0.1';el.addEventListener('loadeddata',()=>el.classList.add('ok'));}
+    it.appendChild(el);bandEl.appendChild(it);
+    bandNear.observe(it);bandPlay.observe(it);
+  });
+}
+const copyWidth=()=>{const it=bandEl.children,n=GALLERY.length;return it[n]?it[n].offsetLeft-it[0].offsetLeft:0;};
+bandEl.addEventListener('scroll',()=>{
+  const w=copyWidth();if(w<bandEl.clientWidth)return;
+  if(bandEl.scrollLeft<w*.5)bandEl.scrollLeft+=w;
+  else if(bandEl.scrollLeft>w*1.5)bandEl.scrollLeft-=w;
+},{passive:true});
+/* on a computer the wheel scrolls it sideways */
+bandEl.addEventListener('wheel',e=>{
+  if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){e.preventDefault();bandEl.scrollLeft+=e.deltaY*(e.deltaMode===1?40:1);}
+},{passive:false});
+function openGallery(){
+  if(!GALLERY.length)return;
+  galleryOn=true;document.body.classList.add('g');
+  $('#gallery').classList.add('on');$('#gallery').setAttribute('aria-hidden','false');
+  $('#bGallery').classList.add('on');
+  if(!bandEl.dataset.placed){bandEl.scrollLeft=copyWidth();bandEl.dataset.placed=1;}
+  const v=seq[cur]?.el.firstChild;if(v&&v.tagName==='VIDEO')v.pause();
+}
+function closeGallery(){
+  if(!galleryOn)return;
+  galleryOn=false;document.body.classList.remove('g');
+  $('#gallery').classList.remove('on');$('#gallery').setAttribute('aria-hidden','true');
+  $('#bGallery').classList.remove('on');
+  bandEl.querySelectorAll('video').forEach(v=>v.pause());
+  const v=seq[cur]?.el.firstChild;if(v&&v.tagName==='VIDEO'&&!sheet)v.play().catch(()=>{});
+}
+
 /* ── DATA ── the same CMS as work8 */
 const PID='zgrgr7sj',DS='production';
 const Q=`{
@@ -371,6 +481,7 @@ const Q=`{
       _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
       _type=="mediaVideo"=>{"url":video.asset->url}}
   },
+  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
   "about":*[_id=="about"][0]
 }`;
 const CAT_ORDER=['videos','images','graphic design'];
@@ -403,6 +514,7 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
       return q;
     });
     renderInfo(result.about);
+    GALLERY=(result.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});
   }catch(e){console.warn('[Sanity]',e.message);renderInfo(null);}
   const seen=new Set();
   projects.forEach(p=>{let b=slugify(nameOf(p)),s=b,n=2;while(seen.has(s))s=b+'-'+(n++);seen.add(s);p.slug=s;});
@@ -410,6 +522,7 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
   seq=order.flatMap(i=>projects[i].media.map(m=>({p:i,m})));
   buildStage();buildIndex();
   $('#loading').remove();
+  buildBand();
   const h=decodeURIComponent(location.hash.slice(1));
   const i=projects.findIndex(p=>p.slug===h);
   show(i!==-1?firstOf(i):0,{fromHash:i!==-1});
