@@ -14,20 +14,22 @@
 <link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
 <link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
 <style>
-  /* work13 — the work as a phone portfolio. One column (a narrow centred
-     column on a computer), a fixed bar, hairline rules, one size of type.
-     Same colours as work8: a dark grey under the reactive colour, black
-     ink. Lowercase, regular only — italic marks what's open or current,
-     never bold, never grey. */
+  /* work13 — one piece at a time. The whole work runs as a single
+     sequence, project after project; a tap on the right half of the
+     screen goes on, on the left half goes back (a swipe too). Under the
+     piece, one line says what it is. Two words in the corner open the
+     index and the infos. Same ground as work8 — the dark grey and its
+     slow colour — black ink, lowercase, regular only; italic marks what's
+     open, never bold, never grey. */
   :root{
     --bg:#5c5c5e;--fg:#000;
-    --fs:15px;--lh:1.32;--pad:16px;
+    --fs:15px;--pad:16px;
     --top:env(safe-area-inset-top,0px);--bottom:env(safe-area-inset-bottom,0px);
-    --head:calc(50px + var(--top));
-    --rule:1px solid var(--fg);
-    --col:560px;
+    --head:calc(48px + var(--top));
+    --foot:calc(64px + var(--bottom));
   }
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none;}
   html{
     background:var(--bg);
     -webkit-text-size-adjust:100%;text-size-adjust:100%;
@@ -36,122 +38,84 @@
   body{
     color:var(--fg);
     font-family:'minion-pro','Minion Pro','Minion',serif;
-    font-size:var(--fs);line-height:var(--lh);letter-spacing:-.03em;
+    font-size:var(--fs);line-height:1.3;letter-spacing:-.03em;
     -webkit-tap-highlight-color:transparent;
-    min-height:100svh;
-    overflow-anchor:none; /* a video above that grows is compensated by hand */
+    -webkit-user-select:none;user-select:none;
   }
   *{font-weight:400!important;font-synthesis-weight:none;}
   a,a:visited{color:var(--fg);text-decoration:none;}
-  button{font:inherit;color:inherit;background:none;border:0;letter-spacing:inherit;cursor:pointer;text-align:inherit;}
-  img,video{display:block;}
-  .col{max-width:var(--col);margin:0 auto;}
+  button{font:inherit;color:inherit;background:none;border:0;letter-spacing:inherit;cursor:pointer;}
+  .u{text-decoration:underline;text-underline-offset:.15em;text-decoration-thickness:1px;}
 
-  /* ── COLOUR — the reactive blobs behind everything ── */
   #iri{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
   #iri i{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;}
 
-  /* ── BAR ── fixed, the page's own grey, a hairline under it */
+  /* ── CORNERS — the name, and the two words ── */
   #bar{
-    position:fixed;left:0;right:0;top:0;z-index:30;
-    height:var(--head);padding-top:var(--top);
-    background:var(--bg);border-bottom:var(--rule);
+    position:fixed;left:0;right:0;top:0;z-index:20;height:var(--head);
+    padding:var(--top) var(--pad) 0;
+    display:flex;align-items:center;justify-content:space-between;
   }
-  #bar .col{height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);}
-  #bar nav{display:flex;gap:22px;}
-  #bar a,#bar button{display:flex;align-items:center;height:44px;}
+  #bar nav{display:flex;gap:20px;}
+  #bar button,#bar a{height:44px;display:flex;align-items:center;}
   #bar .on{font-style:italic;}
 
-  main{padding-top:var(--head);padding-bottom:calc(48px + var(--bottom));}
-  .view{display:none;}
-  .view.on{display:block;animation:in .28s ease both;}
-  @keyframes in{from{opacity:0}to{opacity:1}}
-
-  /* ── MEDIA — edge to edge; its height reserved before it loads ── */
-  .m{position:relative;width:100%;overflow:hidden;background:rgba(0,0,0,.06);}
-  .m img,.m video{width:100%;height:100%;object-fit:cover;}
-  .m img{opacity:0;transition:opacity .3s ease;}
-  .m img.ok{opacity:1;}
-  .m.tap{cursor:zoom-in;}
-
-  /* ── LIST — one block per project: caption, medium, cover ── */
-  .card{display:block;border-top:var(--rule);margin-bottom:44px;}
-  .cap{
-    display:grid;grid-template-columns:2.4em 1fr auto;gap:0 10px;align-items:baseline;
-    padding:12px var(--pad) 0;
+  /* ── STAGE — the pieces lie on top of each other; only the current one
+     shows, the change is a cross-fade ── */
+  #stage{position:fixed;left:0;right:0;top:var(--head);bottom:var(--foot);}
+  .slide{
+    position:absolute;inset:0;padding:0 var(--pad);
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;transition:opacity .45s ease;pointer-events:none;
   }
-  .cap .n,.cap .y{font-variant-numeric:tabular-nums lining-nums;}
-  .sub{padding:0 var(--pad) 12px calc(var(--pad) + 2.4em + 10px);}
-  .card .m{margin-top:2px;}
-  .card:active .t{font-style:italic;}
+  .slide.on{opacity:1;}
+  .slide img,.slide video{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;}
+  /* tap zones: left half back, right half on */
+  #zones{position:fixed;left:0;right:0;top:var(--head);bottom:var(--foot);z-index:5;display:flex;}
+  #zones div{flex:1;}
+  @media (hover:hover){#zones .l{cursor:w-resize;}#zones .r{cursor:e-resize;}}
 
-  /* ── PROJECT ── */
-  .p-head{border-top:var(--rule);}
-  .p-text{padding:2px var(--pad) 22px calc(var(--pad) + 2.4em + 10px);}
-  .p-text .meta{margin-bottom:14px;}
-  .p-text .desc p{margin-bottom:.7em;max-width:34em;-webkit-user-select:text;user-select:text;}
-  .p-text a{text-decoration:underline;text-underline-offset:.15em;text-decoration-thickness:1px;}
-  .p-media{display:flex;flex-direction:column;gap:3px;}
-  .pn{margin-top:44px;border-top:var(--rule);}
-  .pn a{
-    display:grid;grid-template-columns:5.5em 1fr;gap:10px;align-items:baseline;
-    padding:14px var(--pad);border-bottom:var(--rule);
+  /* ── CAPTION — one line under the piece ── */
+  #cap{
+    position:fixed;left:0;right:0;bottom:0;z-index:10;height:var(--foot);
+    padding:0 var(--pad) var(--bottom);
+    display:flex;align-items:center;justify-content:center;text-align:center;
   }
-  .pn a:active span:last-child{font-style:italic;}
+  #cap .line{max-width:34em;transition:opacity .25s ease;}
+  #cap .more{margin-left:.3em;}
 
-  /* ── GALLERY — two columns, pieces fall where they fit ── */
-  .g-head{border-top:var(--rule);padding:12px var(--pad);}
-  .grid{columns:2;column-gap:3px;}
-  .grid .m{break-inside:avoid;margin-bottom:3px;}
-
-  /* ── SHEETS — index and infos open over the page, under the bar ── */
+  /* ── SHEETS — index, infos, a project's text: they come over the piece,
+     on the same grey, and go with the same word ── */
   .sheet{
-    position:fixed;left:0;right:0;top:var(--head);bottom:0;z-index:25;
-    background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
-    padding-bottom:calc(32px + var(--bottom));
-    opacity:0;visibility:hidden;transition:opacity .22s ease,visibility 0s linear .22s;
+    position:fixed;inset:0;z-index:15;
+    padding:var(--head) var(--pad) calc(28px + var(--bottom));
+    overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+    background:var(--bg);
+    opacity:0;visibility:hidden;transition:opacity .25s ease,visibility 0s linear .25s;
+    -webkit-user-select:text;user-select:text;
   }
-  .sheet.on{opacity:1;visibility:visible;transition:opacity .22s ease;}
-  /* the index: number · name · medium, a rule under every line */
-  .ix a{
-    display:grid;grid-template-columns:2.4em 1fr auto;gap:0 10px;align-items:baseline;
-    padding:13px var(--pad);border-bottom:var(--rule);
-  }
-  .ix a .n{font-variant-numeric:tabular-nums lining-nums;}
-  .ix a.cur .t,.ix a:active .t{font-style:italic;}
-  /* infos: a label column (italic) and its content, rules between */
-  .inf section{display:grid;grid-template-columns:7.2em 1fr;gap:0 12px;padding:14px var(--pad);border-bottom:var(--rule);}
-  .inf .h{font-style:italic;}
-  .inf .rows{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;}
-  .inf a{text-decoration:underline;text-underline-offset:.15em;text-decoration-thickness:1px;}
-  .inf section>div+div{margin-top:0;}
+  .sheet.on{opacity:1;visibility:visible;transition:opacity .25s ease;}
+  .sheet .in{max-width:34em;margin:0 auto;padding-top:28px;}
+  .sheet .close{display:inline-block;margin-top:34px;}
+  /* index: the names, one per line, the medium after each */
+  .ix a{display:block;padding:7px 0;}
+  .ix a .c{font-style:italic;margin-left:.45em;}
+  .ix a.cur .t{font-style:italic;}
+  /* infos and a project's text: short blocks with air between them */
+  .blk+.blk{margin-top:26px;}
+  .blk .h{font-style:italic;margin-bottom:4px;}
+  .rows{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;}
+  .ptext p{margin-bottom:.7em;}
 
-  /* ── VIEWER — a picture as large as it goes, swipe for the next ── */
-  #viewer{
-    position:fixed;inset:0;z-index:40;background:var(--bg);
-    opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s linear .2s;
-  }
-  #viewer.on{opacity:1;visibility:visible;transition:opacity .2s ease;}
-  #viewer .track{
-    position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;
-    scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:contain;
-  }
-  #viewer .track::-webkit-scrollbar{display:none;}
-  #viewer .slide{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:calc(var(--head) + 8px) 0 calc(24px + var(--bottom));}
-  #viewer .slide img,#viewer .slide video{max-width:100%;max-height:100%;object-fit:contain;}
-  #viewer .close{position:absolute;top:0;right:0;left:0;height:var(--head);padding-top:var(--top);border-bottom:var(--rule);background:var(--bg);z-index:1;}
-  #viewer .close .col{height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);}
-
-  #empty{padding:40px var(--pad);}
-  @media (prefers-reduced-motion:reduce){.view.on,.sheet,#viewer,.m img{animation:none;transition:none;}}
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;}
+  @media (prefers-reduced-motion:reduce){.slide,.sheet,#cap .line{transition:none;}}
 </style>
 </head>
 <body>
 <script>
 /* ── lowercase ── every word in lowercase, except names set in capitals
-   (COHL, UNVEIL®, AI…): a word whose letters are all capitals, two or
-   more, keeps them — a possessive after it ('s) goes lowercase. Applied
-   to the text already here and to every text that arrives later */
+   (COHL, UNVEIL®, AI…); a possessive after them goes lowercase. Applied to
+   what's here and to every text that arrives later */
 (()=>{
   const word=w=>{
     const m=w.match(/^([^a-z]*?)(['’]s)?([^A-Za-zÀ-ÿ]*)$/);
@@ -181,279 +145,196 @@
 <div id="iri" aria-hidden="true"></div>
 
 <header id="bar">
-  <div class="col">
-    <a href="#" id="ding">ding</a>
-    <nav>
-      <button id="bInfos" aria-controls="infos">infos</button>
-      <a href="#gallery" id="bGallery">gallery</a>
-      <button id="bIndex" aria-controls="index">index</button>
-    </nav>
-  </div>
+  <a href="#" id="ding">ding</a>
+  <nav>
+    <button id="bIndex">index</button>
+    <button id="bInfos">infos</button>
+  </nav>
 </header>
 
-<main>
-  <div id="list" class="view col on"></div>
-  <div id="proj" class="view col"></div>
-  <div id="gallery" class="view col"></div>
-</main>
+<div id="stage" aria-live="polite"></div>
+<div id="zones"><div class="l" aria-label="previous"></div><div class="r" aria-label="next"></div></div>
+<div id="cap"><div class="line"></div></div>
+<div id="loading">…</div>
 
-<div id="index" class="sheet" aria-hidden="true"><div class="col ix"></div></div>
-<div id="infos" class="sheet" aria-hidden="true"><div class="col inf"></div></div>
-
-<div id="viewer" aria-hidden="true">
-  <div class="close"><div class="col"><span></span><button id="vClose">close</button></div></div>
-  <div class="track"></div>
-</div>
+<div id="index" class="sheet" aria-hidden="true"><div class="in ix"></div></div>
+<div id="infos" class="sheet" aria-hidden="true"><div class="in inf"></div></div>
+<div id="text" class="sheet" aria-hidden="true"><div class="in ptext"></div></div>
 
 <script>
 const $=s=>document.querySelector(s);
-const listEl=$('#list'),projEl=$('#proj'),galEl=$('#gallery'),ixEl=$('#index .ix'),infEl=$('#infos .inf');
-let projects=[],order=[],GALLERY=[];
-let view='list',openIdx=null,listY=0,sheet=null;
-const two=n=>String(n).padStart(2,'0');
+const stageEl=$('#stage'),capEl=$('#cap .line');
+let projects=[],order=[],seq=[],cur=0,sheet=null;
 const nameOf=p=>p.displayTitle||p.client||p.title;
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ── MEDIA ─────────────────────────────────────────────────────────── */
-/* Sanity images at this screen's real width; GIFs untouched */
-const W=Math.min(1600,Math.ceil(Math.min(innerWidth,560)*Math.min(3,devicePixelRatio||1)/200)*200);
-const sized=u=>/^https:\/\/cdn\.sanity\.io\/images\//.test(u)&&!/\.gif(\?|$)/i.test(u)?`${u}?w=${W}&fit=max&auto=format&q=80`:u;
-/* video proportions: the desktop page reads and keeps them in this
-   browser; whatever is known is used before a video loads */
-let arCache={};
-try{arCache=JSON.parse(localStorage.getItem('odile-video-ar')||'{}')||{};}catch(e){}
-const rememberAR=(url,ar)=>{arCache[url]=ar;try{localStorage.setItem('odile-video-ar',JSON.stringify(arCache));}catch(e){}};
+/* Sanity images at this screen's real size; GIFs untouched */
+const PX=Math.min(2000,Math.ceil(Math.max(innerWidth,innerHeight*.75)*Math.min(3,devicePixelRatio||1)/200)*200);
+const sized=u=>/^https:\/\/cdn\.sanity\.io\/images\//.test(u)&&!/\.gif(\?|$)/i.test(u)?`${u}?w=${PX}&fit=max&auto=format&q=82`:u;
 
-/* videos: the file is attached within a couple of screens and dropped
-   beyond (iOS caps how many it holds); they play, muted, only while
-   mostly on screen */
-const near=new IntersectionObserver(es=>es.forEach(({target:v,isIntersecting})=>{
-  if(isIntersecting){if(!v.getAttribute('src'))v.src=v.dataset.src;}
-  else if(v.getAttribute('src')){v.pause();v.removeAttribute('src');v.load();}
-}),{rootMargin:'150% 0px'});
-const onScreen=new IntersectionObserver(es=>es.forEach(({target:v,intersectionRatio})=>{
-  if(intersectionRatio>=.55){v.play().catch(()=>{});}else v.pause();
-}),{threshold:[0,.55]});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)document.querySelectorAll('video').forEach(v=>v.pause());});
-function release(root){
-  root.querySelectorAll('video').forEach(v=>{near.unobserve(v);onScreen.unobserve(v);v.pause();v.removeAttribute('src');v.load();});
-  root.innerHTML='';
-}
-
-/* one media: its box takes the media's proportions before anything loads */
-function media(m,{eager=false,tap=null}={}){
-  const f=document.createElement('figure');
-  f.className='m';
-  const ar=m.ar||(m.type==='video'?arCache[m.url]:0)||(m.type==='video'?16/9:1);
-  f.style.aspectRatio=String(ar);
-  if(m.type==='image'){
-    const img=new Image();
-    img.alt='';img.decoding='async';img.loading=eager?'eager':'lazy';
-    if(eager)img.fetchPriority='high';
-    img.onload=()=>img.classList.add('ok');
-    img.src=sized(m.url);
-    f.appendChild(img);
-  }else{
-    const v=document.createElement('video');
-    v.muted=true;v.loop=true;v.playsInline=true;v.preload='metadata';
-    v.setAttribute('playsinline','');v.setAttribute('muted','');
-    v.disablePictureInPicture=true;
-    v.dataset.src=m.url+'#t=0.1';   // iOS paints the first frame as a still until it plays
-    v.addEventListener('loadedmetadata',()=>{
-      if(!v.videoWidth)return;
-      const real=v.videoWidth/v.videoHeight;
-      if(!arCache[m.url])rememberAR(m.url,real);
-      if(Math.abs(real-ar)<.01)return;
-      /* it was guessed: the real proportions take over, and if the video
-         sits above what's being read, the scroll absorbs the change */
-      const before=f.offsetHeight;
-      f.style.aspectRatio=String(real);
-      const d=f.offsetHeight-before;
-      if(d&&f.getBoundingClientRect().bottom<=innerHeight*.2)scrollBy(0,d);
-    });
-    f.appendChild(v);
-    near.observe(v);onScreen.observe(v);
-  }
-  if(tap){f.classList.add('tap');f.addEventListener('click',tap);}
-  return f;
-}
-
-/* ── LIST ──────────────────────────────────────────────────────────── */
-function buildList(){
-  release(listEl);
-  if(!order.length){listEl.innerHTML='<div id="empty">nothing here yet</div>';return;}
-  order.forEach((i,n)=>{
-    const p=projects[i];
-    const a=document.createElement('a');
-    a.className='card';a.href='#'+p.slug;
-    a.innerHTML=`<div class="cap"><span class="n">${two(n+1)}</span><span class="t"></span><span class="y">${esc(p.year)}</span></div><div class="sub"></div>`;
-    a.querySelector('.t').textContent=nameOf(p);
-    a.querySelector('.sub').textContent=labels(p).slice(0,3).join(' · ');
-    const cover=p.media[0]||p.homeOnly[0];
-    if(cover)a.appendChild(media(cover,{eager:n<2}));
-    a.addEventListener('click',e=>{e.preventDefault();openProject(i);});
-    listEl.appendChild(a);
+/* ── THE SEQUENCE ── every visible piece of every project, project after
+   project in the index's order. Each slide is built once; only the
+   current one and its neighbours are given their file, and only the
+   current video plays */
+function buildStage(){
+  stageEl.innerHTML='';
+  seq.forEach((s,k)=>{
+    const el=document.createElement('div');el.className='slide';
+    if(s.m.type==='image'){
+      const img=new Image();img.alt='';img.decoding='async';img.dataset.src=sized(s.m.url);el.appendChild(img);
+    }else{
+      const v=document.createElement('video');
+      v.muted=true;v.loop=true;v.playsInline=true;v.preload='metadata';
+      v.setAttribute('playsinline','');v.setAttribute('muted','');v.disablePictureInPicture=true;
+      v.dataset.src=s.m.url+'#t=0.1';
+      el.appendChild(v);
+    }
+    s.el=el;stageEl.appendChild(el);
   });
 }
-
-/* ── PROJECT ───────────────────────────────────────────────────────── */
-function openProject(i,{push=true}={}){
-  if(view==='list')listY=scrollY;
-  closeSheet();
-  openIdx=i;
-  const p=projects[i],n=order.indexOf(i);
-  release(projEl);
-  const head=document.createElement('div');head.className='p-head';
-  head.innerHTML=`<div class="cap"><span class="n">${two(n+1)}</span><span class="t"></span><span class="y">${esc(p.year)}</span></div>`;
-  head.querySelector('.t').textContent=nameOf(p);
-  const text=document.createElement('div');text.className='p-text';
-  const meta=document.createElement('div');meta.className='meta';
-  meta.textContent=labels(p).join(' · ');
-  text.appendChild(meta);
-  if(p.description.length){
-    const d=document.createElement('div');d.className='desc';
-    p.description.forEach(line=>{
-      const para=document.createElement('p');
-      line.forEach(run=>{
-        if(run.href){const l=document.createElement('a');l.href=normalizeUrl(run.href);l.target='_blank';l.rel='noopener';l.textContent=run.text;para.appendChild(l);}
-        else para.appendChild(document.createTextNode(run.text));
-      });
-      d.appendChild(para);
-    });
-    text.appendChild(d);
-  }
-  if(p.link){const l=document.createElement('a');l.href=normalizeUrl(p.link);l.target='_blank';l.rel='noopener';l.textContent='visit project ↗';text.appendChild(l);}
-  head.appendChild(text);
-  projEl.appendChild(head);
-  const list=document.createElement('div');list.className='p-media';
-  p.media.forEach((m,k)=>list.appendChild(media(m,{eager:k<1,tap:m.type==='image'?()=>openViewer(p.media,k):null})));
-  projEl.appendChild(list);
-  /* previous / next, in the list's order, round the ends */
-  const nav=document.createElement('div');nav.className='pn';
-  const prev=order[(n-1+order.length)%order.length],next=order[(n+1)%order.length];
-  [['previous',prev],['next',next]].forEach(([label,j])=>{
-    const a=document.createElement('a');a.href='#'+projects[j].slug;
-    a.innerHTML=`<span>${label}</span><span></span>`;
-    a.lastChild.textContent=nameOf(projects[j]);
-    a.addEventListener('click',e=>{e.preventDefault();openProject(j);});
-    nav.appendChild(a);
+function feed(k){
+  const s=seq[(k+seq.length)%seq.length];if(!s)return;
+  const media=s.el.firstChild;
+  if(!media.getAttribute('src'))media.src=media.dataset.src;
+}
+function starve(k){
+  const s=seq[(k+seq.length)%seq.length];if(!s)return;
+  const media=s.el.firstChild;
+  if(media.tagName==='VIDEO'&&media.getAttribute('src')){media.pause();media.removeAttribute('src');media.load();}
+}
+function show(k,{fromHash=false}={}){
+  if(!seq.length)return;
+  const prev=seq[cur];
+  k=(k+seq.length)%seq.length;
+  cur=k;
+  seq.forEach((s,i)=>{
+    const d=Math.min(Math.abs(i-k),seq.length-Math.abs(i-k));
+    s.el.classList.toggle('on',i===k);
+    if(d<=2)feed(i);else if(d>4)starve(i);
+    const media=s.el.firstChild;
+    if(media.tagName==='VIDEO'){if(i===k)media.play().catch(()=>{});else media.pause();}
   });
-  projEl.appendChild(nav);
-  setView('proj');
-  scrollTo(0,0);
+  const s=seq[k],p=projects[s.p];
+  if(!prev||prev.p!==s.p||!capEl.textContent)caption(s.p);
+  if(!fromHash&&location.hash.slice(1)!==p.slug)history.replaceState(null,'','#'+p.slug);
   document.title=`${nameOf(p).toUpperCase()} — ODILE — WORK`;
-  if(push)history.pushState(null,'','#'+p.slug);
-}
-
-/* ── GALLERY ───────────────────────────────────────────────────────── */
-function buildGallery(){
-  release(galEl);
-  const h=document.createElement('div');h.className='g-head';h.textContent='gallery';
-  galEl.appendChild(h);
-  const g=document.createElement('div');g.className='grid';
-  GALLERY.forEach((m,k)=>g.appendChild(media(m,{eager:k<4,tap:m.type==='image'?()=>openViewer(GALLERY,k):null})));
-  if(!GALLERY.length){const e=document.createElement('div');e.id='empty';e.textContent='nothing here yet';galEl.appendChild(e);}
-  galEl.appendChild(g);
-}
-
-/* ── VIEWS ─────────────────────────────────────────────────────────── */
-function setView(v){
-  view=v;
-  [listEl,projEl,galEl].forEach(el=>el.classList.toggle('on',el.id===(v==='proj'?'proj':v==='gallery'?'gallery':'list')));
-  $('#bGallery').classList.toggle('on',v==='gallery');
-  if(v!=='proj'){openIdx=null;document.title='ODILE — WORK';}
-  if(v!=='proj')release(projEl);
-  if(v!=='gallery')release(galEl);
   markIndex();
+  window.nudgeColour?.(k);
 }
-function goList({push=true,top=false}={}){
-  closeSheet();
-  const wasList=view==='list';
-  setView('list');
-  if(wasList||top)scrollTo({top:0,behavior:wasList?'smooth':'auto'});
-  else scrollTo(0,listY);
-  if(push&&location.hash)history.pushState(null,'',location.pathname+location.search);
+const MEDIUM={videos:'film',images:'images','graphic design':'graphic design'};
+function caption(pi){
+  const p=projects[pi];
+  const bits=[nameOf(p),[MEDIUM[p.cat]||p.cat,...p.tags.filter(t=>t!==p.cat&&t!==MEDIUM[p.cat])].slice(0,2).join(', '),p.year].filter(Boolean);
+  const hasText=p.description.length||p.link;
+  capEl.style.opacity=0;
+  setTimeout(()=>{
+    capEl.innerHTML=`${bits.map(esc).join('. ')}.${hasText?' <button class="more u">more</button>':''}`;
+    capEl.style.opacity=1;
+  },120);
 }
-function goGallery({push=true}={}){
-  closeSheet();
-  if(view==='list')listY=scrollY;
-  buildGallery();setView('gallery');scrollTo(0,0);
-  if(push)history.pushState(null,'','#gallery');
-}
+const next=()=>show(cur+1),prev=()=>show(cur-1);
+$('#zones .l').addEventListener('click',prev);
+$('#zones .r').addEventListener('click',next);
+capEl.addEventListener('click',e=>{if(e.target.closest('.more'))openText(seq[cur].p);});
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeSheet();return;}
+  if(sheet)return;
+  if(e.key==='ArrowRight')next();
+  if(e.key==='ArrowLeft')prev();
+});
+/* swipe: a clear horizontal stroke turns the page */
+(()=>{
+  let x0=0,y0=0,t0=0;
+  const z=$('#zones');
+  z.addEventListener('touchstart',e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now();},{passive:true});
+  z.addEventListener('touchend',e=>{
+    const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;
+    if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)*1.3&&Date.now()-t0<700){
+      e.preventDefault();   // not also a tap
+      dx<0?next():prev();
+    }
+  });
+})();
+document.addEventListener('visibilitychange',()=>{
+  const v=seq[cur]?.el.firstChild;
+  if(v&&v.tagName==='VIDEO'){if(document.hidden)v.pause();else v.play().catch(()=>{});}
+});
 
-/* ── SHEETS ── index and infos */
-function openSheet(id){
+/* ── SHEETS ── */
+function openSheet(id,btn){
   if(sheet===id){closeSheet();return;}
   closeSheet();
   sheet=id;
   const el=$('#'+id);el.classList.add('on');el.setAttribute('aria-hidden','false');el.scrollTop=0;
-  $(id==='index'?'#bIndex':'#bInfos').classList.add('on');
-  document.documentElement.style.overflow='hidden';   // the page under it holds still
+  btn?.classList.add('on');
+  const v=seq[cur]?.el.firstChild;if(v&&v.tagName==='VIDEO')v.pause();
 }
 function closeSheet(){
   if(!sheet)return;
   const el=$('#'+sheet);el.classList.remove('on');el.setAttribute('aria-hidden','true');
-  $('#bIndex').classList.remove('on');$('#bInfos').classList.remove('on');
-  document.documentElement.style.overflow='';
+  document.querySelectorAll('#bar .on').forEach(b=>b.classList.remove('on'));
   sheet=null;
+  const v=seq[cur]?.el.firstChild;if(v&&v.tagName==='VIDEO')v.play().catch(()=>{});
 }
+$('#bIndex').addEventListener('click',()=>openSheet('index',$('#bIndex')));
+$('#bInfos').addEventListener('click',()=>openSheet('infos',$('#bInfos')));
+$('#ding').addEventListener('click',e=>{e.preventDefault();closeSheet();show(0);});
+document.querySelectorAll('.sheet').forEach(s=>s.addEventListener('click',e=>{if(e.target.closest('.close'))closeSheet();}));
+
 function buildIndex(){
-  ixEl.innerHTML='';
-  order.forEach((i,n)=>{
+  const ix=$('#index .in');
+  ix.innerHTML='';
+  order.forEach(i=>{
     const p=projects[i];
     const a=document.createElement('a');a.href='#'+p.slug;a.dataset.i=i;
-    a.innerHTML=`<span class="n">${two(n+1)}</span><span class="t"></span><span class="c"></span>`;
+    a.innerHTML='<span class="t"></span><span class="c"></span>';
     a.querySelector('.t').textContent=nameOf(p);
     a.querySelector('.c').textContent=MEDIUM[p.cat]||p.cat;
-    a.addEventListener('click',e=>{e.preventDefault();openProject(i);});
-    ixEl.appendChild(a);
+    a.addEventListener('click',e=>{e.preventDefault();closeSheet();show(firstOf(i));});
+    ix.appendChild(a);
   });
-  markIndex();
+  const c=document.createElement('button');c.className='close u';c.textContent='close';ix.appendChild(c);
 }
-function markIndex(){ixEl.querySelectorAll('a').forEach(a=>a.classList.toggle('cur',+a.dataset.i===openIdx));}
-
-$('#ding').addEventListener('click',e=>{e.preventDefault();goList({top:view==='list'});});
-$('#bIndex').addEventListener('click',()=>openSheet('index'));
-$('#bInfos').addEventListener('click',()=>openSheet('infos'));
-$('#bGallery').addEventListener('click',e=>{e.preventDefault();if(view==='gallery')goList();else goGallery();});
-addEventListener('keydown',e=>{if(e.key==='Escape'){if(viewerOn)closeViewer();else if(sheet)closeSheet();}});
-
-addEventListener('popstate',()=>{
-  closeViewer();closeSheet();
-  const h=decodeURIComponent(location.hash.slice(1));
-  const i=projects.findIndex(p=>p.slug===h);
-  if(i!==-1){openProject(i,{push:false});return;}
-  if(h==='gallery'){goGallery({push:false});return;}
-  goList({push:false});
-});
-history.scrollRestoration='manual';
-
-/* ── VIEWER ── */
-let viewerOn=false;
-const viewerEl=$('#viewer'),trackEl=viewerEl.querySelector('.track');
-function openViewer(list,k){
-  trackEl.innerHTML='';
-  list.forEach(m=>{
-    const s=document.createElement('div');s.className='slide';
-    if(m.type==='image'){const img=new Image();img.alt='';img.decoding='async';img.loading='lazy';img.src=sized(m.url);s.appendChild(img);}
-    trackEl.appendChild(s);
-  });
-  viewerOn=true;viewerEl.classList.add('on');viewerEl.setAttribute('aria-hidden','false');
-  document.documentElement.style.overflow='hidden';
-  trackEl.scrollLeft=k*trackEl.clientWidth;
+function markIndex(){
+  const pi=seq[cur]?.p;
+  document.querySelectorAll('#index a').forEach(a=>a.classList.toggle('cur',+a.dataset.i===pi));
 }
-function closeViewer(){
-  if(!viewerOn)return;
-  viewerOn=false;viewerEl.classList.remove('on');viewerEl.setAttribute('aria-hidden','true');
-  if(!sheet)document.documentElement.style.overflow='';
-  setTimeout(()=>{if(!viewerOn)trackEl.innerHTML='';},250);
+const firstOf=i=>Math.max(0,seq.findIndex(s=>s.p===i));
+
+/* a project's text: name, what it is, the words, its link */
+function normalizeUrl(href){
+  const h=String(href||'').trim();
+  if(/^(https?:|mailto:|tel:|#|\/)/i.test(h))return h;
+  return 'https://'+h.replace(/^\/+/,'');
 }
-$('#vClose').addEventListener('click',closeViewer);
-trackEl.addEventListener('click',e=>{if(!e.target.closest('video'))closeViewer();});
+function openText(pi){
+  const p=projects[pi],box=$('#text .in');
+  box.innerHTML='';
+  const head=document.createElement('div');head.className='blk';
+  head.innerHTML=`<div class="h"></div><div class="m"></div>`;
+  head.querySelector('.h').textContent=nameOf(p);
+  head.querySelector('.m').textContent=[[MEDIUM[p.cat]||p.cat,...p.tags.filter(t=>t!==p.cat&&t!==MEDIUM[p.cat])].join(', '),p.year].filter(Boolean).join(' — ');
+  box.appendChild(head);
+  if(p.description.length){
+    const d=document.createElement('div');d.className='blk';
+    p.description.forEach(line=>{
+      const para=document.createElement('p');
+      line.forEach(run=>{
+        if(run.href){const l=document.createElement('a');l.className='u';l.href=normalizeUrl(run.href);l.target='_blank';l.rel='noopener';l.textContent=run.text;para.appendChild(l);}
+        else para.appendChild(document.createTextNode(run.text));
+      });
+      d.appendChild(para);
+    });
+    box.appendChild(d);
+  }
+  if(p.link){const b=document.createElement('div');b.className='blk';b.innerHTML=`<a class="u" target="_blank" rel="noopener"></a>`;b.firstChild.href=normalizeUrl(p.link);b.firstChild.textContent='visit project ↗';box.appendChild(b);}
+  const c=document.createElement('button');c.className='close u';c.textContent='close';box.appendChild(c);
+  openSheet('text',null);
+}
 
 /* ── INFOS ── from the CMS's Infos document; each part can be switched off
    in the Studio ("Masquer sur le site") */
-const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const ext=(label,url)=>url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`:esc(label);
+const ext=(label,url)=>url?`<a class="u" href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`:esc(label);
 const clientList=c=>(typeof c==='string'?c.split(/[\n,]+/):(c||[]).map(x=>x&&x.name)).map(x=>(x||'').trim()).filter(Boolean);
 function renderInfo(d){
   d={...(d||{})};
@@ -462,23 +343,19 @@ function renderInfo(d){
   off('hideCurrent','currentText','currentPlace');off('hideEmail','email');
   off('hideInstagram','instagram');off('hideLinks','links');
   off('hideExperiences','experiences');off('hideServices','services');off('hideClients','clients');
-  const sec=(label,body)=>body?`<section><div class="h">${label}</div><div>${body}</div></section>`:'';
+  const blk=(h,body)=>body?`<div class="blk">${h?`<div class="h">${h}</div>`:''}<div>${body}</div></div>`:'';
   let html='';
-  html+=sec('ding',[esc(d.name),[esc(d.location),d.showTime?'<span class="paris-time"></span>':''].filter(Boolean).join(' ')].filter(Boolean).join('<br>'));
-  if(d.currentText||d.currentPlace)html+=sec('now',[esc(d.currentText),ext(d.currentPlace,d.currentUrl)].filter(Boolean).join(' '));
-  const h=(d.instagram||'').replace(/^@/,'');
-  html+=sec('contact',[
-    d.email&&`<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>`,
-    h&&ext('@'+h,'https://instagram.com/'+encodeURIComponent(h)),
-    ...(d.links||[]).filter(l=>l&&l.label).map(l=>ext(l.label,l.url)),
-  ].filter(Boolean).join('<br>'));
+  html+=blk('',[esc(d.name),[esc(d.location),d.showTime?'<span class="paris-time"></span>':''].filter(Boolean).join(' '),
+    (d.currentText||d.currentPlace)?[esc(d.currentText),ext(d.currentPlace,d.currentUrl)].filter(Boolean).join(' '):''].filter(Boolean).join('<br>'));
+  if(d.services)html+=blk('services',d.services.split(/\s*,\s*/).map(esc).join('<br>'));
   const xp=(d.experiences||[]).filter(x=>x&&(x.company||x.role));
-  if(xp.length)html+=sec('experiences',`<div class="rows">${xp.map(x=>
-    `<span>${esc([x.from,x.to].filter(Boolean).join(' — '))}</span><span>${ext(x.company,x.url)}<br>${esc(x.role)}</span>`).join('')}</div>`);
-  if(d.services)html+=sec('services',esc(d.services));
+  if(xp.length)html+=blk('experiences',`<div class="rows">${xp.map(x=>`<span>${esc([x.from,x.to].filter(Boolean).join(' — '))}</span><span>${ext(x.company,x.url)}, ${esc(x.role)}</span>`).join('')}</div>`);
   const cl=clientList(d.clients);
-  if(cl.length)html+=sec('clients',cl.map(esc).join(', '));
-  infEl.innerHTML=html;
+  if(cl.length)html+=blk('clients',cl.map(esc).join(', '));
+  const h=(d.instagram||'').replace(/^@/,'');
+  html+=blk('contact',[d.email&&`<a class="u" href="mailto:${esc(d.email)}">${esc(d.email)}</a>`,h&&ext('@'+h,'https://instagram.com/'+encodeURIComponent(h)),...(d.links||[]).filter(l=>l&&l.label).map(l=>ext(l.label,l.url))].filter(Boolean).join('<br>'));
+  html+='<button class="close u">close</button>';
+  $('#infos .in').innerHTML=html;
   window.tickParis?.();
 }
 
@@ -494,24 +371,15 @@ const Q=`{
       _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
       _type=="mediaVideo"=>{"url":video.asset->url}}
   },
-  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
   "about":*[_id=="about"][0]
 }`;
 const CAT_ORDER=['videos','images','graphic design'];
-const MEDIUM={videos:'film',images:'images','graphic design':'graphic design'};
-/* the medium first, then the tags, each word once */
-const labels=p=>[...new Set([MEDIUM[p.cat]||p.cat,...p.tags])];
 function category(p){
   if((p.title||'').toLowerCase()==="runner's high")return 'images';
   const t=p.tags;
   if(t.includes('film')||t.includes('music video')||t.includes('video'))return 'videos';
   if(t.includes('graphic design'))return 'graphic design';
   return 'images';
-}
-function normalizeUrl(href){
-  const h=String(href||'').trim();
-  if(/^(https?:|mailto:|tel:|#|\/)/i.test(h))return h;
-  return 'https://'+h.replace(/^\/+/,'');
 }
 const SLUG={'ø':'o','œ':'oe','æ':'ae','ð':'d','þ':'th','ł':'l','ß':'ss'};
 const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG[c]).normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'project';
@@ -521,7 +389,6 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
     const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(Q)}`);
     const{result}=await res.json();
     projects=(result.projects||[]).map(p=>{
-      const all=(p.media||[]).filter(m=>m&&m.url).map(m=>m._type==='image'||m._type==='mediaImage'?{type:'image',url:m.url,ar:m.ar||1,hidden:!!m.hidden}:{type:'video',url:m.url,hidden:!!m.hidden});
       const q={
         title:p.title||'',client:p.client||'',displayTitle:p.displayTitle||'',year:p.year||'',
         favorite:!!p.favorite,link:p.link||'',
@@ -530,24 +397,28 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
           const defs=Object.fromEntries((b.markDefs||[]).map(d=>[d._key,d]));
           return b.children.map(c=>({text:c.text||'',href:(c.marks||[]).map(k=>defs[k]).find(d=>d&&d._type==='link')?.href||null}));
         }).filter(r=>r.some(x=>x.text.trim())):[],
-        media:all.filter(m=>!m.hidden),homeOnly:all.filter(m=>m.hidden),
+        media:(p.media||[]).filter(m=>m&&m.url&&!m.hidden).map(m=>m._type==='image'||m._type==='mediaImage'?{type:'image',url:m.url}:{type:'video',url:m.url}),
       };
       q.cat=category(q);
       return q;
     });
     renderInfo(result.about);
-    GALLERY=(result.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});
   }catch(e){console.warn('[Sanity]',e.message);renderInfo(null);}
   const seen=new Set();
   projects.forEach(p=>{let b=slugify(nameOf(p)),s=b,n=2;while(seen.has(s))s=b+'-'+(n++);seen.add(s);p.slug=s;});
-  /* the desktop index's order: by medium, favourites first */
   order=projects.map((_,i)=>i).sort((a,b)=>CAT_ORDER.indexOf(projects[a].cat)-CAT_ORDER.indexOf(projects[b].cat)||(projects[b].favorite-projects[a].favorite));
-  buildList();buildIndex();
+  seq=order.flatMap(i=>projects[i].media.map(m=>({p:i,m})));
+  buildStage();buildIndex();
+  $('#loading').remove();
   const h=decodeURIComponent(location.hash.slice(1));
   const i=projects.findIndex(p=>p.slug===h);
-  if(i!==-1)openProject(i,{push:false});
-  else if(h==='gallery')goGallery({push:false});
+  show(i!==-1?firstOf(i):0,{fromHash:i!==-1});
 })();
+addEventListener('popstate',()=>{
+  const h=decodeURIComponent(location.hash.slice(1));
+  const i=projects.findIndex(p=>p.slug===h);
+  if(i!==-1&&seq[cur]?.p!==i)show(firstOf(i),{fromHash:true});
+});
 
 /* Paris time beside the city, kept to the minute */
 (()=>{
@@ -557,10 +428,9 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
   tick();setInterval(tick,15000);
 })();
 
-/* ── COLOUR ── work8's four blobs, same colours and sizes. Each is its own
-   small layer (drawn at a quarter size, scaled up) that is only ever
-   moved. They lean toward the pointer on a computer and drift gently with
-   the scroll on a phone; idle, nothing runs */
+/* ── COLOUR ── work8's four blobs, same colours and sizes, each its own
+   small layer only ever moved. They lean toward the pointer on a computer;
+   on a phone they shift a little with each turn of the page */
 (()=>{
   const iri=document.getElementById('iri');
   const DEF=[
@@ -594,7 +464,8 @@ const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG
   size();blobs.forEach(place);
   addEventListener('resize',()=>{size();blobs.forEach(place);});
   addEventListener('mousemove',e=>{mx=e.clientX/Wd;my=e.clientY/H;wake();},{passive:true});
-  addEventListener('scroll',()=>{if(matchMedia('(hover:hover)').matches)return;const t=scrollY/Math.max(1,H);mx=.5+.3*Math.sin(t*.9);my=.5+.25*Math.cos(t*.7);wake();},{passive:true});
+  /* a turn of the page on a phone nudges the colour */
+  window.nudgeColour=k=>{if(matchMedia('(hover:hover)').matches)return;mx=.5+.3*Math.sin(k*.7);my=.5+.25*Math.cos(k*.5);wake();};
 })();
 </script>
 </body>
