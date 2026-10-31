@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#5c5c5e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no,email=no,address=no">
+<title>ODILE — WORK</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
+<link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
+<style>
+  /* work13 — the work as a phone portfolio. One column (a narrow centred
+     column on a computer), a fixed bar, hairline rules, one size of type.
+     Same colours as work8: a dark grey under the reactive colour, black
+     ink. Lowercase, regular only — italic marks what's open or current,
+     never bold, never grey. */
+  :root{
+    --bg:#5c5c5e;--fg:#000;
+    --fs:15px;--lh:1.32;--pad:16px;
+    --top:env(safe-area-inset-top,0px);--bottom:env(safe-area-inset-bottom,0px);
+    --head:calc(50px + var(--top));
+    --rule:1px solid var(--fg);
+    --col:560px;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html{
+    background:var(--bg);
+    -webkit-text-size-adjust:100%;text-size-adjust:100%;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  }
+  body{
+    color:var(--fg);
+    font-family:'minion-pro','Minion Pro','Minion',serif;
+    font-size:var(--fs);line-height:var(--lh);letter-spacing:-.03em;
+    -webkit-tap-highlight-color:transparent;
+    min-height:100svh;
+    overflow-anchor:none; /* a video above that grows is compensated by hand */
+  }
+  *{font-weight:400!important;font-synthesis-weight:none;}
+  a,a:visited{color:var(--fg);text-decoration:none;}
+  button{font:inherit;color:inherit;background:none;border:0;letter-spacing:inherit;cursor:pointer;text-align:inherit;}
+  img,video{display:block;}
+  .col{max-width:var(--col);margin:0 auto;}
+
+  /* ── COLOUR — the reactive blobs behind everything ── */
+  #iri{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
+  #iri i{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;}
+
+  /* ── BAR ── fixed, the page's own grey, a hairline under it */
+  #bar{
+    position:fixed;left:0;right:0;top:0;z-index:30;
+    height:var(--head);padding-top:var(--top);
+    background:var(--bg);border-bottom:var(--rule);
+  }
+  #bar .col{height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);}
+  #bar nav{display:flex;gap:22px;}
+  #bar a,#bar button{display:flex;align-items:center;height:44px;}
+  #bar .on{font-style:italic;}
+
+  main{padding-top:var(--head);padding-bottom:calc(48px + var(--bottom));}
+  .view{display:none;}
+  .view.on{display:block;animation:in .28s ease both;}
+  @keyframes in{from{opacity:0}to{opacity:1}}
+
+  /* ── MEDIA — edge to edge; its height reserved before it loads ── */
+  .m{position:relative;width:100%;overflow:hidden;background:rgba(0,0,0,.06);}
+  .m img,.m video{width:100%;height:100%;object-fit:cover;}
+  .m img{opacity:0;transition:opacity .3s ease;}
+  .m img.ok{opacity:1;}
+  .m.tap{cursor:zoom-in;}
+
+  /* ── LIST — one block per project: caption, medium, cover ── */
+  .card{display:block;border-top:var(--rule);margin-bottom:44px;}
+  .cap{
+    display:grid;grid-template-columns:2.4em 1fr auto;gap:0 10px;align-items:baseline;
+    padding:12px var(--pad) 0;
+  }
+  .cap .n,.cap .y{font-variant-numeric:tabular-nums lining-nums;}
+  .sub{padding:0 var(--pad) 12px calc(var(--pad) + 2.4em + 10px);}
+  .card .m{margin-top:2px;}
+  .card:active .t{font-style:italic;}
+
+  /* ── PROJECT ── */
+  .p-head{border-top:var(--rule);}
+  .p-text{padding:2px var(--pad) 22px calc(var(--pad) + 2.4em + 10px);}
+  .p-text .meta{margin-bottom:14px;}
+  .p-text .desc p{margin-bottom:.7em;max-width:34em;-webkit-user-select:text;user-select:text;}
+  .p-text a{text-decoration:underline;text-underline-offset:.15em;text-decoration-thickness:1px;}
+  .p-media{display:flex;flex-direction:column;gap:3px;}
+  .pn{margin-top:44px;border-top:var(--rule);}
+  .pn a{
+    display:grid;grid-template-columns:5.5em 1fr;gap:10px;align-items:baseline;
+    padding:14px var(--pad);border-bottom:var(--rule);
+  }
+  .pn a:active span:last-child{font-style:italic;}
+
+  /* ── GALLERY — two columns, pieces fall where they fit ── */
+  .g-head{border-top:var(--rule);padding:12px var(--pad);}
+  .grid{columns:2;column-gap:3px;}
+  .grid .m{break-inside:avoid;margin-bottom:3px;}
+
+  /* ── SHEETS — index and infos open over the page, under the bar ── */
+  .sheet{
+    position:fixed;left:0;right:0;top:var(--head);bottom:0;z-index:25;
+    background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+    padding-bottom:calc(32px + var(--bottom));
+    opacity:0;visibility:hidden;transition:opacity .22s ease,visibility 0s linear .22s;
+  }
+  .sheet.on{opacity:1;visibility:visible;transition:opacity .22s ease;}
+  /* the index: number · name · medium, a rule under every line */
+  .ix a{
+    display:grid;grid-template-columns:2.4em 1fr auto;gap:0 10px;align-items:baseline;
+    padding:13px var(--pad);border-bottom:var(--rule);
+  }
+  .ix a .n{font-variant-numeric:tabular-nums lining-nums;}
+  .ix a.cur .t,.ix a:active .t{font-style:italic;}
+  /* infos: a label column (italic) and its content, rules between */
+  .inf section{display:grid;grid-template-columns:7.2em 1fr;gap:0 12px;padding:14px var(--pad);border-bottom:var(--rule);}
+  .inf .h{font-style:italic;}
+  .inf .rows{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;}
+  .inf a{text-decoration:underline;text-underline-offset:.15em;text-decoration-thickness:1px;}
+  .inf section>div+div{margin-top:0;}
+
+  /* ── VIEWER — a picture as large as it goes, swipe for the next ── */
+  #viewer{
+    position:fixed;inset:0;z-index:40;background:var(--bg);
+    opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s linear .2s;
+  }
+  #viewer.on{opacity:1;visibility:visible;transition:opacity .2s ease;}
+  #viewer .track{
+    position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;
+    scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior:contain;
+  }
+  #viewer .track::-webkit-scrollbar{display:none;}
+  #viewer .slide{flex:0 0 100%;height:100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;padding:calc(var(--head) + 8px) 0 calc(24px + var(--bottom));}
+  #viewer .slide img,#viewer .slide video{max-width:100%;max-height:100%;object-fit:contain;}
+  #viewer .close{position:absolute;top:0;right:0;left:0;height:var(--head);padding-top:var(--top);border-bottom:var(--rule);background:var(--bg);z-index:1;}
+  #viewer .close .col{height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);}
+
+  #empty{padding:40px var(--pad);}
+  @media (prefers-reduced-motion:reduce){.view.on,.sheet,#viewer,.m img{animation:none;transition:none;}}
+</style>
+</head>
+<body>
+<script>
+/* ── lowercase ── every word in lowercase, except names set in capitals
+   (COHL, UNVEIL®, AI…): a word whose letters are all capitals, two or
+   more, keeps them — a possessive after it ('s) goes lowercase. Applied
+   to the text already here and to every text that arrives later */
+(()=>{
+  const word=w=>{
+    const m=w.match(/^([^a-z]*?)(['’]s)?([^A-Za-zÀ-ÿ]*)$/);
+    if(m&&(m[1].match(/[A-ZÀ-Þ]/g)||[]).length>=2&&!/[a-zß-ÿ]/.test(m[1]))return m[1]+(m[2]||'').toLowerCase()+m[3];
+    return w.toLowerCase();
+  };
+  const lc=t=>t.replace(/\S+/g,word);
+  window.lowerText=lc;
+  const SKIP=new Set(['SCRIPT','STYLE','NOSCRIPT']);
+  const fix=n=>{
+    if(n.nodeType===3){
+      if(n.parentNode&&SKIP.has(n.parentNode.nodeName))return;
+      const v=lc(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v;
+    }else if(n.nodeType===1&&!SKIP.has(n.nodeName)){
+      const w=document.createTreeWalker(n,NodeFilter.SHOW_TEXT);
+      for(let t=w.nextNode();t;t=w.nextNode())fix(t);
+    }
+  };
+  fix(document.body);
+  new MutationObserver(ms=>ms.forEach(m=>{
+    if(m.type==='characterData')fix(m.target);
+    else m.addedNodes.forEach(fix);
+  })).observe(document.body,{subtree:true,childList:true,characterData:true});
+})();
+</script>
+
+<div id="iri" aria-hidden="true"></div>
+
+<header id="bar">
+  <div class="col">
+    <a href="#" id="ding">ding</a>
+    <nav>
+      <button id="bInfos" aria-controls="infos">infos</button>
+      <a href="#gallery" id="bGallery">gallery</a>
+      <button id="bIndex" aria-controls="index">index</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div id="list" class="view col on"></div>
+  <div id="proj" class="view col"></div>
+  <div id="gallery" class="view col"></div>
+</main>
+
+<div id="index" class="sheet" aria-hidden="true"><div class="col ix"></div></div>
+<div id="infos" class="sheet" aria-hidden="true"><div class="col inf"></div></div>
+
+<div id="viewer" aria-hidden="true">
+  <div class="close"><div class="col"><span></span><button id="vClose">close</button></div></div>
+  <div class="track"></div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const listEl=$('#list'),projEl=$('#proj'),galEl=$('#gallery'),ixEl=$('#index .ix'),infEl=$('#infos .inf');
+let projects=[],order=[],GALLERY=[];
+let view='list',openIdx=null,listY=0,sheet=null;
+const two=n=>String(n).padStart(2,'0');
+const nameOf=p=>p.displayTitle||p.client||p.title;
+
+/* ── MEDIA ─────────────────────────────────────────────────────────── */
+/* Sanity images at this screen's real width; GIFs untouched */
+const W=Math.min(1600,Math.ceil(Math.min(innerWidth,560)*Math.min(3,devicePixelRatio||1)/200)*200);
+const sized=u=>/^https:\/\/cdn\.sanity\.io\/images\//.test(u)&&!/\.gif(\?|$)/i.test(u)?`${u}?w=${W}&fit=max&auto=format&q=80`:u;
+/* video proportions: the desktop page reads and keeps them in this
+   browser; whatever is known is used before a video loads */
+let arCache={};
+try{arCache=JSON.parse(localStorage.getItem('odile-video-ar')||'{}')||{};}catch(e){}
+const rememberAR=(url,ar)=>{arCache[url]=ar;try{localStorage.setItem('odile-video-ar',JSON.stringify(arCache));}catch(e){}};
+
+/* videos: the file is attached within a couple of screens and dropped
+   beyond (iOS caps how many it holds); they play, muted, only while
+   mostly on screen */
+const near=new IntersectionObserver(es=>es.forEach(({target:v,isIntersecting})=>{
+  if(isIntersecting){if(!v.getAttribute('src'))v.src=v.dataset.src;}
+  else if(v.getAttribute('src')){v.pause();v.removeAttribute('src');v.load();}
+}),{rootMargin:'150% 0px'});
+const onScreen=new IntersectionObserver(es=>es.forEach(({target:v,intersectionRatio})=>{
+  if(intersectionRatio>=.55){v.play().catch(()=>{});}else v.pause();
+}),{threshold:[0,.55]});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)document.querySelectorAll('video').forEach(v=>v.pause());});
+function release(root){
+  root.querySelectorAll('video').forEach(v=>{near.unobserve(v);onScreen.unobserve(v);v.pause();v.removeAttribute('src');v.load();});
+  root.innerHTML='';
+}
+
+/* one media: its box takes the media's proportions before anything loads */
+function media(m,{eager=false,tap=null}={}){
+  const f=document.createElement('figure');
+  f.className='m';
+  const ar=m.ar||(m.type==='video'?arCache[m.url]:0)||(m.type==='video'?16/9:1);
+  f.style.aspectRatio=String(ar);
+  if(m.type==='image'){
+    const img=new Image();
+    img.alt='';img.decoding='async';img.loading=eager?'eager':'lazy';
+    if(eager)img.fetchPriority='high';
+    img.onload=()=>img.classList.add('ok');
+    img.src=sized(m.url);
+    f.appendChild(img);
+  }else{
+    const v=document.createElement('video');
+    v.muted=true;v.loop=true;v.playsInline=true;v.preload='metadata';
+    v.setAttribute('playsinline','');v.setAttribute('muted','');
+    v.disablePictureInPicture=true;
+    v.dataset.src=m.url+'#t=0.1';   // iOS paints the first frame as a still until it plays
+    v.addEventListener('loadedmetadata',()=>{
+      if(!v.videoWidth)return;
+      const real=v.videoWidth/v.videoHeight;
+      if(!arCache[m.url])rememberAR(m.url,real);
+      if(Math.abs(real-ar)<.01)return;
+      /* it was guessed: the real proportions take over, and if the video
+         sits above what's being read, the scroll absorbs the change */
+      const before=f.offsetHeight;
+      f.style.aspectRatio=String(real);
+      const d=f.offsetHeight-before;
+      if(d&&f.getBoundingClientRect().bottom<=innerHeight*.2)scrollBy(0,d);
+    });
+    f.appendChild(v);
+    near.observe(v);onScreen.observe(v);
+  }
+  if(tap){f.classList.add('tap');f.addEventListener('click',tap);}
+  return f;
+}
+
+/* ── LIST ──────────────────────────────────────────────────────────── */
+function buildList(){
+  release(listEl);
+  if(!order.length){listEl.innerHTML='<div id="empty">nothing here yet</div>';return;}
+  order.forEach((i,n)=>{
+    const p=projects[i];
+    const a=document.createElement('a');
+    a.className='card';a.href='#'+p.slug;
+    a.innerHTML=`<div class="cap"><span class="n">${two(n+1)}</span><span class="t"></span><span class="y">${esc(p.year)}</span></div><div class="sub"></div>`;
+    a.querySelector('.t').textContent=nameOf(p);
+    a.querySelector('.sub').textContent=labels(p).slice(0,3).join(' · ');
+    const cover=p.media[0]||p.homeOnly[0];
+    if(cover)a.appendChild(media(cover,{eager:n<2}));
+    a.addEventListener('click',e=>{e.preventDefault();openProject(i);});
+    listEl.appendChild(a);
+  });
+}
+
+/* ── PROJECT ───────────────────────────────────────────────────────── */
+function openProject(i,{push=true}={}){
+  if(view==='list')listY=scrollY;
+  closeSheet();
+  openIdx=i;
+  const p=projects[i],n=order.indexOf(i);
+  release(projEl);
+  const head=document.createElement('div');head.className='p-head';
+  head.innerHTML=`<div class="cap"><span class="n">${two(n+1)}</span><span class="t"></span><span class="y">${esc(p.year)}</span></div>`;
+  head.querySelector('.t').textContent=nameOf(p);
+  const text=document.createElement('div');text.className='p-text';
+  const meta=document.createElement('div');meta.className='meta';
+  meta.textContent=labels(p).join(' · ');
+  text.appendChild(meta);
+  if(p.description.length){
+    const d=document.createElement('div');d.className='desc';
+    p.description.forEach(line=>{
+      const para=document.createElement('p');
+      line.forEach(run=>{
+        if(run.href){const l=document.createElement('a');l.href=normalizeUrl(run.href);l.target='_blank';l.rel='noopener';l.textContent=run.text;para.appendChild(l);}
+        else para.appendChild(document.createTextNode(run.text));
+      });
+      d.appendChild(para);
+    });
+    text.appendChild(d);
+  }
+  if(p.link){const l=document.createElement('a');l.href=normalizeUrl(p.link);l.target='_blank';l.rel='noopener';l.textContent='visit project ↗';text.appendChild(l);}
+  head.appendChild(text);
+  projEl.appendChild(head);
+  const list=document.createElement('div');list.className='p-media';
+  p.media.forEach((m,k)=>list.appendChild(media(m,{eager:k<1,tap:m.type==='image'?()=>openViewer(p.media,k):null})));
+  projEl.appendChild(list);
+  /* previous / next, in the list's order, round the ends */
+  const nav=document.createElement('div');nav.className='pn';
+  const prev=order[(n-1+order.length)%order.length],next=order[(n+1)%order.length];
+  [['previous',prev],['next',next]].forEach(([label,j])=>{
+    const a=document.createElement('a');a.href='#'+projects[j].slug;
+    a.innerHTML=`<span>${label}</span><span></span>`;
+    a.lastChild.textContent=nameOf(projects[j]);
+    a.addEventListener('click',e=>{e.preventDefault();openProject(j);});
+    nav.appendChild(a);
+  });
+  projEl.appendChild(nav);
+  setView('proj');
+  scrollTo(0,0);
+  document.title=`${nameOf(p).toUpperCase()} — ODILE — WORK`;
+  if(push)history.pushState(null,'','#'+p.slug);
+}
+
+/* ── GALLERY ───────────────────────────────────────────────────────── */
+function buildGallery(){
+  release(galEl);
+  const h=document.createElement('div');h.className='g-head';h.textContent='gallery';
+  galEl.appendChild(h);
+  const g=document.createElement('div');g.className='grid';
+  GALLERY.forEach((m,k)=>g.appendChild(media(m,{eager:k<4,tap:m.type==='image'?()=>openViewer(GALLERY,k):null})));
+  if(!GALLERY.length){const e=document.createElement('div');e.id='empty';e.textContent='nothing here yet';galEl.appendChild(e);}
+  galEl.appendChild(g);
+}
+
+/* ── VIEWS ─────────────────────────────────────────────────────────── */
+function setView(v){
+  view=v;
+  [listEl,projEl,galEl].forEach(el=>el.classList.toggle('on',el.id===(v==='proj'?'proj':v==='gallery'?'gallery':'list')));
+  $('#bGallery').classList.toggle('on',v==='gallery');
+  if(v!=='proj'){openIdx=null;document.title='ODILE — WORK';}
+  if(v!=='proj')release(projEl);
+  if(v!=='gallery')release(galEl);
+  markIndex();
+}
+function goList({push=true,top=false}={}){
+  closeSheet();
+  const wasList=view==='list';
+  setView('list');
+  if(wasList||top)scrollTo({top:0,behavior:wasList?'smooth':'auto'});
+  else scrollTo(0,listY);
+  if(push&&location.hash)history.pushState(null,'',location.pathname+location.search);
+}
+function goGallery({push=true}={}){
+  closeSheet();
+  if(view==='list')listY=scrollY;
+  buildGallery();setView('gallery');scrollTo(0,0);
+  if(push)history.pushState(null,'','#gallery');
+}
+
+/* ── SHEETS ── index and infos */
+function openSheet(id){
+  if(sheet===id){closeSheet();return;}
+  closeSheet();
+  sheet=id;
+  const el=$('#'+id);el.classList.add('on');el.setAttribute('aria-hidden','false');el.scrollTop=0;
+  $(id==='index'?'#bIndex':'#bInfos').classList.add('on');
+  document.documentElement.style.overflow='hidden';   // the page under it holds still
+}
+function closeSheet(){
+  if(!sheet)return;
+  const el=$('#'+sheet);el.classList.remove('on');el.setAttribute('aria-hidden','true');
+  $('#bIndex').classList.remove('on');$('#bInfos').classList.remove('on');
+  document.documentElement.style.overflow='';
+  sheet=null;
+}
+function buildIndex(){
+  ixEl.innerHTML='';
+  order.forEach((i,n)=>{
+    const p=projects[i];
+    const a=document.createElement('a');a.href='#'+p.slug;a.dataset.i=i;
+    a.innerHTML=`<span class="n">${two(n+1)}</span><span class="t"></span><span class="c"></span>`;
+    a.querySelector('.t').textContent=nameOf(p);
+    a.querySelector('.c').textContent=MEDIUM[p.cat]||p.cat;
+    a.addEventListener('click',e=>{e.preventDefault();openProject(i);});
+    ixEl.appendChild(a);
+  });
+  markIndex();
+}
+function markIndex(){ixEl.querySelectorAll('a').forEach(a=>a.classList.toggle('cur',+a.dataset.i===openIdx));}
+
+$('#ding').addEventListener('click',e=>{e.preventDefault();goList({top:view==='list'});});
+$('#bIndex').addEventListener('click',()=>openSheet('index'));
+$('#bInfos').addEventListener('click',()=>openSheet('infos'));
+$('#bGallery').addEventListener('click',e=>{e.preventDefault();if(view==='gallery')goList();else goGallery();});
+addEventListener('keydown',e=>{if(e.key==='Escape'){if(viewerOn)closeViewer();else if(sheet)closeSheet();}});
+
+addEventListener('popstate',()=>{
+  closeViewer();closeSheet();
+  const h=decodeURIComponent(location.hash.slice(1));
+  const i=projects.findIndex(p=>p.slug===h);
+  if(i!==-1){openProject(i,{push:false});return;}
+  if(h==='gallery'){goGallery({push:false});return;}
+  goList({push:false});
+});
+history.scrollRestoration='manual';
+
+/* ── VIEWER ── */
+let viewerOn=false;
+const viewerEl=$('#viewer'),trackEl=viewerEl.querySelector('.track');
+function openViewer(list,k){
+  trackEl.innerHTML='';
+  list.forEach(m=>{
+    const s=document.createElement('div');s.className='slide';
+    if(m.type==='image'){const img=new Image();img.alt='';img.decoding='async';img.loading='lazy';img.src=sized(m.url);s.appendChild(img);}
+    trackEl.appendChild(s);
+  });
+  viewerOn=true;viewerEl.classList.add('on');viewerEl.setAttribute('aria-hidden','false');
+  document.documentElement.style.overflow='hidden';
+  trackEl.scrollLeft=k*trackEl.clientWidth;
+}
+function closeViewer(){
+  if(!viewerOn)return;
+  viewerOn=false;viewerEl.classList.remove('on');viewerEl.setAttribute('aria-hidden','true');
+  if(!sheet)document.documentElement.style.overflow='';
+  setTimeout(()=>{if(!viewerOn)trackEl.innerHTML='';},250);
+}
+$('#vClose').addEventListener('click',closeViewer);
+trackEl.addEventListener('click',e=>{if(!e.target.closest('video'))closeViewer();});
+
+/* ── INFOS ── from the CMS's Infos document; each part can be switched off
+   in the Studio ("Masquer sur le site") */
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ext=(label,url)=>url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(label)}</a>`:esc(label);
+const clientList=c=>(typeof c==='string'?c.split(/[\n,]+/):(c||[]).map(x=>x&&x.name)).map(x=>(x||'').trim()).filter(Boolean);
+function renderInfo(d){
+  d={...(d||{})};
+  const off=(flag,...keys)=>{if(d[flag])keys.forEach(k=>{d[k]=null;});};
+  off('hideName','name');off('hideLocation','location','showTime');
+  off('hideCurrent','currentText','currentPlace');off('hideEmail','email');
+  off('hideInstagram','instagram');off('hideLinks','links');
+  off('hideExperiences','experiences');off('hideServices','services');off('hideClients','clients');
+  const sec=(label,body)=>body?`<section><div class="h">${label}</div><div>${body}</div></section>`:'';
+  let html='';
+  html+=sec('ding',[esc(d.name),[esc(d.location),d.showTime?'<span class="paris-time"></span>':''].filter(Boolean).join(' ')].filter(Boolean).join('<br>'));
+  if(d.currentText||d.currentPlace)html+=sec('now',[esc(d.currentText),ext(d.currentPlace,d.currentUrl)].filter(Boolean).join(' '));
+  const h=(d.instagram||'').replace(/^@/,'');
+  html+=sec('contact',[
+    d.email&&`<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>`,
+    h&&ext('@'+h,'https://instagram.com/'+encodeURIComponent(h)),
+    ...(d.links||[]).filter(l=>l&&l.label).map(l=>ext(l.label,l.url)),
+  ].filter(Boolean).join('<br>'));
+  const xp=(d.experiences||[]).filter(x=>x&&(x.company||x.role));
+  if(xp.length)html+=sec('experiences',`<div class="rows">${xp.map(x=>
+    `<span>${esc([x.from,x.to].filter(Boolean).join(' — '))}</span><span>${ext(x.company,x.url)}<br>${esc(x.role)}</span>`).join('')}</div>`);
+  if(d.services)html+=sec('services',esc(d.services));
+  const cl=clientList(d.clients);
+  if(cl.length)html+=sec('clients',cl.map(esc).join(', '));
+  infEl.innerHTML=html;
+  window.tickParis?.();
+}
+
+/* ── DATA ── the same CMS as work8 */
+const PID='zgrgr7sj',DS='production';
+const Q=`{
+  "projects":*[_type=="project"]|order(year desc){
+    title,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
+    "tags":tags[]->title,
+    "media":media[]{_type,"hidden":hidden==true,
+      _type=="image"=>{"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+      _type=="file"=>{"url":asset->url},
+      _type=="mediaImage"=>{"url":image.asset->url,"ar":image.asset->metadata.dimensions.aspectRatio},
+      _type=="mediaVideo"=>{"url":video.asset->url}}
+  },
+  "gallery":*[_id=="workGallery"][0].media[]{_type,"url":asset->url,"ar":asset->metadata.dimensions.aspectRatio},
+  "about":*[_id=="about"][0]
+}`;
+const CAT_ORDER=['videos','images','graphic design'];
+const MEDIUM={videos:'film',images:'images','graphic design':'graphic design'};
+/* the medium first, then the tags, each word once */
+const labels=p=>[...new Set([MEDIUM[p.cat]||p.cat,...p.tags])];
+function category(p){
+  if((p.title||'').toLowerCase()==="runner's high")return 'images';
+  const t=p.tags;
+  if(t.includes('film')||t.includes('music video')||t.includes('video'))return 'videos';
+  if(t.includes('graphic design'))return 'graphic design';
+  return 'images';
+}
+function normalizeUrl(href){
+  const h=String(href||'').trim();
+  if(/^(https?:|mailto:|tel:|#|\/)/i.test(h))return h;
+  return 'https://'+h.replace(/^\/+/,'');
+}
+const SLUG={'ø':'o','œ':'oe','æ':'ae','ð':'d','þ':'th','ł':'l','ß':'ss'};
+const slugify=s=>String(s||'').toLowerCase().replace(/[øœæðþłß]/g,c=>SLUG[c]).normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')||'project';
+
+(async()=>{
+  try{
+    const res=await fetch(`https://${PID}.api.sanity.io/v2021-10-21/data/query/${DS}?query=${encodeURIComponent(Q)}`);
+    const{result}=await res.json();
+    projects=(result.projects||[]).map(p=>{
+      const all=(p.media||[]).filter(m=>m&&m.url).map(m=>m._type==='image'||m._type==='mediaImage'?{type:'image',url:m.url,ar:m.ar||1,hidden:!!m.hidden}:{type:'video',url:m.url,hidden:!!m.hidden});
+      const q={
+        title:p.title||'',client:p.client||'',displayTitle:p.displayTitle||'',year:p.year||'',
+        favorite:!!p.favorite,link:p.link||'',
+        tags:(p.tags||[]).filter(Boolean).map(t=>t.toLowerCase().trim()),
+        description:Array.isArray(p.description)?p.description.filter(b=>b._type==='block'&&Array.isArray(b.children)).map(b=>{
+          const defs=Object.fromEntries((b.markDefs||[]).map(d=>[d._key,d]));
+          return b.children.map(c=>({text:c.text||'',href:(c.marks||[]).map(k=>defs[k]).find(d=>d&&d._type==='link')?.href||null}));
+        }).filter(r=>r.some(x=>x.text.trim())):[],
+        media:all.filter(m=>!m.hidden),homeOnly:all.filter(m=>m.hidden),
+      };
+      q.cat=category(q);
+      return q;
+    });
+    renderInfo(result.about);
+    GALLERY=(result.gallery||[]).filter(m=>m&&m.url).map(m=>m._type==='file'?{type:'video',url:m.url}:{type:'image',url:m.url,ar:m.ar||1});
+  }catch(e){console.warn('[Sanity]',e.message);renderInfo(null);}
+  const seen=new Set();
+  projects.forEach(p=>{let b=slugify(nameOf(p)),s=b,n=2;while(seen.has(s))s=b+'-'+(n++);seen.add(s);p.slug=s;});
+  /* the desktop index's order: by medium, favourites first */
+  order=projects.map((_,i)=>i).sort((a,b)=>CAT_ORDER.indexOf(projects[a].cat)-CAT_ORDER.indexOf(projects[b].cat)||(projects[b].favorite-projects[a].favorite));
+  buildList();buildIndex();
+  const h=decodeURIComponent(location.hash.slice(1));
+  const i=projects.findIndex(p=>p.slug===h);
+  if(i!==-1)openProject(i,{push:false});
+  else if(h==='gallery')goGallery({push:false});
+})();
+
+/* Paris time beside the city, kept to the minute */
+(()=>{
+  const fmt=new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris',hour:'2-digit',minute:'2-digit'});
+  const tick=()=>document.querySelectorAll('.paris-time').forEach(e=>{e.textContent=fmt.format(new Date());});
+  window.tickParis=tick;
+  tick();setInterval(tick,15000);
+})();
+
+/* ── COLOUR ── work8's four blobs, same colours and sizes. Each is its own
+   small layer (drawn at a quarter size, scaled up) that is only ever
+   moved. They lean toward the pointer on a computer and drift gently with
+   the scroll on a phone; idle, nothing runs */
+(()=>{
+  const iri=document.getElementById('iri');
+  const DEF=[
+    {x:50,y:100,ax:.38,ay:.30,ease:.05,c:'212,184,110',op:.40,ex:90,ey:70},
+    {x:20,y:60,ax:-.42,ay:.34,ease:.04,c:'200,160,210',op:.36,ex:70,ey:60},
+    {x:80,y:40,ax:.36,ay:-.38,ease:.045,c:'172,202,198',op:.16,ex:95,ey:85},
+    {x:50,y:50,ax:.18,ay:.16,ease:.03,c:'210,200,190',op:.20,ex:80,ey:80},
+  ];
+  const S=4;
+  const blobs=DEF.map(d=>{
+    const el=document.createElement('i');
+    el.style.background=`radial-gradient(ellipse 50% 50% at 50% 50%,rgba(${d.c},${d.op}) 0%,transparent 55%)`;
+    iri.appendChild(el);
+    return{d,el,x:d.x,y:d.y};
+  });
+  let Wd=0,H=0,mx=.5,my=.5,running=false;
+  const size=()=>{Wd=innerWidth;H=innerHeight;blobs.forEach(({d,el})=>{el.style.width=(2*d.ex/100*Wd/S)+'px';el.style.height=(2*d.ey/100*H/S)+'px';});};
+  const place=b=>{const rx=b.d.ex/100*Wd,ry=b.d.ey/100*H;b.el.style.transform=`translate3d(${(b.x/100*Wd-rx).toFixed(1)}px,${(b.y/100*H-ry).toFixed(1)}px,0) scale(${S})`;};
+  const tick=()=>{
+    let moving=false;
+    blobs.forEach(b=>{
+      const tx=b.d.x+(mx-.5)*b.d.ax*100,ty=b.d.y+(my-.5)*b.d.ay*100;
+      b.x+=(tx-b.x)*b.d.ease;b.y+=(ty-b.y)*b.d.ease;
+      if(Math.abs(tx-b.x)>.02||Math.abs(ty-b.y)>.02)moving=true;
+      place(b);
+    });
+    running=moving;
+    if(moving)requestAnimationFrame(tick);
+  };
+  const wake=()=>{if(!running){running=true;requestAnimationFrame(tick);}};
+  size();blobs.forEach(place);
+  addEventListener('resize',()=>{size();blobs.forEach(place);});
+  addEventListener('mousemove',e=>{mx=e.clientX/Wd;my=e.clientY/H;wake();},{passive:true});
+  addEventListener('scroll',()=>{if(matchMedia('(hover:hover)').matches)return;const t=scrollY/Math.max(1,H);mx=.5+.3*Math.sin(t*.9);my=.5+.25*Math.cos(t*.7);wake();},{passive:true});
+})();
+</script>
+</body>
+</html>
