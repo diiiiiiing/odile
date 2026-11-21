@@ -9,7 +9,6 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preload" href="closed/lockscreen.jpg" as="image">
-<link rel="stylesheet" href="closed/motion.css">
 <style>
   /* Website closed — from Figma, PORTFOLIO-CLEAN › COMMERCIAL—HOME (125:42851).
      The 1920×1081 frame is white with one 600×1081 column in its middle:
@@ -47,18 +46,12 @@
   .home-ind{position:absolute;inset:97.54% 0 0 0;}
   .home-ind i{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:139px;height:5px;border-radius:100px;background:#fff;}
 
-  /* ── the orb ── every layer where Figma put it; the animated ones get
-     their motion from closed/motion.css (.m125-…) */
-  .siri{position:absolute;left:50%;bottom:61px;width:150px;height:150px;border-radius:75px;overflow:clip;perspective:367.5406799316406px;--motion-layout-transform:translateX(-50%);}
-  .siri .ab{position:absolute;}
-  .siri .fill{position:absolute;inset:0;width:100%;height:100%;}
-  .t3d{transform-style:preserve-3d;}
-  .cq{container-type:size;}
-  .ctr{display:flex;align-items:center;justify-content:center;}
-  .glow{position:absolute;border-radius:50%;background:#fff;}
-  /* the orb itself is centred with --motion-layout-transform; its layers
-     must not inherit that */
-  .siri [class*="m125-"]{--motion-layout-transform:translate(0px);}
+  /* ── the orb ── drawn live in a canvas (see the script): a dark glass
+     sphere, coloured ribbons swirling round it on tilted orbits, added
+     together so they turn white where they cross, a core that swells
+     as if Siri were speaking, and a glass rim */
+  .siri{position:absolute;left:50%;bottom:61px;width:150px;height:150px;translate:-50% 0;border-radius:50%;}
+  .siri canvas{display:block;width:100%;height:100%;}
 
   /* ── the notification ── */
   .note{
@@ -76,7 +69,6 @@
   .note .who{font-size:16px;line-height:21px;font-weight:590;color:#fff;}
   .note .what{font-size:15px;line-height:20px;font-weight:510;color:rgba(255,255,255,.6);}
 
-  @media (prefers-reduced-motion:reduce){.siri *{animation-play-state:paused!important;}}
 </style>
 </head>
 <body>
@@ -101,74 +93,7 @@
     </div>
   </div>
 
-  <div class="siri m125-43180" aria-hidden="true">
-    <!-- base disc -->
-    <div class="ab m125-43381" style="left:0;top:0;width:150px;height:150px;"><img class="fill" src="closed/orb-base.svg" alt=""></div>
-    <!-- ying (exclusion, as in Figma) -->
-    <div class="ab t3d" style="mix-blend-mode:exclusion;height:150px;inset:0 0.91% 0 24.9%;width:111.28121185302734px;overflow:visible;">
-      <div style="position:relative;width:100%;height:100%;opacity:.75;transform-origin:37.194px 75px;transform:translateZ(-2.594px);">
-        <div class="ab ctr cq" style="inset:0 calc(0.91% - 1.02px) 0 calc(24.9% - 27.71px);">
-          <div style="flex:none;width:100cqw;height:100cqh;rotate:180deg;position:relative;"><img class="fill" src="closed/orb-ying.svg" alt=""></div>
-        </div>
-        <div class="ab ctr cq" style="inset:19% calc(43.76% + 15.57px) 67.76% calc(43.16% - 20.64px);">
-          <div style="flex:none;width:100cqw;height:100cqh;rotate:180deg;position:relative;"><img class="fill" src="closed/orb-ying-dot.svg" alt=""></div>
-        </div>
-      </div>
-    </div>
-    <!-- yang (exclusion) -->
-    <div class="ab t3d cq" style="mix-blend-mode:exclusion;height:152.05886840820312px;inset:-0.19% -1.12% -1.18% -1.67%;width:154.1819305419922px;overflow:visible;">
-      <div class="ctr t3d" style="position:relative;width:100%;height:100%;">
-        <div class="t3d" style="flex:none;width:154.1819305419922px;height:152.05886840820312px;rotate:180deg;">
-          <div style="position:relative;width:100%;height:100%;transform-origin:37.133px 73.617px;transform:translateZ(-0.865px);">
-            <div style="width:154.1819305419922px;height:152.05886840820312px;transform-origin:0 0;transform:matrix(-1,0,0,-1,154.1819305419922,152.05886840820312);">
-              <div class="ab" style="inset:calc(-0.19% + 0.29px) calc(-1.12% + 1.72px) calc(-1.18% + 1.8px) calc(-1.67% + 2.58px);"><img class="fill" src="closed/orb-yang.svg" alt=""></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <!-- intersect -->
-    <div class="ab ctr t3d cq" style="inset:33.24px 31.16px 6.61px 7.86px;">
-      <div class="t3d" style="flex:none;width:hypot(58.2667cqw,44.3882cqh);height:hypot(-41.7333cqw,55.6118cqh);transform:matrix(cos(atan2(44.3882cqh,58.2667cqw)),cos(atan2(58.2667cqw,44.3882cqh)),cos(atan2(55.6118cqh,-41.7333cqw)),cos(atan2(-41.7333cqw,55.6118cqh)),0,0);">
-        <div class="m125-43693" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-intersect.svg" alt=""></div>
-      </div>
-    </div>
-    <!-- blue, right -->
-    <div class="ab ctr t3d cq" style="inset:33.18px 8.45px 30.29px 43.87px;">
-      <div class="t3d" style="flex:none;width:hypot(0.472582cqw,99.3971cqh);height:hypot(-99.5274cqw,0.602939cqh);transform:matrix(cos(atan2(99.3971cqh,0.472582cqw)),cos(atan2(0.472582cqw,99.3971cqh)),cos(atan2(0.602939cqh,-99.5274cqw)),cos(atan2(-99.5274cqw,0.602939cqh)),0,0);">
-        <div class="m125-43994" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-blue-right.svg" alt=""></div>
-      </div>
-    </div>
-    <!-- green, left -->
-    <div class="ab ctr t3d cq" style="inset:17.65px 8.44px 25.88px 10.73px;">
-      <div class="t3d" style="flex:none;width:hypot(90.1272cqw,15.9915cqh);height:hypot(-9.87277cqw,84.0085cqh);transform:matrix(cos(atan2(15.9915cqh,90.1272cqw)),cos(atan2(90.1272cqw,15.9915cqh)),cos(atan2(84.0085cqh,-9.87277cqw)),cos(atan2(-9.87277cqw,84.0085cqh)),0,0);">
-        <div class="m125-44295" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-green-left.svg" alt=""></div>
-      </div>
-    </div>
-    <!-- second intersect -->
-    <div class="ab m125-44596" style="inset:10.05px 26.69px 44.71px 26.72px;"><img class="fill" src="closed/orb-intersect-2.svg" alt=""></div>
-    <!-- red, vertical -->
-    <div class="ab ctr t3d" style="left:9.34px;top:34.03px;width:127.67px;height:77.207px;">
-      <div class="t3d" style="flex:none;transform:matrix(0.2531103193759918,0.9674374461174011,-0.9674374461174011,0.2531103193759918,0,0);">
-        <div class="m125-44897" style="position:relative;width:48.606px;height:119.251px;"><img class="fill" src="closed/orb-red-vertical.svg" alt=""></div>
-      </div>
-    </div>
-    <!-- green, horizontal -->
-    <div class="ab ctr t3d" style="left:16.05px;top:24.52px;width:123.11px;height:100.774px;">
-      <div class="t3d" style="flex:none;transform:matrix(0.5687589049339294,-0.8225043416023254,-0.8225043416023254,-0.5687589049339294,0,0);">
-        <div class="m125-45198" style="position:relative;width:36.449px;height:124.473px;"><img class="fill" src="closed/orb-green-horizontal.svg" alt=""></div>
-      </div>
-    </div>
-    <!-- the highlight: a white disc and its glow, blurred by the animation -->
-    <div class="ab t3d" style="left:42.13px;top:43.92px;width:68.07723236083984px;height:68.07723236083984px;overflow:visible;">
-      <div class="m125-45650" style="position:relative;width:100%;height:100%;">
-        <div class="glow m125-45801" style="left:0;top:0;width:68.077px;height:68.077px;"></div>
-        <div class="glow m125-45952" style="left:15.91px;top:13.84px;width:34.467px;height:34.467px;"></div>
-      </div>
-    </div>
-    <!-- rim (plus-darker) -->
-    <div class="ab" style="mix-blend-mode:plus-darker;left:50%;top:calc(50% - 0.14px);translate:-50% -50%;width:150px;height:150.287px;"><img class="fill" src="closed/orb-rim.svg" alt=""></div>
-  </div>
+  <div class="siri" aria-hidden="true"><canvas></canvas></div>
 
   <div class="note" role="status">
     <div class="row">
@@ -204,6 +129,106 @@
     go();
   },{passive:true});
   document.documentElement.addEventListener('pointerleave',()=>{tx=ty=0;go();});
+})();
+
+/* Siri. Each ribbon is a soft arc drawn once into its own sprite; every
+   frame the sprites are turned round the centre, squashed by a tilt that
+   wanders (so each reads as a ring round a sphere seen at an angle) and
+   added together. A made-up voice level drives size, speed and the core. */
+(()=>{
+  const cv=document.querySelector('.siri canvas'), ctx=cv.getContext('2d');
+  const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const D=150, TAU=Math.PI*2;
+  const RIB=[ // colour, arc length, thickness, radius, spin (turns/s), tilt speed, phase
+    {c:[255, 46,140], len:2.6, w:.36, r:.54, spin: .22, tilt:.19, ph:0.0, a:1},
+    {c:[ 48,105,255], len:2.9, w:.40, r:.50, spin:-.17, tilt:.23, ph:2.1, a:1},
+    {c:[ 32,212,236], len:2.3, w:.32, r:.56, spin: .27, tilt:.15, ph:4.0, a:.95},
+    {c:[150, 64,255], len:2.6, w:.34, r:.44, spin:-.24, tilt:.27, ph:1.3, a:.8},
+    {c:[ 72,236,172], len:1.8, w:.26, r:.50, spin: .19, tilt:.21, ph:5.2, a:.5},
+  ];
+  let px=1, sprites=[];
+  const sprite=(rb)=>{
+    const o=document.createElement('canvas'); o.width=o.height=px;
+    const g=o.getContext('2d'), R=px/2, N=48;
+    for(let i=0;i<=N;i++){
+      const u=i/N, p=Math.sin(Math.PI*u), ang=(u-.5)*rb.len;
+      const x=R+Math.cos(ang)*rb.r*R, y=R+Math.sin(ang)*rb.r*R;
+      const rad=rb.w*R*(.35+.65*p), al=.21*Math.pow(p,1.2);
+      const gr=g.createRadialGradient(x,y,0,x,y,rad);
+      gr.addColorStop(0,`rgba(${rb.c},${al})`);
+      gr.addColorStop(.45,`rgba(${rb.c},${al*.55})`);
+      gr.addColorStop(1,`rgba(${rb.c},0)`);
+      g.fillStyle=gr; g.beginPath(); g.arc(x,y,rad,0,TAU); g.fill();
+    }
+    return o;
+  };
+  const size=()=>{
+    const s=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--s'))||1;
+    const n=Math.round(D*s*(devicePixelRatio||1));
+    if(n===px)return; px=cv.width=cv.height=n; sprites=RIB.map(sprite);
+  };
+  // a voice: syllables (fast wobble) inside phrases (slow gate), never quite silent
+  const voice=t=>{
+    const syl=(Math.sin(t*7.1)+Math.sin(t*11.3+1.7)+Math.sin(t*4.7+.6))/3;
+    const x=Math.sin(t*.9)*.5+Math.sin(t*.37+2)*.5, gate=Math.min(1,Math.max(0,(x+.15)/.6));
+    return .18+.82*gate*gate*(3-2*gate)*(.55+.45*syl);
+  };
+  let last=0, ph=RIB.map(r=>r.ph), lv=.3;
+  const frame=now=>{
+    const t=now/1000, dt=Math.min(.05,last?t-last:0); last=t;
+    lv+=(voice(t)-lv)*Math.min(1,dt*9);
+    const R=px/2;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalCompositeOperation='source-over';
+    ctx.clearRect(0,0,px,px);
+    ctx.save();
+    ctx.beginPath(); ctx.arc(R,R,R,0,TAU); ctx.clip();
+    // the glass: dark, a little blue, deeper at the edge
+    let g=ctx.createRadialGradient(R*.85,R*.75,0,R,R,R);
+    g.addColorStop(0,'rgba(18,16,40,.92)'); g.addColorStop(.7,'rgba(6,6,20,.95)'); g.addColorStop(1,'rgba(0,0,8,.98)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,px,px);
+    // the ribbons, added together
+    ctx.globalCompositeOperation='lighter';
+    const grow=.92+.22*lv;
+    RIB.forEach((rb,i)=>{
+      ph[i]+=dt*TAU*rb.spin*(.55+.9*lv);
+      const axis=t*rb.tilt+rb.ph, squash=.48+.52*Math.abs(Math.cos(t*rb.tilt*1.6+rb.ph*2));
+      const k=grow*(1+.06*Math.sin(t*1.3+i));
+      ctx.setTransform(1,0,0,1,R,R);
+      ctx.rotate(axis); ctx.scale(k,k*squash); ctx.rotate(ph[i]-axis);
+      ctx.globalAlpha=rb.a*(.75+.25*squash);
+      ctx.drawImage(sprites[i],-R,-R);
+    });
+    ctx.globalAlpha=1; ctx.setTransform(1,0,0,1,0,0);
+    // the core: white light that swells with the voice
+    const cr=R*(.22+.3*lv);
+    g=ctx.createRadialGradient(R,R,0,R,R,cr);
+    g.addColorStop(0,`rgba(255,255,255,${.25+.6*lv})`); g.addColorStop(.4,`rgba(235,230,255,${.12+.3*lv})`); g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,px,px);
+    // depth: the edge of the ball darkens, then catches a cold fresnel light
+    ctx.globalCompositeOperation='source-over';
+    g=ctx.createRadialGradient(R,R,R*.78,R,R,R);
+    g.addColorStop(0,'rgba(0,0,10,0)'); g.addColorStop(1,'rgba(0,0,10,.3)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,px,px);
+    ctx.globalCompositeOperation='lighter';
+    g=ctx.createRadialGradient(R,R,R*.86,R,R,R);
+    g.addColorStop(0,'rgba(120,150,255,0)'); g.addColorStop(1,'rgba(150,170,255,.1)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,px,px);
+    // a soft highlight up top, as on glass
+    g=ctx.createRadialGradient(R*.82,R*.42,0,R*.82,R*.42,R*.42);
+    g.addColorStop(0,'rgba(255,255,255,.16)'); g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,px,px);
+    ctx.restore();
+    // the rim
+    ctx.globalCompositeOperation='source-over';
+    ctx.lineWidth=Math.max(1,px/150);
+    g=ctx.createLinearGradient(0,0,0,px);
+    g.addColorStop(0,'rgba(255,255,255,.2)'); g.addColorStop(.5,'rgba(255,255,255,.04)'); g.addColorStop(1,'rgba(255,255,255,.12)');
+    ctx.strokeStyle=g; ctx.beginPath(); ctx.arc(R,R,R-ctx.lineWidth/2,0,TAU); ctx.stroke();
+    if(!still)requestAnimationFrame(frame);
+  };
+  size(); addEventListener('resize',size);
+  if(still)frame(4200); else requestAnimationFrame(frame);
 })();
 </script>
 </body>
