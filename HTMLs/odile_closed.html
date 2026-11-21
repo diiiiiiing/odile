@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>Thomas Ding — Website closed</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preload" href="closed/lockscreen.jpg" as="image">
+<link rel="stylesheet" href="closed/motion.css">
+<style>
+  /* Website closed — from Figma, PORTFOLIO-CLEAN › COMMERCIAL—HOME (125:42851).
+     The 1920×1081 frame is white with one 600×1081 column in its middle:
+     a lock screen, a notification over it, the Siri orb at the bottom.
+     That column is laid out at its Figma size and scaled to fit the
+     window (see the script). */
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;background:#fff;overflow:hidden;}
+  body{-webkit-font-smoothing:antialiased;}
+  img{display:block;max-width:none;}
+
+  #stage{
+    position:fixed;left:50%;top:50%;width:600px;height:1081px;
+    transform:translate(-50%,-50%) scale(var(--s,1));
+  }
+
+  /* ── the phone ── */
+  .phone-col{position:absolute;inset:0;padding:24px;display:flex;flex-direction:column;gap:24px;border-radius:40px;}
+  .phone{position:relative;flex:1 0 0;min-height:1px;width:100%;border-radius:32px;}
+  .lock{position:absolute;inset:0;overflow:clip;border-radius:48px;background:rgba(128,128,128,.3);}
+  .lock>img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;}
+  .btn{position:absolute;bottom:50px;width:50px;height:50px;}
+  .btn img{position:absolute;inset:0;width:100%;height:100%;}
+  .btn.cam{right:46px;}
+  .btn.torch{left:46px;}
+  .swipe{position:absolute;top:43.8px;right:47.8px;width:48px;height:2.333px;border-radius:1.167px;background:#fff;opacity:.35;-webkit-backdrop-filter:blur(14.951px);backdrop-filter:blur(14.951px);}
+  .status{position:absolute;left:0;right:0;top:0;height:53px;}
+  .status>*{position:absolute;translate:0 -50%;}
+  .status img{position:absolute;inset:0;width:100%;height:100%;}
+  .bat-border{right:34.8px;top:calc(50% + 2.6px);width:25px;height:13px;border:1px solid #fff;border-radius:4.3px;opacity:.35;}
+  .bat-cap{right:32.57px;top:calc(50% + 2.77px);width:1.328px;height:4px;}
+  .bat-fill{right:37px;top:calc(50% + 2.6px);width:21px;height:9px;border-radius:2.5px;background:#fff;}
+  .wifi{right:67.16px;top:calc(50% + 2.75px);width:17.142px;height:12.1px;}
+  .cell{right:91.8px;top:calc(50% + 2.6px);width:19.2px;height:12px;}
+  .home-ind{position:absolute;inset:97.54% 0 0 0;}
+  .home-ind i{position:absolute;bottom:8px;left:50%;translate:-50% 0;width:139px;height:5px;border-radius:100px;background:#fff;}
+
+  /* ── the orb ── every layer where Figma put it; the animated ones get
+     their motion from closed/motion.css (.m125-…) */
+  .siri{position:absolute;left:50%;bottom:61px;width:150px;height:150px;border-radius:75px;overflow:clip;perspective:367.5406799316406px;--motion-layout-transform:translateX(-50%);}
+  .siri .ab{position:absolute;}
+  .siri .fill{position:absolute;inset:0;width:100%;height:100%;}
+  .t3d{transform-style:preserve-3d;}
+  .cq{container-type:size;}
+  .ctr{display:flex;align-items:center;justify-content:center;}
+  .glow{position:absolute;border-radius:50%;background:#fff;}
+  /* the orb itself is centred with --motion-layout-transform; its layers
+     must not inherit that */
+  .siri [class*="m125-"]{--motion-layout-transform:translate(0px);}
+
+  /* ── the notification ── */
+  .note{
+    position:absolute;left:50%;top:50%;translate:-50% -50%;width:456px;
+    padding:24px;border-radius:40px;border:1.4px solid rgba(255,255,255,.4);
+    display:flex;flex-direction:column;align-items:flex-start;
+  }
+  .note::before{
+    content:"";position:absolute;inset:0;border-radius:40px;pointer-events:none;
+    background:rgba(128,128,128,.3);mix-blend-mode:luminosity;
+    -webkit-backdrop-filter:blur(50px);backdrop-filter:blur(50px);
+  }
+  .note .row{position:relative;width:100%;display:flex;align-items:center;justify-content:space-between;}
+  .note p{white-space:nowrap;letter-spacing:-.4px;font-family:-apple-system,"SF Pro Text","SF Pro",system-ui,"Helvetica Neue",Arial,sans-serif;}
+  .note .who{font-size:16px;line-height:21px;font-weight:590;color:#fff;}
+  .note .what{font-size:15px;line-height:20px;font-weight:510;color:#2d2d2d;}
+
+  @media (prefers-reduced-motion:reduce){.siri *{animation-play-state:paused!important;}}
+</style>
+</head>
+<body>
+<main id="stage" aria-label="Thomas Ding — website closed">
+
+  <div class="phone-col">
+    <div class="phone">
+      <div class="lock">
+        <img class="bg" src="closed/lockscreen.jpg" alt="">
+        <div class="btn cam"><img src="closed/camera.svg" alt=""></div>
+        <div class="btn torch"><img src="closed/flashlight.svg" alt=""></div>
+        <div class="swipe"></div>
+        <div class="status">
+          <div class="bat-border"></div>
+          <div class="bat-cap"><img src="closed/battery-cap.svg" alt=""></div>
+          <div class="bat-fill"></div>
+          <div class="wifi"><img src="closed/wifi.svg" alt=""></div>
+          <div class="cell"><img src="closed/cellular.svg" alt=""></div>
+        </div>
+      </div>
+      <div class="home-ind"><i></i></div>
+    </div>
+  </div>
+
+  <div class="siri m125-43180" aria-hidden="true">
+    <!-- base disc -->
+    <div class="ab m125-43381" style="left:0;top:0;width:150px;height:150px;"><img class="fill" src="closed/orb-base.svg" alt=""></div>
+    <!-- ying (exclusion, as in Figma) -->
+    <div class="ab t3d" style="mix-blend-mode:exclusion;height:150px;inset:0 0.91% 0 24.9%;width:111.28121185302734px;overflow:visible;">
+      <div style="position:relative;width:100%;height:100%;opacity:.75;transform-origin:37.194px 75px;transform:translateZ(-2.594px);">
+        <div class="ab ctr cq" style="inset:0 calc(0.91% - 1.02px) 0 calc(24.9% - 27.71px);">
+          <div style="flex:none;width:100cqw;height:100cqh;rotate:180deg;position:relative;"><img class="fill" src="closed/orb-ying.svg" alt=""></div>
+        </div>
+        <div class="ab ctr cq" style="inset:19% calc(43.76% + 15.57px) 67.76% calc(43.16% - 20.64px);">
+          <div style="flex:none;width:100cqw;height:100cqh;rotate:180deg;position:relative;"><img class="fill" src="closed/orb-ying-dot.svg" alt=""></div>
+        </div>
+      </div>
+    </div>
+    <!-- yang (exclusion) -->
+    <div class="ab t3d cq" style="mix-blend-mode:exclusion;height:152.05886840820312px;inset:-0.19% -1.12% -1.18% -1.67%;width:154.1819305419922px;overflow:visible;">
+      <div class="ctr t3d" style="position:relative;width:100%;height:100%;">
+        <div class="t3d" style="flex:none;width:154.1819305419922px;height:152.05886840820312px;rotate:180deg;">
+          <div style="position:relative;width:100%;height:100%;transform-origin:37.133px 73.617px;transform:translateZ(-0.865px);">
+            <div style="width:154.1819305419922px;height:152.05886840820312px;transform-origin:0 0;transform:matrix(-1,0,0,-1,154.1819305419922,152.05886840820312);">
+              <div class="ab" style="inset:calc(-0.19% + 0.29px) calc(-1.12% + 1.72px) calc(-1.18% + 1.8px) calc(-1.67% + 2.58px);"><img class="fill" src="closed/orb-yang.svg" alt=""></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- intersect -->
+    <div class="ab ctr t3d cq" style="inset:33.24px 31.16px 6.61px 7.86px;">
+      <div class="t3d" style="flex:none;width:hypot(58.2667cqw,44.3882cqh);height:hypot(-41.7333cqw,55.6118cqh);transform:matrix(cos(atan2(44.3882cqh,58.2667cqw)),cos(atan2(58.2667cqw,44.3882cqh)),cos(atan2(55.6118cqh,-41.7333cqw)),cos(atan2(-41.7333cqw,55.6118cqh)),0,0);">
+        <div class="m125-43693" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-intersect.svg" alt=""></div>
+      </div>
+    </div>
+    <!-- blue, right -->
+    <div class="ab ctr t3d cq" style="inset:33.18px 8.45px 30.29px 43.87px;">
+      <div class="t3d" style="flex:none;width:hypot(0.472582cqw,99.3971cqh);height:hypot(-99.5274cqw,0.602939cqh);transform:matrix(cos(atan2(99.3971cqh,0.472582cqw)),cos(atan2(0.472582cqw,99.3971cqh)),cos(atan2(0.602939cqh,-99.5274cqw)),cos(atan2(-99.5274cqw,0.602939cqh)),0,0);">
+        <div class="m125-43994" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-blue-right.svg" alt=""></div>
+      </div>
+    </div>
+    <!-- green, left -->
+    <div class="ab ctr t3d cq" style="inset:17.65px 8.44px 25.88px 10.73px;">
+      <div class="t3d" style="flex:none;width:hypot(90.1272cqw,15.9915cqh);height:hypot(-9.87277cqw,84.0085cqh);transform:matrix(cos(atan2(15.9915cqh,90.1272cqw)),cos(atan2(90.1272cqw,15.9915cqh)),cos(atan2(84.0085cqh,-9.87277cqw)),cos(atan2(-9.87277cqw,84.0085cqh)),0,0);">
+        <div class="m125-44295" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-green-left.svg" alt=""></div>
+      </div>
+    </div>
+    <!-- second intersect -->
+    <div class="ab m125-44596" style="inset:10.05px 26.69px 44.71px 26.72px;"><img class="fill" src="closed/orb-intersect-2.svg" alt=""></div>
+    <!-- red, vertical -->
+    <div class="ab ctr t3d" style="left:9.34px;top:34.03px;width:127.67px;height:77.207px;">
+      <div class="t3d" style="flex:none;transform:matrix(0.2531103193759918,0.9674374461174011,-0.9674374461174011,0.2531103193759918,0,0);">
+        <div class="m125-44897" style="position:relative;width:48.606px;height:119.251px;"><img class="fill" src="closed/orb-red-vertical.svg" alt=""></div>
+      </div>
+    </div>
+    <!-- green, horizontal -->
+    <div class="ab ctr t3d" style="left:16.05px;top:24.52px;width:123.11px;height:100.774px;">
+      <div class="t3d" style="flex:none;transform:matrix(0.5687589049339294,-0.8225043416023254,-0.8225043416023254,-0.5687589049339294,0,0);">
+        <div class="m125-45198" style="position:relative;width:36.449px;height:124.473px;"><img class="fill" src="closed/orb-green-horizontal.svg" alt=""></div>
+      </div>
+    </div>
+    <!-- the highlight: a white disc and its glow, blurred by the animation -->
+    <div class="ab t3d" style="left:42.13px;top:43.92px;width:68.07723236083984px;height:68.07723236083984px;overflow:visible;">
+      <div class="m125-45650" style="position:relative;width:100%;height:100%;">
+        <div class="glow m125-45801" style="left:0;top:0;width:68.077px;height:68.077px;"></div>
+        <div class="glow m125-45952" style="left:15.91px;top:13.84px;width:34.467px;height:34.467px;"></div>
+      </div>
+    </div>
+    <!-- rim (plus-darker) -->
+    <div class="ab" style="mix-blend-mode:plus-darker;left:50%;top:calc(50% - 0.14px);translate:-50% -50%;width:150px;height:150.287px;"><img class="fill" src="closed/orb-rim.svg" alt=""></div>
+  </div>
+
+  <div class="note" role="status">
+    <div class="row">
+      <p class="who">Thomas:Ding</p>
+      <p class="what">Website closed</p>
+    </div>
+  </div>
+
+</main>
+<script>
+/* the 600×1081 column scaled to the window, as large as it fits */
+(()=>{
+  const fit=()=>document.documentElement.style.setProperty('--s',Math.min(innerHeight/1081,innerWidth/600));
+  fit();addEventListener('resize',fit);
+})();
+</script>
+</body>
+</html>
