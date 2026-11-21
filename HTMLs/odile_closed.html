@@ -59,24 +59,6 @@
   /* the orb itself is centred with --motion-layout-transform; its layers
      must not inherit that */
   .siri [class*="m125-"]{--motion-layout-transform:translate(0px);}
-  /* a touch more 3D. The orb sits on a soft shadow; its layers sit at
-     different depths and slide apart a little as the column tilts
-     (--ox/--oy, from the tilt script): the yin-yang barely, the ribbons
-     more, the light most, the reflection the other way */
-  .siri{--ox:0;--oy:0;box-shadow:0 14px 28px -8px rgba(0,0,12,.55),0 3px 8px -2px rgba(0,0,12,.35);}
-  .siri .d1{translate:calc(var(--ox)*1.2px) calc(var(--oy)*1.2px);}
-  .siri .d2{translate:calc(var(--ox)*2.6px) calc(var(--oy)*2.6px);}
-  .siri .d3{translate:calc(var(--ox)*4px) calc(var(--oy)*4px);}
-  .shade,.edge,.spec,.bounce{position:absolute;pointer-events:none;border-radius:50%;}
-  .shade{inset:0;mix-blend-mode:multiply;
-    background:radial-gradient(circle at 36% 30%,rgba(255,255,255,0) 0 38%,rgba(40,36,70,.35) 72%,rgba(10,8,30,.75) 100%);}
-  .edge{inset:0;mix-blend-mode:screen;
-    box-shadow:inset 0 0 0 .75px rgba(255,255,255,.18),inset 3px 4px 3px -1px rgba(255,255,255,.28),inset -5px -7px 12px -4px rgba(140,160,255,.32);}
-  .spec{left:26px;top:15px;width:54px;height:30px;rotate:-28deg;mix-blend-mode:screen;
-    translate:calc(var(--ox)*-2px) calc(var(--oy)*-2px);
-    background:radial-gradient(ellipse at 50% 55%,rgba(255,255,255,.5),rgba(255,255,255,.14) 45%,rgba(255,255,255,0) 72%);}
-  .bounce{left:44px;right:22px;bottom:7px;height:26px;rotate:-14deg;mix-blend-mode:screen;
-    background:radial-gradient(ellipse at 55% 80%,rgba(190,200,255,.16),rgba(190,200,255,0) 70%);}
 
   /* ── the notification ── */
   .note{
@@ -123,7 +105,7 @@
     <!-- base disc -->
     <div class="ab m125-43381" style="left:0;top:0;width:150px;height:150px;"><img class="fill" src="closed/orb-base.svg" alt=""></div>
     <!-- ying (exclusion, as in Figma) -->
-    <div class="ab t3d d1" style="mix-blend-mode:exclusion;height:150px;inset:0 0.91% 0 24.9%;width:111.28121185302734px;overflow:visible;">
+    <div class="ab t3d" style="mix-blend-mode:exclusion;height:150px;inset:0 0.91% 0 24.9%;width:111.28121185302734px;overflow:visible;">
       <div style="position:relative;width:100%;height:100%;opacity:.75;transform-origin:37.194px 75px;transform:translateZ(-2.594px);">
         <div class="ab ctr cq" style="inset:0 calc(0.91% - 1.02px) 0 calc(24.9% - 27.71px);">
           <div style="flex:none;width:100cqw;height:100cqh;rotate:180deg;position:relative;"><img class="fill" src="closed/orb-ying.svg" alt=""></div>
@@ -134,7 +116,7 @@
       </div>
     </div>
     <!-- yang (exclusion) -->
-    <div class="ab t3d cq d1" style="mix-blend-mode:exclusion;height:152.05886840820312px;inset:-0.19% -1.12% -1.18% -1.67%;width:154.1819305419922px;overflow:visible;">
+    <div class="ab t3d cq" style="mix-blend-mode:exclusion;height:152.05886840820312px;inset:-0.19% -1.12% -1.18% -1.67%;width:154.1819305419922px;overflow:visible;">
       <div class="ctr t3d" style="position:relative;width:100%;height:100%;">
         <div class="t3d" style="flex:none;width:154.1819305419922px;height:152.05886840820312px;rotate:180deg;">
           <div style="position:relative;width:100%;height:100%;transform-origin:37.133px 73.617px;transform:translateZ(-0.865px);">
@@ -146,39 +128,39 @@
       </div>
     </div>
     <!-- intersect -->
-    <div class="ab d2 ctr t3d cq" style="inset:33.24px 31.16px 6.61px 7.86px;">
+    <div class="ab ctr t3d cq" style="inset:33.24px 31.16px 6.61px 7.86px;">
       <div class="t3d" style="flex:none;width:hypot(58.2667cqw,44.3882cqh);height:hypot(-41.7333cqw,55.6118cqh);transform:matrix(cos(atan2(44.3882cqh,58.2667cqw)),cos(atan2(58.2667cqw,44.3882cqh)),cos(atan2(55.6118cqh,-41.7333cqw)),cos(atan2(-41.7333cqw,55.6118cqh)),0,0);">
         <div class="m125-43693" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-intersect.svg" alt=""></div>
       </div>
     </div>
     <!-- blue, right -->
-    <div class="ab d2 ctr t3d cq" style="inset:33.18px 8.45px 30.29px 43.87px;">
+    <div class="ab ctr t3d cq" style="inset:33.18px 8.45px 30.29px 43.87px;">
       <div class="t3d" style="flex:none;width:hypot(0.472582cqw,99.3971cqh);height:hypot(-99.5274cqw,0.602939cqh);transform:matrix(cos(atan2(99.3971cqh,0.472582cqw)),cos(atan2(0.472582cqw,99.3971cqh)),cos(atan2(0.602939cqh,-99.5274cqw)),cos(atan2(-99.5274cqw,0.602939cqh)),0,0);">
         <div class="m125-43994" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-blue-right.svg" alt=""></div>
       </div>
     </div>
     <!-- green, left -->
-    <div class="ab d2 ctr t3d cq" style="inset:17.65px 8.44px 25.88px 10.73px;">
+    <div class="ab ctr t3d cq" style="inset:17.65px 8.44px 25.88px 10.73px;">
       <div class="t3d" style="flex:none;width:hypot(90.1272cqw,15.9915cqh);height:hypot(-9.87277cqw,84.0085cqh);transform:matrix(cos(atan2(15.9915cqh,90.1272cqw)),cos(atan2(90.1272cqw,15.9915cqh)),cos(atan2(84.0085cqh,-9.87277cqw)),cos(atan2(-9.87277cqw,84.0085cqh)),0,0);">
         <div class="m125-44295" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-green-left.svg" alt=""></div>
       </div>
     </div>
     <!-- second intersect -->
-    <div class="ab d2 m125-44596" style="inset:10.05px 26.69px 44.71px 26.72px;"><img class="fill" src="closed/orb-intersect-2.svg" alt=""></div>
+    <div class="ab m125-44596" style="inset:10.05px 26.69px 44.71px 26.72px;"><img class="fill" src="closed/orb-intersect-2.svg" alt=""></div>
     <!-- red, vertical -->
-    <div class="ab d2 ctr t3d" style="left:9.34px;top:34.03px;width:127.67px;height:77.207px;">
+    <div class="ab ctr t3d" style="left:9.34px;top:34.03px;width:127.67px;height:77.207px;">
       <div class="t3d" style="flex:none;transform:matrix(0.2531103193759918,0.9674374461174011,-0.9674374461174011,0.2531103193759918,0,0);">
         <div class="m125-44897" style="position:relative;width:48.606px;height:119.251px;"><img class="fill" src="closed/orb-red-vertical.svg" alt=""></div>
       </div>
     </div>
     <!-- green, horizontal -->
-    <div class="ab d2 ctr t3d" style="left:16.05px;top:24.52px;width:123.11px;height:100.774px;">
+    <div class="ab ctr t3d" style="left:16.05px;top:24.52px;width:123.11px;height:100.774px;">
       <div class="t3d" style="flex:none;transform:matrix(0.5687589049339294,-0.8225043416023254,-0.8225043416023254,-0.5687589049339294,0,0);">
         <div class="m125-45198" style="position:relative;width:36.449px;height:124.473px;"><img class="fill" src="closed/orb-green-horizontal.svg" alt=""></div>
       </div>
     </div>
     <!-- the highlight: a white disc and its glow, blurred by the animation -->
-    <div class="ab t3d d3" style="left:42.13px;top:43.92px;width:68.07723236083984px;height:68.07723236083984px;overflow:visible;">
+    <div class="ab t3d" style="left:42.13px;top:43.92px;width:68.07723236083984px;height:68.07723236083984px;overflow:visible;">
       <div class="m125-45650" style="position:relative;width:100%;height:100%;">
         <div class="glow m125-45801" style="left:0;top:0;width:68.077px;height:68.077px;"></div>
         <div class="glow m125-45952" style="left:15.91px;top:13.84px;width:34.467px;height:34.467px;"></div>
@@ -186,13 +168,6 @@
     </div>
     <!-- rim (plus-darker) -->
     <div class="ab" style="mix-blend-mode:plus-darker;left:50%;top:calc(50% - 0.14px);translate:-50% -50%;width:150px;height:150.287px;"><img class="fill" src="closed/orb-rim.svg" alt=""></div>
-    <!-- 3D: the ball is lit from the top left — it falls into shade
-         toward the bottom right, its edge catches light, and a soft
-         window of light sits on the glass -->
-    <div class="shade"></div>
-    <div class="edge"></div>
-    <div class="spec"></div>
-    <div class="bounce"></div>
   </div>
 
   <div class="note" role="status">
@@ -214,13 +189,12 @@
    at most 5° each way, eased, still once it has caught up */
 (()=>{
   if(matchMedia('(prefers-reduced-motion: reduce)').matches||!matchMedia('(hover: hover)').matches)return;
-  const st=document.getElementById('stage').style, orb=document.querySelector('.siri').style, MAX=5;
+  const st=document.getElementById('stage').style, MAX=5;
   let tx=0,ty=0,x=0,y=0,raf=0;
   const tick=()=>{
     x+=(tx-x)*.06; y+=(ty-y)*.06;
     st.setProperty('--ry',x.toFixed(3)+'deg');
     st.setProperty('--rx',y.toFixed(3)+'deg');
-    orb.setProperty('--ox',(x/MAX).toFixed(3)); orb.setProperty('--oy',(-y/MAX).toFixed(3));
     raf=(Math.abs(tx-x)+Math.abs(ty-y)>.002)?requestAnimationFrame(tick):0;
   };
   const go=()=>{if(!raf)raf=requestAnimationFrame(tick);};
