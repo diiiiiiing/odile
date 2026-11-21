@@ -23,7 +23,7 @@
 
   #stage{
     position:fixed;left:50%;top:50%;width:600px;height:1081px;
-    transform:translate(-50%,-50%) scale(var(--s,1));
+    transform:translate(-50%,-50%) scale(var(--s,1)) perspective(2600px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));
   }
 
   /* ── the phone ── */
@@ -183,6 +183,27 @@
 (()=>{
   const fit=()=>document.documentElement.style.setProperty('--s',Math.min(innerHeight/1081,innerWidth/600));
   fit();addEventListener('resize',fit);
+})();
+
+/* the column turns a little toward the mouse, as if orbiting it:
+   at most 5° each way, eased, still once it has caught up */
+(()=>{
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches||!matchMedia('(hover: hover)').matches)return;
+  const st=document.getElementById('stage').style, MAX=5;
+  let tx=0,ty=0,x=0,y=0,raf=0;
+  const tick=()=>{
+    x+=(tx-x)*.06; y+=(ty-y)*.06;
+    st.setProperty('--ry',x.toFixed(3)+'deg');
+    st.setProperty('--rx',y.toFixed(3)+'deg');
+    raf=(Math.abs(tx-x)+Math.abs(ty-y)>.002)?requestAnimationFrame(tick):0;
+  };
+  const go=()=>{if(!raf)raf=requestAnimationFrame(tick);};
+  addEventListener('pointermove',e=>{
+    tx=(e.clientX/innerWidth-.5)*2*MAX;
+    ty=-(e.clientY/innerHeight-.5)*2*MAX;
+    go();
+  },{passive:true});
+  document.documentElement.addEventListener('pointerleave',()=>{tx=ty=0;go();});
 })();
 </script>
 </body>
