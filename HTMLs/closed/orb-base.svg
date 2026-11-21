@@ -1,0 +1,35 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+<foreignObject x="0" y="0" width="150" height="150" overflow="visible" data-figma-3d="true">
+<div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:150px;height:150px">
+<div style="position:absolute;left:0;top:0;margin:0;width:150px;height:150px;transform-origin:0 0;transform:matrix(1, 0, 0, 1, 0, 0) translate(75px, 75px) translateZ(-9.5128px) translate(-75px, -75px)">
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150" overflow="visible" style="position:absolute;left:0;top:0;overflow:visible">
+<g id="Ellipse 203" opacity="0.75">
+<circle cx="75" cy="75" r="75" fill="#000115"/>
+<circle cx="75" cy="75" r="75" fill="url(#paint0_radial_0_1939)" fill-opacity="0.45"/>
+<circle cx="75" cy="75" r="75" fill="url(#paint1_radial_0_1939)" fill-opacity="0.8"/>
+<circle cx="75" cy="75" r="75" fill="url(#paint2_radial_0_1939)" fill-opacity="0.6"/>
+<circle cx="75" cy="75" r="75" fill="url(#paint3_radial_0_1939)" fill-opacity="0.5"/>
+</g>
+</svg>
+</div>
+</div>
+</foreignObject>
+<defs>
+<radialGradient id="paint0_radial_0_1939" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(17.9594 131.971) rotate(13.9168) scale(114.566 82.1063)">
+<stop stop-color="#F7003F"/>
+<stop offset="1" stop-color="#E63663" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="paint1_radial_0_1939" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(20.2755 21.3758) rotate(118.559) scale(72.477)">
+<stop stop-color="#006679"/>
+<stop offset="1" stop-color="#006679" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="paint2_radial_0_1939" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(118.752 30.3401) rotate(47.0327) scale(52.4621)">
+<stop stop-color="#3D2960"/>
+<stop offset="1" stop-color="#3D2960" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="paint3_radial_0_1939" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(150 97.8301) rotate(130.315) scale(68.4201)">
+<stop stop-color="#447AA5"/>
+<stop offset="1" stop-color="#447AA5" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>
