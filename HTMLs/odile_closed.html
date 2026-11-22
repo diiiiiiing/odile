@@ -17,16 +17,13 @@
      That column is laid out at its Figma size and scaled to fit the
      window (see the script). */
   *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
-  /* the background is work8's: the grey with its four colour blobs
-     drifting toward the pointer (see the script) */
-  :root{--bg:#5c5c5e;}
+  /* the background is work5's light mode: white, with four wide soft
+     washes of colour that lean toward the pointer (see the script) */
+  :root{--bg:#fff;}
   html,body{height:100%;background:var(--bg);overflow:hidden;}
   body{isolation:isolate;}
   #iri{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
   #iri i{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;}
-  /* a fine grain over the colour, so the soft gradients never band */
-  #grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.07;mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.6 -.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
   body{-webkit-font-smoothing:antialiased;}
   img{display:block;max-width:none;}
 
@@ -81,10 +78,12 @@
     box-shadow:0 18px 40px -16px rgba(0,0,0,.35),0 2px 6px -2px rgba(0,0,0,.12);
   }
   .note>.glass,.note>.lens,.note>.rim{position:absolute;inset:0;border-radius:inherit;pointer-events:none;}
-  /* the body: clear, a little frost, colours kept and lifted */
+  /* the body: a little frost, colours kept, and a smoky tint — over the
+     white background the white text needs it, as iOS glass darkens over
+     light content */
   .note>.glass{
     -webkit-backdrop-filter:blur(16px) saturate(135%) brightness(1.02);backdrop-filter:blur(16px) saturate(135%) brightness(1.02);
-    background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.03) 55%,rgba(255,255,255,.05));
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0) 55%,rgba(255,255,255,.03)),rgba(28,28,34,.3);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(255,255,255,.05);
   }
   /* the thick edge: a band along the rim, more frosted and brighter, as
@@ -116,72 +115,53 @@
 </head>
 <body>
 <div id="iri" aria-hidden="true"></div>
-<div id="grain" aria-hidden="true"></div>
 <script>
-/* ── the background ── work8's grey and its colours, made softer and more
-   alive. Eight patches of colour (and one of shade, for depth) at
-   different depths: each drifts on its own slow path, is pulled toward
-   a slow, late echo of the pointer — each in its own twisted direction,
-   some away from it, the near ones more — and is nudged by how fast the
-   pointer moves, twisted the same way. Nothing ever plainly follows it. Every patch is a soft
-   gradient drawn at a quarter size and only ever moved — no painting. */
+/* ── the background ── work5's light mode, as it is there: white, four
+   washes of colour (each fading out at 70% of its radii) that lean
+   toward the pointer and ease after it. work5 repaints one big gradient
+   every frame; here each wash is its own layer, drawn at a quarter size
+   and scaled up (a soft gradient loses nothing), only ever moved, and
+   still once it has caught up. */
 (()=>{
   const iri=document.getElementById('iri');
-  const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  //  home (% of the window), size (% of w/h, radius), colour, strength, depth, drift (amplitude %, period s)
-  //  home (% of the window), size (% of w/h, radius), colour, strength, depth, drift (amplitude %, period s), turn (how the pointer's pull is twisted, deg)
   const DEF=[
-    {x:50,y:100,rx:85,ry:70,c:'212,184,110',op:.42,k:.20,a:8, p:41,r:  40},  // ochre, low
-    {x:18,y:58, rx:62,ry:58,c:'200,160,210',op:.38,k:.28,a:10,p:33,r:-115},  // mauve
-    {x:84,y:36, rx:90,ry:80,c:'172,202,198',op:.20,k:.16,a:7, p:47,r: 160},  // aqua haze
-    {x:50,y:48, rx:75,ry:75,c:'210,200,190',op:.20,k:.08,a:6, p:53,r: -60},  // warm veil
-    {x:78,y:84, rx:48,ry:44,c:'214,150,150',op:.20,k:.34,a:12,p:29,r: 100},  // rose
-    {x:26,y:14, rx:55,ry:48,c:'150,170,215',op:.19,k:.30,a:12,p:37,r:-170},  // cold blue
-    {x:62,y:22, rx:38,ry:34,c:'230,214,170',op:.16,k:.40,a:13,p:23,r:  75},  // pale gold
-    {x:8, y:92, rx:60,ry:55,c:'34,34,44',   op:.26,k:.14,a:7, p:59,r: -20},  // shade, far
+    {x:50,y:100,ax:.28, ay:.22, ease:.022,c:'220,180,60', op:.22,ex:120,ey:100},
+    {x:20,y:60, ax:-.30,ay:.26, ease:.018,c:'200,160,210',op:.18,ex:110,ey:95},
+    {x:80,y:40, ax:.26, ay:-.28,ease:.02, c:'160,210,200',op:.16,ex:105,ey:90},
+    {x:50,y:50, ax:.13, ay:.12, ease:.013,c:'210,200,190',op:.13,ex:120,ey:110},
   ];
-  const S=4, TAU=Math.PI*2;
-  const soft=(c,o)=>`radial-gradient(closest-side,rgba(${c},${o}) 0%,rgba(${c},${o*.82}) 16%,rgba(${c},${o*.52}) 36%,rgba(${c},${o*.24}) 58%,rgba(${c},${o*.07}) 80%,rgba(${c},0) 100%)`;
-  const mk=bg=>{const el=document.createElement('i');el.style.background=bg;iri.appendChild(el);return el;};
-  const blobs=DEF.map((d,i)=>({d,el:mk(soft(d.c,d.op)),x:d.x,y:d.y,vx:0,vy:0,ph:i*1.7}));
-  let W=0,H=0,mx=.5,my=.5,sx=.5,sy=.5,pvx=0,pvy=0,lx=null,ly=null;
+  const S=4;
+  const blobs=DEF.map(d=>{
+    const el=document.createElement('i');
+    el.style.background=`radial-gradient(closest-side,rgba(${d.c},${d.op}) 0%,transparent 70%)`;
+    iri.appendChild(el);
+    return{d,el,x:d.x,y:d.y};
+  });
+  let W=0,H=0,mx=.5,my=.5,running=false,last=0;
   const size=()=>{
     W=innerWidth;H=innerHeight;
-    blobs.forEach(({d,el})=>{el.style.width=(2*d.rx/100*W/S)+'px';el.style.height=(2*d.ry/100*H/S)+'px';});
+    blobs.forEach(({d,el})=>{el.style.width=(2*d.ex/100*W/S)+'px';el.style.height=(2*d.ey/100*H/S)+'px';});
   };
-  const put=(el,x,y,rx,ry)=>{el.style.transform=`translate3d(${(x/100*W-rx).toFixed(1)}px,${(y/100*H-ry).toFixed(1)}px,0) scale(${S})`;};
-  const draw=()=>{
-    blobs.forEach(b=>put(b.el,b.x,b.y,b.d.rx/100*W,b.d.ry/100*H));
+  const place=b=>{
+    const rx=b.d.ex/100*W,ry=b.d.ey/100*H;
+    b.el.style.transform=`translate3d(${(b.x/100*W-rx).toFixed(1)}px,${(b.y/100*H-ry).toFixed(1)}px,0) scale(${S})`;
   };
-  let last=0;
   const tick=now=>{
-    const t=now/1000, dt=Math.min(.05,last?t-last:.016); last=t;
-    const f=dt*60; // per-frame constants, made frame-rate free
+    const f=last?Math.min(3,(now-last)/16.67):1; last=now;
+    let moving=false;
     blobs.forEach(b=>{
-      const d=b.d, w=TAU/d.p;
-      // the slow path: two sines at odd ratios, so it never quite repeats
-      const cr=Math.cos(d.r*Math.PI/180), sr=Math.sin(d.r*Math.PI/180);
-      const px=(sx-.5)*100, py=(sy-.5)*90, qx=pvx*cr-pvy*sr, qy=pvx*sr+pvy*cr;
-      const tx=d.x+d.a*Math.sin(w*t+b.ph)+d.a*.45*Math.sin(w*2.31*t+b.ph*1.3)+(px*cr-py*sr)*d.k;
-      const ty=d.y+d.a*.8*Math.cos(w*.83*t+b.ph)+d.a*.35*Math.sin(w*1.73*t+b.ph*.7)+(px*sr+py*cr)*d.k;
-      b.vx+=((tx-b.x)*.0022+qx*d.k*.03)*f; b.vy+=((ty-b.y)*.0022+qy*d.k*.03)*f;
-      b.vx*=Math.pow(.93,f); b.vy*=Math.pow(.93,f);
-      b.x+=b.vx*f; b.y+=b.vy*f;
+      const tx=b.d.x+(mx-.5)*b.d.ax*100,ty=b.d.y+(my-.5)*b.d.ay*100,e=1-Math.pow(1-b.d.ease,f);
+      b.x+=(tx-b.x)*e;b.y+=(ty-b.y)*e;
+      if(Math.abs(tx-b.x)>.02||Math.abs(ty-b.y)>.02)moving=true;
+      place(b);
     });
-    pvx*=Math.pow(.9,f); pvy*=Math.pow(.9,f);
-    sx+=(mx-sx)*(1-Math.pow(.985,f)); sy+=(my-sy)*(1-Math.pow(.985,f));
-    draw();
-    requestAnimationFrame(tick);
+    running=moving;
+    if(moving)requestAnimationFrame(tick);else last=0;
   };
-  size();draw();
-  addEventListener('resize',()=>{size();draw();});
-  addEventListener('pointermove',e=>{
-    const x=e.clientX/W,y=e.clientY/H;
-    if(lx!==null){pvx=Math.max(-6,Math.min(6,pvx+(x-lx)*60));pvy=Math.max(-6,Math.min(6,pvy+(y-ly)*60));}
-    lx=x;ly=y;mx=x;my=y;
-  },{passive:true});
-  document.documentElement.addEventListener('pointerleave',()=>{mx=my=.5;lx=ly=null;});
-  if(!still)requestAnimationFrame(tick);
+  const wake=()=>{if(!running){running=true;requestAnimationFrame(tick);}};
+  size();blobs.forEach(place);
+  addEventListener('resize',()=>{size();blobs.forEach(place);});
+  addEventListener('pointermove',e=>{mx=e.clientX/W;my=e.clientY/H;wake();},{passive:true});
 })();
 </script>
 <main id="stage" aria-label="Thomas Ding — website closed">
