@@ -402,11 +402,15 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     #lg-circles{animation:none;}
     .strip-item{translate:none;}
   }
-  /* ── IRIDESCENCE — the hub's background: four soft colour blobs over the
-     grey, drifting toward the pointer (see the script) ── */
+  /* ── IRIDESCENCE — the closed page's background: soft colour patches
+     over the grey, drifting on their own and answering the pointer
+     (see the script) ── */
   /* under everything but the body's own grey */
   #iri{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
   #iri i{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;}
+  /* a fine grain over the colour, so the soft gradients never band */
+  #grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.07;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.6 -.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 </style>
 </head>
 <body class="home">
@@ -444,67 +448,91 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 </script>
 
 <div id="iri" aria-hidden="true"></div>
+<div id="grain" aria-hidden="true"></div>
 <script>
-/* ── IRIDESCENCE ── the hub's four colour blobs, same colours, sizes and
-   pull toward the pointer. The hub redraws one big gradient every frame;
-   here each blob is its own small layer (drawn at a quarter size and
-   scaled up — a soft gradient loses nothing) that is only ever moved, so
-   it costs no painting. It stops when it has caught up with the pointer. */
+/* ── the background ── work8's grey and its colours, made softer and more
+   alive. Eight patches of colour (and one of shade, for depth) at
+   different depths: each drifts on its own slow path, is pulled toward
+   a slow, late echo of the pointer — each in its own twisted direction,
+   some away from it, the near ones more — and is nudged by how fast the
+   pointer moves, twisted the same way. Nothing ever plainly follows it. Every patch is a soft
+   gradient drawn at a quarter size and only ever moved — no painting. */
 (()=>{
   const iri=document.getElementById('iri');
+  const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  //  home (% of the window), size (% of w/h, radius), colour, strength, depth, drift (amplitude %, period s)
+  //  home (% of the window), size (% of w/h, radius), colour, strength, depth, drift (amplitude %, period s), turn (how the pointer's pull is twisted, deg)
   const DEF=[
-    {x:50,y:100,ax:.38,ay:.30,ease:.05,c:'212,184,110',op:.40,ex:90,ey:70}, // the hub's ochre, a touch quieter
-    {x:20,y:60,ax:-.42,ay:.34,ease:.04,c:'200,160,210',op:.36,ex:70,ey:60},
-    {x:80,y:40,ax:.36,ay:-.38,ease:.045,c:'172,202,198',op:.16,ex:95,ey:85}, // the aqua: wider, fainter, greyer — a haze, not a patch
-    {x:50,y:50,ax:.18,ay:.16,ease:.03,c:'210,200,190',op:.20,ex:80,ey:80},
+    {x:50,y:100,rx:85,ry:70,c:'212,184,110',op:.42,k:.20,a:8, p:41,r:  40},  // ochre, low
+    {x:18,y:58, rx:62,ry:58,c:'200,160,210',op:.38,k:.28,a:10,p:33,r:-115},  // mauve
+    {x:84,y:36, rx:90,ry:80,c:'172,202,198',op:.20,k:.16,a:7, p:47,r: 160},  // aqua haze
+    {x:50,y:48, rx:75,ry:75,c:'210,200,190',op:.20,k:.08,a:6, p:53,r: -60},  // warm veil
+    {x:78,y:84, rx:48,ry:44,c:'214,150,150',op:.20,k:.34,a:12,p:29,r: 100},  // rose
+    {x:26,y:14, rx:55,ry:48,c:'150,170,215',op:.19,k:.30,a:12,p:37,r:-170},  // cold blue
+    {x:62,y:22, rx:38,ry:34,c:'230,214,170',op:.16,k:.40,a:13,p:23,r:  75},  // pale gold
+    {x:8, y:92, rx:60,ry:55,c:'34,34,44',   op:.26,k:.14,a:7, p:59,r: -20},  // shade, far
   ];
-  const S=4;
-  const blobs=DEF.map(d=>{
-    const el=document.createElement('i');
-    el.style.background=`radial-gradient(ellipse 50% 50% at 50% 50%,rgba(${d.c},${d.op}) 0%,transparent 55%)`;
-    iri.appendChild(el);
-    return{d,el,x:d.x,y:d.y};
-  });
-  let W=0,H=0,mx=.5,my=.5,running=false;
+  const S=4, TAU=Math.PI*2;
+  const soft=(c,o)=>`radial-gradient(closest-side,rgba(${c},${o}) 0%,rgba(${c},${o*.82}) 16%,rgba(${c},${o*.52}) 36%,rgba(${c},${o*.24}) 58%,rgba(${c},${o*.07}) 80%,rgba(${c},0) 100%)`;
+  const mk=bg=>{const el=document.createElement('i');el.style.background=bg;iri.appendChild(el);return el;};
+  const blobs=DEF.map((d,i)=>({d,el:mk(soft(d.c,d.op)),x:d.x,y:d.y,vx:0,vy:0,ph:i*1.7}));
+  let W=0,H=0,mx=.5,my=.5,sx=.5,sy=.5,pvx=0,pvy=0,lx=null,ly=null;
   const size=()=>{
     W=innerWidth;H=innerHeight;
-    blobs.forEach(({d,el})=>{el.style.width=(2*d.ex/100*W/S)+'px';el.style.height=(2*d.ey/100*H/S)+'px';});
+    blobs.forEach(({d,el})=>{el.style.width=(2*d.rx/100*W/S)+'px';el.style.height=(2*d.ry/100*H/S)+'px';});
   };
-  const place=b=>{
-    const rx=b.d.ex/100*W,ry=b.d.ey/100*H;
-    b.el.style.transform=`translate3d(${(b.x/100*W-rx).toFixed(1)}px,${(b.y/100*H-ry).toFixed(1)}px,0) scale(${S})`;
+  const put=(el,x,y,rx,ry)=>{el.style.transform=`translate3d(${(x/100*W-rx).toFixed(1)}px,${(y/100*H-ry).toFixed(1)}px,0) scale(${S})`;};
+  const draw=()=>{
+    blobs.forEach(b=>put(b.el,b.x,b.y,b.d.rx/100*W,b.d.ry/100*H));
   };
-  const tick=()=>{
-    let moving=false;
+  let last=0;
+  const tick=now=>{
+    const t=now/1000, dt=Math.min(.05,last?t-last:.016); last=t;
+    const f=dt*60; // per-frame constants, made frame-rate free
     blobs.forEach(b=>{
-      const tx=b.d.x+(mx-.5)*b.d.ax*100,ty=b.d.y+(my-.5)*b.d.ay*100;
-      b.x+=(tx-b.x)*b.d.ease;b.y+=(ty-b.y)*b.d.ease;
-      if(Math.abs(tx-b.x)>.02||Math.abs(ty-b.y)>.02)moving=true;
-      place(b);
+      const d=b.d, w=TAU/d.p;
+      // the slow path: two sines at odd ratios, so it never quite repeats
+      const cr=Math.cos(d.r*Math.PI/180), sr=Math.sin(d.r*Math.PI/180);
+      const px=(sx-.5)*100, py=(sy-.5)*90, qx=pvx*cr-pvy*sr, qy=pvx*sr+pvy*cr;
+      const tx=d.x+d.a*Math.sin(w*t+b.ph)+d.a*.45*Math.sin(w*2.31*t+b.ph*1.3)+(px*cr-py*sr)*d.k;
+      const ty=d.y+d.a*.8*Math.cos(w*.83*t+b.ph)+d.a*.35*Math.sin(w*1.73*t+b.ph*.7)+(px*sr+py*cr)*d.k;
+      b.vx+=((tx-b.x)*.0022+qx*d.k*.03)*f; b.vy+=((ty-b.y)*.0022+qy*d.k*.03)*f;
+      b.vx*=Math.pow(.93,f); b.vy*=Math.pow(.93,f);
+      b.x+=b.vx*f; b.y+=b.vy*f;
     });
-    running=moving;
-    if(moving)requestAnimationFrame(tick);
+    pvx*=Math.pow(.9,f); pvy*=Math.pow(.9,f);
+    sx+=(mx-sx)*(1-Math.pow(.985,f)); sy+=(my-sy)*(1-Math.pow(.985,f));
+    draw();
+    requestAnimationFrame(tick);
   };
-  const wake=()=>{if(!running){running=true;requestAnimationFrame(tick);}};
-  size();blobs.forEach(place);
-  addEventListener('resize',()=>{size();blobs.forEach(place);});
-  /* the background's colour at a point: the grey with each blob laid over
-     it in turn (colour at full strength at the centre, gone at 55% of its
-     radii) — what the index needs to draw a name that reads black */
+  size();draw();
+  addEventListener('resize',()=>{size();draw();});
+  addEventListener('pointermove',e=>{
+    const x=e.clientX/W,y=e.clientY/H;
+    if(lx!==null){pvx=Math.max(-6,Math.min(6,pvx+(x-lx)*60));pvy=Math.max(-6,Math.min(6,pvy+(y-ly)*60));}
+    lx=x;ly=y;mx=x;my=y;
+  },{passive:true});
+  document.documentElement.addEventListener('pointerleave',()=>{mx=my=.5;lx=ly=null;});
+  /* the background's colour at a point: the grey with each patch laid
+     over it in turn, with the same falloff as its gradient — what the
+     index needs to draw a name that reads black */
   const BASE=getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   const base=[1,3,5].map(i=>parseInt(BASE.slice(i,i+2),16));
+  const ST=[[0,1],[.16,.82],[.36,.52],[.58,.24],[.8,.07],[1,0]];
+  const fall=t=>{if(t>=1)return 0;for(let i=1;i<ST.length;i++)if(t<=ST[i][0]){const[a0,v0]=ST[i-1],[a1,v1]=ST[i];return v0+(v1-v0)*(t-a0)/(a1-a0);}return 0;};
   window.iriColorAt=(x,y)=>{
     let c=base.slice();
     blobs.forEach(({d,x:bx,y:by})=>{
-      const rx=d.ex/100*W,ry=d.ey/100*H;
-      const t=Math.hypot((x-bx/100*W)/rx,(y-by/100*H)/ry);
-      const a=t<.55?d.op*(1-t/.55):0;
+      const a=d.op*fall(Math.hypot((x-bx/100*W)/(d.rx/100*W),(y-by/100*H)/(d.ry/100*H)));
+      if(!a)return;
       const col=d.c.split(',').map(Number);
       c=c.map((v,i)=>v*(1-a)+col[i]*a);
     });
     return c.map(Math.round);
   };
-  addEventListener('mousemove',e=>{mx=e.clientX/W;my=e.clientY/H;wake();},{passive:true});
+  // the patches drift by themselves now, so the ink is redrawn as they go
+  setInterval(()=>{if(!document.hidden&&typeof queueInk==='function')queueInk();},250);
+  if(!still)requestAnimationFrame(tick);
 })();
 </script>
 <div id="loader"></div>
