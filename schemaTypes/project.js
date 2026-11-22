@@ -164,6 +164,23 @@ export default {
       of: [{ type: 'reference', to: [{ type: 'tag' }] }],
     },
     {
+      name: 'credits',
+      title: 'Crédits',
+      description: 'Une ligne par rôle — ex. « Direction + Drawings » → « Pol Taburet ». Affichés dans les infos du projet (work2)',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'credit',
+          fields: [
+            { name: 'role', title: 'Rôle', type: 'string' },
+            { name: 'name', title: 'Nom', type: 'string' },
+          ],
+          preview: { select: { title: 'name', subtitle: 'role' } },
+        },
+      ],
+    },
+    {
       name: 'link',
       title: 'Lien du projet',
       type: 'url',

@@ -412,6 +412,41 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     62%{opacity:1;transform:scale(.62)}
     100%{opacity:0;transform:scale(4.5)}
   }
+  /* ── PROJECT INFO — folded behind "+": a white column on the right, the
+     facts as rows (label left, value right), the text, the credits, the
+     link; "×" folds it away. At the bottom only the project's row stays ── */
+  body:not(.home) #menu .proj-body{display:none!important;}
+  .pi-btn{
+    position:fixed;top:48px;right:calc(min(440px,100vw)/2 - 20px);z-index:131;
+    width:40px;height:34px;display:grid;place-items:center;
+    background:#efefef;color:#1a1a1a;border:0;border-radius:2px;cursor:pointer;
+    font:300 20px/1 var(--font);letter-spacing:0;
+    opacity:0;pointer-events:none;transition:opacity .3s ease,background .2s ease;
+  }
+  .pi-btn.on{opacity:1;pointer-events:auto;}
+  @media (hover:hover){.pi-btn:hover{background:#e4e4e4;}}
+  #projInfo{
+    position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:130;
+    background:var(--bg);color:#1a1a1a;
+    padding:130px 48px 48px;overflow-y:auto;scrollbar-width:none;
+    font-size:16px;line-height:1.4;
+    translate:100% 0;opacity:0;pointer-events:none;
+    transition:translate .55s cubic-bezier(.22,1,.36,1),opacity .4s ease;
+  }
+  #projInfo::-webkit-scrollbar{display:none;}
+  #projInfo.on{translate:0 0;opacity:1;pointer-events:auto;}
+  #projInfo .pi-rows{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:24px;}
+  #projInfo .pi-rows dt{color:#9b9b9b;}
+  #projInfo .pi-rows dd{text-align:right;}
+  #projInfo .pi-text{color:#9b9b9b;margin:28px 0;display:flex;flex-direction:column;gap:0;}
+  #projInfo .pi-text a,#projInfo .pi-text a:visited{color:inherit;}
+  #projInfo .pi-link,#projInfo .pi-link:visited{
+    display:inline-block;margin-top:28px;color:#9b9b9b;text-decoration:underline;
+    text-underline-offset:.22em;text-decoration-thickness:1px;
+  }
+  #projInfo .pi-link::after{content:" ↘";text-decoration:none;display:inline-block;margin-left:.3em;}
+  @media (hover:hover){#projInfo .pi-link:hover{color:#1a1a1a;}}
+
   /* content hidden until loader reveals it */
   #menu,#siteTitle,#tabs{opacity:0;}
   #siteTitle{transition:opacity .5s ease;}
@@ -654,6 +689,10 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 
 <!-- the project index / the open project's name and text, top-right -->
 <div id="menu"></div>
+
+<!-- the open project's info, folded behind "+" -->
+<button class="pi-btn" id="piBtn" type="button" aria-expanded="false" aria-controls="projInfo" aria-label="project info">+</button>
+<aside id="projInfo" aria-hidden="true"></aside>
 
 <script>
 /* loader — the Siri orb (see #loader in the stylesheet). It stays at
@@ -1007,7 +1046,7 @@ let menuOrder=[];
 /* ── SANITY ── */
 const PID='zgrgr7sj',DS='production';
 const GROQ=`*[_type=="project"]|order(year desc){
-  _id,title,subtitle,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,
+  _id,title,subtitle,client,displayTitle,"year":string(year),"favorite":favorite==true,description,link,"credits":credits[]{role,name},
   "tags":tags[]->{title},
   "thumb":thumbnail.asset->{url,"ar":metadata.dimensions.aspectRatio},
   "media":media[]{
@@ -1068,6 +1107,7 @@ async function loadFromSanity(){
         year:p.year||'',
         favorite:!!p.favorite,
         link:p.link||'',
+        credits:Array.isArray(p.credits)?p.credits.filter(c=>c&&(c.role||c.name)):[],
         /* each line is an array of runs ({text, href}) rather than a flat
            string, so an inline link mark from the CMS survives as a real
            href instead of being flattened away with the rest of the markup */
@@ -1466,6 +1506,7 @@ function playFlip(row,before){
    (scrolling internally past that) and centred in whatever room is left */
 function layoutMenuOpen(){
   document.body.classList.remove('home');
+  if(selectedIdx!==null&&projects[selectedIdx]){fillInfo(projects[selectedIdx]);piBtn.classList.add('on');}
   clearIndexInk();
   const wrap=rowOf(selectedIdx);
   document.querySelectorAll('#menu .menu-proj').forEach(w=>{
@@ -1485,7 +1526,7 @@ function layoutMenuOpen(){
   menuEl.scrollTop=0;
   if(!wrap)return;
   const body=wrap.querySelector('.proj-body');
-  const desc=wrap.querySelector('.proj-desc');
+  const desc=null;   // work2: the text lives in the info panel ("+"), not under the row
   body.style.marginTop='';
   menuEl.style.width='';
   if(desc){
@@ -1513,7 +1554,55 @@ function layoutMenuOpen(){
   }
   syncInkTimer();
 }
+/* ── PROJECT INFO ── */
+const piBtn=document.getElementById('piBtn'),piEl=document.getElementById('projInfo');
+function setInfo(open){
+  piEl.classList.toggle('on',open);piEl.setAttribute('aria-hidden',String(!open));
+  piBtn.textContent=open?'×':'+';piBtn.setAttribute('aria-expanded',String(open));
+}
+function fillInfo(proj){
+  piEl.innerHTML='';
+  const rowsOf=pairs=>{
+    const dl=document.createElement('dl');dl.className='pi-rows';
+    pairs.filter(([,v])=>v).forEach(([k,v])=>{
+      const dt=document.createElement('dt');dt.textContent=k;
+      const dd=document.createElement('dd');dd.textContent=v;
+      dl.append(dt,dd);
+    });
+    return dl.children.length?dl:null;
+  };
+  const cat=proj.subtitle?String(proj.subtitle).toLowerCase()
+    :({videos:'film',images:'images','graphic design':'graphic design'}[getProjectCategory(proj)]||'');
+  const facts=rowsOf([['client',proj.client],['year',proj.year&&String(proj.year).slice(0,4)],['category',cat]]);
+  if(facts)piEl.appendChild(facts);
+  if(proj.description?.length){
+    const t=document.createElement('div');t.className='pi-text';
+    proj.description.forEach(line=>{
+      const p=document.createElement('p');
+      (Array.isArray(line)?line:[{text:String(line)}]).forEach(run=>{
+        if(run.href){const a=document.createElement('a');a.href=normalizeUrl(run.href);a.target='_blank';a.rel='noopener';a.textContent=run.text;p.appendChild(a);}
+        else p.appendChild(document.createTextNode(run.text));
+      });
+      if(p.textContent.trim())t.appendChild(p);
+    });
+    if(t.children.length)piEl.appendChild(t);
+  }
+  const cr=rowsOf((proj.credits||[]).map(c=>[c.role,c.name]));
+  if(cr)piEl.appendChild(cr);
+  if(proj.link){
+    const a=document.createElement('a');a.className='pi-link';
+    a.href=normalizeUrl(proj.link);a.target='_blank';a.rel='noopener';a.textContent='visit the project';
+    piEl.appendChild(a);
+  }
+}
+piBtn.addEventListener('click',()=>setInfo(!piEl.classList.contains('on')));
+/* Escape folds the info before it closes the project */
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&piEl.classList.contains('on')){e.stopImmediatePropagation();setInfo(false);}
+},true);
+
 function layoutMenuClosed(){
+  setInfo(false);piBtn.classList.remove('on');
   document.body.classList.add('home'); // before the FLIP measures, so the tighter phone index is part of the commit
   syncInkTimer();
   document.querySelectorAll('#menu .menu-proj').forEach(w=>{
