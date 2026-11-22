@@ -66,16 +66,41 @@
      must not inherit that */
   .siri [class*="m125-"]{--motion-layout-transform:translate(0px);}
 
-  /* ── the notification ── */
+  /* ── the notification ── liquid glass, as on iOS 26: a capsule of clear
+     glass that keeps the colours behind it, only lightly frosted; a thick
+     rim that bends and brightens what is under it; a thin specular line
+     that catches the light top left and bottom right and turns with the
+     tilt of the column (--ry, from the tilt script); a soft shadow under */
   .note{
     position:absolute;left:50%;top:50%;translate:-50% -50%;width:775px;
-    padding:24px;border-radius:40px;border:1.4px solid rgba(255,255,255,.4);
+    padding:24px 28px;border-radius:999px;
     display:flex;flex-direction:column;align-items:flex-start;
+    box-shadow:0 18px 40px -16px rgba(0,0,0,.35),0 2px 6px -2px rgba(0,0,0,.12);
   }
-  .note::before{
-    content:"";position:absolute;inset:0;border-radius:40px;pointer-events:none;
-    background:rgba(128,128,128,.3);mix-blend-mode:luminosity;
-    -webkit-backdrop-filter:blur(50px);backdrop-filter:blur(50px);
+  .note>.glass,.note>.lens,.note>.rim{position:absolute;inset:0;border-radius:inherit;pointer-events:none;}
+  /* the body: clear, a little frost, colours kept and lifted */
+  .note>.glass{
+    -webkit-backdrop-filter:blur(16px) saturate(135%) brightness(1.02);backdrop-filter:blur(16px) saturate(135%) brightness(1.02);
+    background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.05) 55%,rgba(255,255,255,.09));
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.35),inset 0 -1px 1px rgba(255,255,255,.12),inset 0 0 18px rgba(255,255,255,.06);
+  }
+  /* the thick edge: a band along the rim, more frosted and brighter, as
+     glass is where it curves away */
+  .note>.lens{
+    -webkit-backdrop-filter:blur(6px) saturate(150%) brightness(1.12);backdrop-filter:blur(6px) saturate(150%) brightness(1.12);
+    -webkit-mask:linear-gradient(180deg,#000,transparent 12px,transparent calc(100% - 12px),#000),
+                 linear-gradient(90deg,#000,transparent 28px,transparent calc(100% - 28px),#000);
+            mask:linear-gradient(180deg,#000,transparent 12px,transparent calc(100% - 12px),#000),
+                 linear-gradient(90deg,#000,transparent 28px,transparent calc(100% - 28px),#000);
+  }
+  /* the specular line: one hairline, bright where the light hits */
+  .note>.rim{
+    padding:1px;
+    background:linear-gradient(calc(118deg + var(--ry,0deg)*6),
+      rgba(255,255,255,.85),rgba(255,255,255,.22) 14%,rgba(255,255,255,.06) 38%,
+      rgba(255,255,255,.06) 62%,rgba(255,255,255,.22) 86%,rgba(255,255,255,.6));
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+            mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
   }
   .note .row{position:relative;width:100%;display:flex;align-items:center;justify-content:space-between;}
   .note p{white-space:nowrap;letter-spacing:-.4px;font-family:-apple-system,"SF Pro Text","SF Pro",system-ui,"Helvetica Neue",Arial,sans-serif;}
@@ -226,6 +251,7 @@
   </div>
 
   <div class="note" role="status">
+    <div class="glass"></div><div class="lens"></div><div class="rim"></div>
     <div class="row">
       <p class="who">Thomas Ding</p>
       <svg class="lock-i" viewBox="0 0 13 17" aria-hidden="true"><path d="M3.3 7.6V5.2a3.2 3.2 0 0 1 6.4 0v2.4" fill="none" stroke="currentColor" stroke-width="1.9"/><rect x=".5" y="7" width="12" height="9.6" rx="2.3" fill="currentColor"/></svg>
