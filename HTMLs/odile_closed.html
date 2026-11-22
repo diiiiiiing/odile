@@ -121,39 +121,37 @@
 /* ── the background ── work8's grey and its colours, made softer and more
    alive. Eight patches of colour (and one of shade, for depth) at
    different depths: each drifts on its own slow path, is pulled toward
-   the pointer by a spring (the near ones more, the far ones less, so they
-   slide past one another), and is nudged by how fast the pointer moves.
-   A faint light follows the pointer closely. Every patch is a soft
+   a slow, late echo of the pointer — each in its own twisted direction,
+   some away from it, the near ones more — and is nudged by how fast the
+   pointer moves, twisted the same way. Nothing ever plainly follows it. Every patch is a soft
    gradient drawn at a quarter size and only ever moved — no painting. */
 (()=>{
   const iri=document.getElementById('iri');
   const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
   //  home (% of the window), size (% of w/h, radius), colour, strength, depth, drift (amplitude %, period s)
+  //  home (% of the window), size (% of w/h, radius), colour, strength, depth, drift (amplitude %, period s), turn (how the pointer's pull is twisted, deg)
   const DEF=[
-    {x:50,y:100,rx:85,ry:70,c:'212,184,110',op:.30,k:.30,a:7,p:41},  // ochre, low
-    {x:18,y:58, rx:62,ry:58,c:'200,160,210',op:.27,k:.42,a:9,p:33},  // mauve
-    {x:84,y:36, rx:90,ry:80,c:'172,202,198',op:.13,k:.22,a:6,p:47},  // aqua haze
-    {x:50,y:48, rx:75,ry:75,c:'210,200,190',op:.15,k:.12,a:5,p:53},  // warm veil
-    {x:78,y:84, rx:48,ry:44,c:'214,150,150',op:.13,k:.55,a:10,p:29}, // rose
-    {x:26,y:14, rx:55,ry:48,c:'150,170,215',op:.12,k:.48,a:11,p:37}, // cold blue
-    {x:62,y:22, rx:38,ry:34,c:'230,214,170',op:.10,k:.70,a:12,p:23}, // pale gold, near
-    {x:8, y:92, rx:60,ry:55,c:'34,34,44',   op:.22,k:.18,a:6,p:59},  // shade, far
+    {x:50,y:100,rx:85,ry:70,c:'212,184,110',op:.42,k:.20,a:8, p:41,r:  40},  // ochre, low
+    {x:18,y:58, rx:62,ry:58,c:'200,160,210',op:.38,k:.28,a:10,p:33,r:-115},  // mauve
+    {x:84,y:36, rx:90,ry:80,c:'172,202,198',op:.20,k:.16,a:7, p:47,r: 160},  // aqua haze
+    {x:50,y:48, rx:75,ry:75,c:'210,200,190',op:.20,k:.08,a:6, p:53,r: -60},  // warm veil
+    {x:78,y:84, rx:48,ry:44,c:'214,150,150',op:.20,k:.34,a:12,p:29,r: 100},  // rose
+    {x:26,y:14, rx:55,ry:48,c:'150,170,215',op:.19,k:.30,a:12,p:37,r:-170},  // cold blue
+    {x:62,y:22, rx:38,ry:34,c:'230,214,170',op:.16,k:.40,a:13,p:23,r:  75},  // pale gold
+    {x:8, y:92, rx:60,ry:55,c:'34,34,44',   op:.26,k:.14,a:7, p:59,r: -20},  // shade, far
   ];
   const S=4, TAU=Math.PI*2;
   const soft=(c,o)=>`radial-gradient(closest-side,rgba(${c},${o}) 0%,rgba(${c},${o*.82}) 16%,rgba(${c},${o*.52}) 36%,rgba(${c},${o*.24}) 58%,rgba(${c},${o*.07}) 80%,rgba(${c},0) 100%)`;
   const mk=bg=>{const el=document.createElement('i');el.style.background=bg;iri.appendChild(el);return el;};
   const blobs=DEF.map((d,i)=>({d,el:mk(soft(d.c,d.op)),x:d.x,y:d.y,vx:0,vy:0,ph:i*1.7}));
-  const glow={el:mk(soft('255,246,232',.07)),x:50,y:50,vx:0,vy:0,r:22};
-  let W=0,H=0,mx=.5,my=.5,pvx=0,pvy=0,lx=null,ly=null;
+  let W=0,H=0,mx=.5,my=.5,sx=.5,sy=.5,pvx=0,pvy=0,lx=null,ly=null;
   const size=()=>{
     W=innerWidth;H=innerHeight;
     blobs.forEach(({d,el})=>{el.style.width=(2*d.rx/100*W/S)+'px';el.style.height=(2*d.ry/100*H/S)+'px';});
-    const g=glow.r/100*Math.max(W,H);glow.el.style.width=glow.el.style.height=(2*g/S)+'px';
   };
   const put=(el,x,y,rx,ry)=>{el.style.transform=`translate3d(${(x/100*W-rx).toFixed(1)}px,${(y/100*H-ry).toFixed(1)}px,0) scale(${S})`;};
   const draw=()=>{
     blobs.forEach(b=>put(b.el,b.x,b.y,b.d.rx/100*W,b.d.ry/100*H));
-    const g=glow.r/100*Math.max(W,H);put(glow.el,glow.x,glow.y,g,g);
   };
   let last=0;
   const tick=now=>{
@@ -162,16 +160,16 @@
     blobs.forEach(b=>{
       const d=b.d, w=TAU/d.p;
       // the slow path: two sines at odd ratios, so it never quite repeats
-      const tx=d.x+d.a*Math.sin(w*t+b.ph)+d.a*.45*Math.sin(w*2.31*t+b.ph*1.3)+(mx-.5)*d.k*100;
-      const ty=d.y+d.a*.8*Math.cos(w*.83*t+b.ph)+d.a*.35*Math.sin(w*1.73*t+b.ph*.7)+(my-.5)*d.k*90;
-      b.vx+=((tx-b.x)*.0035+pvx*d.k*.02)*f; b.vy+=((ty-b.y)*.0035+pvy*d.k*.02)*f;
+      const cr=Math.cos(d.r*Math.PI/180), sr=Math.sin(d.r*Math.PI/180);
+      const px=(sx-.5)*100, py=(sy-.5)*90, qx=pvx*cr-pvy*sr, qy=pvx*sr+pvy*cr;
+      const tx=d.x+d.a*Math.sin(w*t+b.ph)+d.a*.45*Math.sin(w*2.31*t+b.ph*1.3)+(px*cr-py*sr)*d.k;
+      const ty=d.y+d.a*.8*Math.cos(w*.83*t+b.ph)+d.a*.35*Math.sin(w*1.73*t+b.ph*.7)+(px*sr+py*cr)*d.k;
+      b.vx+=((tx-b.x)*.0022+qx*d.k*.03)*f; b.vy+=((ty-b.y)*.0022+qy*d.k*.03)*f;
       b.vx*=Math.pow(.93,f); b.vy*=Math.pow(.93,f);
       b.x+=b.vx*f; b.y+=b.vy*f;
     });
-    glow.vx+=((mx*100-glow.x)*.02)*f; glow.vy+=((my*100-glow.y)*.02)*f;
-    glow.vx*=Math.pow(.8,f); glow.vy*=Math.pow(.8,f);
-    glow.x+=glow.vx*f; glow.y+=glow.vy*f;
     pvx*=Math.pow(.9,f); pvy*=Math.pow(.9,f);
+    sx+=(mx-sx)*(1-Math.pow(.985,f)); sy+=(my-sy)*(1-Math.pow(.985,f));
     draw();
     requestAnimationFrame(tick);
   };
