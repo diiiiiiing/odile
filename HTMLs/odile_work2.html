@@ -355,15 +355,12 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     .strip-item{scroll-snap-align:center;}
   }
 
-  /* ── LOADER — the closed page's Siri. It opens out of its ball of light:
-     a point of light with Siri's colours round it swells, the orb unfolds
-     from it and the light settles into the orb's own; on the way out the
-     orb folds back into the light, which opens out into the white page ── */
+  /* ── LOADER — the closed page's Siri, with its own animation ── */
   #loader{
     position:fixed;inset:0;z-index:900;
     display:flex;align-items:center;justify-content:center;
     background:var(--bg);
-    opacity:1;transition:opacity .6s cubic-bezier(.4,0,.2,1) .55s;
+    opacity:1;transition:opacity .6s cubic-bezier(.4,0,.2,1) .3s;
     pointer-events:auto;
   }
   #loader.loaded{opacity:0;pointer-events:none;}
@@ -378,74 +375,11 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   /* the orb itself is centred with --motion-layout-transform; its layers
      must not inherit that */
   .siri [class*="m125-"]{--motion-layout-transform:translate(0px);}
-  #loader .orb{position:absolute;inset:0;animation:orb-in 1.3s cubic-bezier(.2,.9,.25,1.08) both;}
-  #loader .light{
-    position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;border-radius:50%;
-    pointer-events:none;
-    background:radial-gradient(circle,#fff 0 17%,rgba(255,255,255,.92) 24%,rgba(150,185,255,.62) 36%,
-      rgba(255,95,175,.38) 49%,rgba(70,220,215,.2) 60%,rgba(255,255,255,0) 72%);
-    animation:light-in 1.3s cubic-bezier(.3,.7,.2,1) both;
-  }
-  @keyframes light-in{
-    0%{opacity:0;transform:scale(0)}
-    24%{opacity:1;transform:scale(.55)}
-    55%{opacity:1;transform:scale(.95)}
-    100%{opacity:0;transform:scale(.38)}
-  }
-  @keyframes orb-in{
-    0%,22%{opacity:0;transform:scale(.06)}
-    34%{opacity:1}
-    86%{transform:scale(1.03)}
-    100%{opacity:1;transform:scale(1)}
-  }
-  #loader.out .orb{animation:orb-out .75s cubic-bezier(.55,0,.75,.2) both;}
-  #loader.out .light{animation:light-out 1.15s cubic-bezier(.3,.6,.25,1) both;}
-  @keyframes orb-out{
-    0%{opacity:1;transform:scale(1)}
-    25%{transform:scale(1.05)}
-    85%{opacity:1}
-    100%{opacity:0;transform:scale(.05)}
-  }
-  @keyframes light-out{
-    0%{opacity:0;transform:scale(.38)}
-    35%{opacity:1;transform:scale(.8)}
-    62%{opacity:1;transform:scale(.62)}
-    100%{opacity:0;transform:scale(4.5)}
-  }
-  /* ── PROJECT INFO — folded behind "+": a white column on the right, the
-     facts as rows (label left, value right), the text, the credits, the
-     link; "×" folds it away. At the bottom only the project's row stays ── */
-  body:not(.home) #menu .proj-body{display:none!important;}
-  .pi-btn{
-    position:fixed;top:48px;right:calc(min(440px,100vw)/2 - 20px);z-index:131;
-    width:40px;height:34px;display:grid;place-items:center;
-    background:#efefef;color:#1a1a1a;border:0;border-radius:2px;cursor:pointer;
-    font:300 20px/1 var(--font);letter-spacing:0;
-    opacity:0;pointer-events:none;transition:opacity .3s ease,background .2s ease;
-  }
-  .pi-btn.on{opacity:1;pointer-events:auto;}
-  @media (hover:hover){.pi-btn:hover{background:#e4e4e4;}}
-  #projInfo{
-    position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:130;
-    background:var(--bg);color:#1a1a1a;
-    padding:130px 48px 48px;overflow-y:auto;scrollbar-width:none;
-    font-size:16px;line-height:1.4;
-    translate:100% 0;opacity:0;pointer-events:none;
-    transition:translate .55s cubic-bezier(.22,1,.36,1),opacity .4s ease;
-  }
-  #projInfo::-webkit-scrollbar{display:none;}
-  #projInfo.on{translate:0 0;opacity:1;pointer-events:auto;}
-  #projInfo .pi-rows{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:24px;}
-  #projInfo .pi-rows dt{color:#9b9b9b;}
-  #projInfo .pi-rows dd{text-align:right;}
-  #projInfo .pi-text{color:#9b9b9b;margin:28px 0;display:flex;flex-direction:column;gap:0;}
-  #projInfo .pi-text a,#projInfo .pi-text a:visited{color:inherit;}
-  #projInfo .pi-link,#projInfo .pi-link:visited{
-    display:inline-block;margin-top:28px;color:#9b9b9b;text-decoration:underline;
-    text-underline-offset:.22em;text-decoration-thickness:1px;
-  }
-  #projInfo .pi-link::after{content:" ↘";text-decoration:none;display:inline-block;margin-left:.3em;}
-  @media (hover:hover){#projInfo .pi-link:hover{color:#1a1a1a;}}
+  /* the orb as on the closed page, its own loop untouched: it fades in,
+     and fades out with the loader */
+  #loader .orb{position:absolute;inset:0;animation:orb-fade .6s ease both;}
+  @keyframes orb-fade{from{opacity:0}to{opacity:1}}
+  #loader.out .orb{opacity:0;transition:opacity .45s ease;}
 
   /* content hidden until loader reveals it */
   #menu,#siteTitle,#tabs{opacity:0;}
@@ -455,8 +389,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      new place instead of gliding and the loader target stops spinning */
   @media (prefers-reduced-motion:reduce){
     #menu{transition:opacity .5s ease;}
-    #loader .orb,#loader .light,#loader .siri *{animation:none!important;}
-    #loader .light{opacity:0;}
+    #loader .orb,#loader .siri *{animation:none!important;}
     .strip-item{translate:none;}
   }
   /* ── BACKGROUND — the closed page's: white, four wide washes of colour
@@ -637,7 +570,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
     <!-- rim (plus-darker) -->
     <div class="ab" style="mix-blend-mode:plus-darker;left:50%;top:calc(50% - 0.14px);translate:-50% -50%;width:150px;height:150.287px;"><img class="fill" src="closed/orb-rim.svg" alt=""></div>
   </div>
-  </div><div class="light"></div></div></div>
+  </div></div></div>
 <div id="overlay"></div>
 <script>window.addEventListener('pageshow',()=>{const o=document.getElementById('overlay');if(o)o.classList.remove('on');});</script>
 
