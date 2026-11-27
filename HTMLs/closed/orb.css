@@ -1,7 +1,7 @@
 /* The orb — the first Figma Siri (COMMERCIAL—HOME, 125:43180), every layer
    where Figma put it, its motion in closed/motion.css (.m125-…), with its own
-   colours. Seen through glass, as SIRI 3 is: the layers are frosted a
-   little and bent toward the rim, the colours split a touch there
+   colours. Seen through glass, as SIRI 3 is: the layers are frosted very
+   lightly (not enough to milk the dark ground) and bent a little toward the rim, the colours split a touch there
    (#orb-glass, its lens drawn by closed/orb.js), and a soft shadow sits
    under it — no light on the rim. The page places .siri
    (and .orb-shadow) — this file only draws it. */
@@ -13,6 +13,11 @@
 .siri .cq{container-type:size;}
 .siri .ctr{display:flex;align-items:center;justify-content:center;}
 .siri .glow{position:absolute;border-radius:50%;background:#fff;}
+/* the big glow keeps its animation but no longer veils the ball: instead of a
+   solid white disc blurred across the whole orb, its white fades from the
+   centre, so the light stays in the middle and the dark ground — the
+   depth — shows round it */
+.siri .glow.m125-45801{background:radial-gradient(circle closest-side,#fff 0%,rgba(255,255,255,.5) 30%,rgba(255,255,255,.1) 65%,rgba(255,255,255,0) 100%);}
 /* the orb is centred with --motion-layout-transform; its layers must not
    inherit that */
 .siri [class*="m125-"]{--motion-layout-transform:translate(0px);}

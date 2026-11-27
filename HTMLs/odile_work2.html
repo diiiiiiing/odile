@@ -13,7 +13,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   location.replace('odile_work8m.html'+location.hash);
 </script>
 <link rel="stylesheet" href="closed/motion.css">
-<link rel="stylesheet" href="closed/orb.css">
+<link rel="stylesheet" href="closed/orb.css?v=2">
 <link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
 <link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
 <style>
@@ -569,7 +569,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
         <feImage x="0" y="0" width="150" height="150" preserveAspectRatio="none" result="lens"/>
         <feFlood flood-color="rgb(128,128,128)" result="still"/>
         <feComposite in="lens" in2="still" operator="over" result="map"/>
-        <feGaussianBlur in="SourceGraphic" stdDeviation="2.3" result="frost"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation=".8" result="frost"/>
         <feDisplacementMap class="orb-disp" data-k="1.08" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dR"/>
         <feDisplacementMap class="orb-disp" data-k="1" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dG"/>
         <feDisplacementMap class="orb-disp" data-k=".92" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dB"/>
@@ -1981,6 +1981,6 @@ loadFromSanity();
   tick();setInterval(tick,15000);
 })();
 </script>
-<script src="closed/orb.js"></script>
+<script src="closed/orb.js?v=2"></script>
 </body>
 </html>

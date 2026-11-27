@@ -1,9 +1,10 @@
 /* the orb's glass: draws the lens map for #orb-glass. Inside the 150px ball
    every point samples the layers a little further in, more so toward the
-   rim (a lens 28.6px deep — SIRI 3's 75 at this size — refraction .62).
+   rim (a lens 28.6px deep — SIRI 3's 75 at this size — bending half as much,
+   so the dark ground keeps the edge).
    R and G carry the x/y shift around 0.5; alpha is the ball itself. */
 (()=>{
-  const R=75, DEPTH=28.6, MAX=.62*DEPTH*.7, SCALE=2*MAX*1.25;
+  const R=75, DEPTH=28.6, MAX=.62*DEPTH*.35, SCALE=2*MAX*1.25;   // half of SIRI 3's pull: a stronger one drags the bright middle out over the dark rim
   const N=300, c=document.createElement('canvas');c.width=c.height=N;
   const g=c.getContext('2d'), img=g.createImageData(N,N), k=2*R/N;
   for(let j=0;j<N;j++)for(let i=0;i<N;i++){

@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preload" href="closed/lockscreen.jpg" as="image">
 <link rel="stylesheet" href="closed/motion.css">
-<link rel="stylesheet" href="closed/orb.css">
+<link rel="stylesheet" href="closed/orb.css?v=2">
 <style>
   /* Website closed — from Figma, PORTFOLIO-CLEAN › Frame 8 (153:298).
      work8's background, with one 600×1081 column in its middle:
@@ -249,7 +249,7 @@
         <feImage x="0" y="0" width="150" height="150" preserveAspectRatio="none" result="lens"/>
         <feFlood flood-color="rgb(128,128,128)" result="still"/>
         <feComposite in="lens" in2="still" operator="over" result="map"/>
-        <feGaussianBlur in="SourceGraphic" stdDeviation="2.3" result="frost"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation=".8" result="frost"/>
         <feDisplacementMap class="orb-disp" data-k="1.08" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dR"/>
         <feDisplacementMap class="orb-disp" data-k="1" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dG"/>
         <feDisplacementMap class="orb-disp" data-k=".92" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dB"/>
@@ -303,6 +303,6 @@
   document.documentElement.addEventListener('pointerleave',()=>{tx=ty=0;go();});
 })();
 </script>
-<script src="closed/orb.js"></script>
+<script src="closed/orb.js?v=2"></script>
 </body>
 </html>
