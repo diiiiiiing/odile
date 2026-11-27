@@ -12,8 +12,8 @@
 if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.width,screen.height)<=900&&!/[?&]desktop\b/.test(location.search))
   location.replace('odile_work8m.html'+location.hash);
 </script>
-<link rel="stylesheet" href="siri3/motion.css">
-<link rel="stylesheet" href="siri3/siri3.css">
+<link rel="stylesheet" href="closed/motion.css">
+<link rel="stylesheet" href="closed/orb.css">
 <link rel="preconnect" href="https://cdn.sanity.io" crossorigin>
 <link rel="preconnect" href="https://zgrgr7sj.api.sanity.io" crossorigin>
 <style>
@@ -366,11 +366,6 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
   }
   #loader.loaded{opacity:0;pointer-events:none;}
   #loader .orb-stage{position:relative;width:150px;height:150px;}
-  /* ── SIRI ── SIRI 3 from Figma (siri3/), its ball (393.58 in its frame)
-     brought to 150px: the frame is scaled by 0.381117 and shifted so the ball
-     sits in the slot */
-  .siri-slot{position:absolute;width:150px;height:150px;}
-  .siri-slot .siri3{transform-origin:0 0;transform:scale(0.381117) translate(-28.481px,-28.481px);}
   /* the orb as on the closed page, its own loop untouched: it fades in,
      and fades out with the loader */
   #loader .orb{position:absolute;inset:0;animation:orb-fade .6s ease both;}
@@ -385,7 +380,7 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
      new place instead of gliding and the loader target stops spinning */
   @media (prefers-reduced-motion:reduce){
     #menu{transition:opacity .5s ease;}
-    #loader .orb,#loader .siri3 *{animation-play-state:paused!important;}
+    #loader .orb{animation:none!important;}
     .strip-item{translate:none;}
   }
   /* ── BACKGROUND — the closed page's: white, four wide washes of colour
@@ -498,68 +493,98 @@ if(matchMedia('(hover:none) and (pointer:coarse)').matches&&Math.min(screen.widt
 })();
 </script>
 <div id="loader"><div class="orb-stage"><div class="orb">
-  <div class="siri-slot" style="left:0;top:0;">
-    <!-- SIRI 3 (Figma 125:29891) — see siri3/siri3.css -->
-    <div class="siri3" aria-hidden="true">
-      <div class="s3-under">
-        <!-- Shadow -->
-        <div class="s3-l s3-125-29892" style="left:0;top:0;width:450.543px;height:450.543px;"><img src="siri3/shadow.svg" alt="" style="inset:-19.98%;width:139.96%;height:139.96%;"></div>
-        <!-- Background -->
-        <div class="s3-l s3-125-29893" style="left:28.481px;top:28.481px;width:393.58px;height:393.58px;"><img src="siri3/background.svg" alt="" style="inset:-1.02%;width:102.04%;height:102.04%;"></div>
-        <!-- YING (still) -->
-        <div class="s3-l" style="left:130.801px;top:28.483px;width:295.582px;height:393.579px;"><img class="s3-fill s3-r180" src="siri3/ying.svg" alt=""></div>
-        <div class="s3-l" style="left:203.222px;top:100.905px;width:51.454px;height:51.565px;"><img class="s3-fill s3-r180" src="siri3/ying-dot.svg" alt=""></div>
-        <!-- Green Blob - Small -->
-        <div class="s3-l s3-125-29905" style="left:174.416px;top:170.417px;width:178.484px;height:183.655px;"><img class="s3-fill" src="siri3/green-small.svg" alt=""></div>
-        <!-- Red Blob - Big -->
-        <div class="s3-l s3-125-29906" style="left:105.272px;top:70.472px;width:245.914px;height:288.576px;"><img class="s3-fill" src="siri3/red-big.svg" alt=""></div>
-        <!-- Red Vertical Intersect -->
-        <div class="s3-l s3-ctr" style="left:147.98px;top:67.8px;width:154.58px;height:293.918px;">
-          <div style="flex:none;transform:matrix(0.9888458847999573,-0.14894220232963562,0.14894220232963562,0.9888458847999573,0,0);">
-            <div class="s3-125-29907" style="position:relative;width:114.144px;height:280.041px;"><img class="s3-f s3-fill" src="siri3/red-vertical.svg" alt=""></div>
+  <div class="orb-shadow" aria-hidden="true" style="left:50%;top:50%;translate:-50% -50%;"><img src="closed/orb-shadow.svg" alt=""></div>
+  <div class="siri m125-43180" aria-hidden="true">
+    <!-- every layer, seen through the glass (#orb-glass) -->
+    <div class="orb-under">
+      <!-- base disc -->
+      <div class="ab m125-43381" style="left:0;top:0;width:150px;height:150px;"><img class="fill" src="closed/orb-base.svg" alt=""></div>
+      <!-- ying (exclusion, as in Figma) -->
+      <div class="ab t3d" style="mix-blend-mode:exclusion;height:150px;inset:0 0.91% 0 24.9%;width:111.28121185302734px;overflow:visible;">
+        <div style="position:relative;width:100%;height:100%;opacity:.75;transform-origin:37.194px 75px;transform:translateZ(-2.594px);">
+          <div class="ab ctr cq" style="inset:0 calc(0.91% - 1.02px) 0 calc(24.9% - 27.71px);">
+            <div style="flex:none;width:100cqw;height:100cqh;rotate:180deg;position:relative;"><img class="fill" src="closed/orb-ying.svg" alt=""></div>
           </div>
-        </div>
-        <!-- Green Horizontal Intersect -->
-        <div class="s3-l s3-ctr" style="left:55.368px;top:174.414px;width:315.519px;height:94.773px;">
-          <div style="flex:none;transform:matrix(0.008276453241705894,-0.9999657869338989,-0.9999657869338989,-0.008276453241705894,0,0);">
-            <div class="s3-125-29908" style="position:relative;width:92.171px;height:314.767px;"><img class="s3-f s3-fill" src="siri3/green-horizontal.svg" alt=""></div>
-          </div>
-        </div>
-        <!-- Highlight Glow -->
-        <div class="s3-l s3-glow s3-125-29909" style="left:156.744px;top:146.232px;width:137.054px;height:137.054px;"></div>
-        <!-- Green Blob - Big -->
-        <div class="s3-l s3-ctr" style="left:37.716px;top:14.343px;width:381.018px;height:355.971px;">
-          <div style="flex:none;width:303.37738037109375px;height:252.46080017089844px;transform:matrix(0.9089070558547974,0.4169987440109253,-0.4169987440109253,0.9089070558547974,0,0);">
-            <div class="s3-125-29911" style="position:relative;width:303.377px;height:252.461px;"><img class="s3-f s3-fill" src="siri3/green-big.svg" alt=""></div>
+          <div class="ab ctr cq" style="inset:19% calc(43.76% + 15.57px) 67.76% calc(43.16% - 20.64px);">
+            <div style="flex:none;width:100cqw;height:100cqh;rotate:180deg;position:relative;"><img class="fill" src="closed/orb-ying-dot.svg" alt=""></div>
           </div>
         </div>
       </div>
-      <!-- Ellipse 216 — the glass (its tone is in the filter; its light here) -->
-      <div class="s3-light"></div>
-      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-        <filter id="s3-glass" x="-200" y="-200" width="850" height="850" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-          <feImage x="31.441" y="28.484" width="393.577" height="393.577" preserveAspectRatio="none" result="lens"/>
-          <feFlood flood-color="rgb(128,128,128)" result="still"/>
-          <feComposite in="lens" in2="still" operator="over" result="map"/>
-          <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="frost"/>
-          <feDisplacementMap class="s3-disp" data-k="1.08" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dR"/>
-          <feDisplacementMap class="s3-disp" data-k="1" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dG"/>
-          <feDisplacementMap class="s3-disp" data-k=".92" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dB"/>
-          <feColorMatrix in="dR" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>
-          <feColorMatrix in="dG" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"/>
-          <feColorMatrix in="dB" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>
-          <feBlend in="r" in2="g" mode="screen" result="rg"/>
-          <feBlend in="rg" in2="b" mode="screen" result="bent"/>
-          <!-- the glass's tone: Figma's glass (with Ellipse 216's 10% linear-burn
-               fill) darkens a little and deepens the colours, red most; this
-               matrix is fitted to Figma's own render of SIRI 3 -->
-          <feColorMatrix in="bent" type="matrix" values="1.653 -0.395 -0.197 0 -0.064  -0.003 0.872 0.183 0 -0.066  0.037 -0.169 1.18 0 -0.061  0 0 0 1 0" result="glass"/>
-          <feComposite in="glass" in2="lens" operator="in" result="inside"/>
-          <feComposite in="SourceGraphic" in2="lens" operator="out" result="outside"/>
-          <feMerge><feMergeNode in="outside"/><feMergeNode in="inside"/></feMerge>
-        </filter>
-      </svg>
+      <!-- yang (exclusion) -->
+      <div class="ab t3d cq" style="mix-blend-mode:exclusion;height:152.05886840820312px;inset:-0.19% -1.12% -1.18% -1.67%;width:154.1819305419922px;overflow:visible;">
+        <div class="ctr t3d" style="position:relative;width:100%;height:100%;">
+          <div class="t3d" style="flex:none;width:154.1819305419922px;height:152.05886840820312px;rotate:180deg;">
+            <div style="position:relative;width:100%;height:100%;transform-origin:37.133px 73.617px;transform:translateZ(-0.865px);">
+              <div style="width:154.1819305419922px;height:152.05886840820312px;transform-origin:0 0;transform:matrix(-1,0,0,-1,154.1819305419922,152.05886840820312);">
+                <div class="ab" style="inset:calc(-0.19% + 0.29px) calc(-1.12% + 1.72px) calc(-1.18% + 1.8px) calc(-1.67% + 2.58px);"><img class="fill" src="closed/orb-yang.svg" alt=""></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- intersect -->
+      <div class="ab ctr t3d cq" style="inset:33.24px 31.16px 6.61px 7.86px;">
+        <div class="t3d" style="flex:none;width:hypot(58.2667cqw,44.3882cqh);height:hypot(-41.7333cqw,55.6118cqh);transform:matrix(cos(atan2(44.3882cqh,58.2667cqw)),cos(atan2(58.2667cqw,44.3882cqh)),cos(atan2(55.6118cqh,-41.7333cqw)),cos(atan2(-41.7333cqw,55.6118cqh)),0,0);">
+          <div class="m125-43693" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-intersect.svg" alt=""></div>
+        </div>
+      </div>
+      <!-- blue, right -->
+      <div class="ab ctr t3d cq" style="inset:33.18px 8.45px 30.29px 43.87px;">
+        <div class="t3d" style="flex:none;width:hypot(0.472582cqw,99.3971cqh);height:hypot(-99.5274cqw,0.602939cqh);transform:matrix(cos(atan2(99.3971cqh,0.472582cqw)),cos(atan2(0.472582cqw,99.3971cqh)),cos(atan2(0.602939cqh,-99.5274cqw)),cos(atan2(-99.5274cqw,0.602939cqh)),0,0);">
+          <div class="m125-43994" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-blue-right.svg" alt=""></div>
+        </div>
+      </div>
+      <!-- green, left -->
+      <div class="ab ctr t3d cq" style="inset:17.65px 8.44px 25.88px 10.73px;">
+        <div class="t3d" style="flex:none;width:hypot(90.1272cqw,15.9915cqh);height:hypot(-9.87277cqw,84.0085cqh);transform:matrix(cos(atan2(15.9915cqh,90.1272cqw)),cos(atan2(90.1272cqw,15.9915cqh)),cos(atan2(84.0085cqh,-9.87277cqw)),cos(atan2(-9.87277cqw,84.0085cqh)),0,0);">
+          <div class="m125-44295" style="position:relative;width:100%;height:100%;"><img class="fill" src="closed/orb-green-left.svg" alt=""></div>
+        </div>
+      </div>
+      <!-- second intersect -->
+      <div class="ab m125-44596" style="inset:10.05px 26.69px 44.71px 26.72px;"><img class="fill" src="closed/orb-intersect-2.svg" alt=""></div>
+      <!-- red, vertical -->
+      <div class="ab ctr t3d" style="left:9.34px;top:34.03px;width:127.67px;height:77.207px;">
+        <div class="t3d" style="flex:none;transform:matrix(0.2531103193759918,0.9674374461174011,-0.9674374461174011,0.2531103193759918,0,0);">
+          <div class="m125-44897" style="position:relative;width:48.606px;height:119.251px;"><img class="fill" src="closed/orb-red-vertical.svg" alt=""></div>
+        </div>
+      </div>
+      <!-- green, horizontal -->
+      <div class="ab ctr t3d" style="left:16.05px;top:24.52px;width:123.11px;height:100.774px;">
+        <div class="t3d" style="flex:none;transform:matrix(0.5687589049339294,-0.8225043416023254,-0.8225043416023254,-0.5687589049339294,0,0);">
+          <div class="m125-45198" style="position:relative;width:36.449px;height:124.473px;"><img class="fill" src="closed/orb-green-horizontal.svg" alt=""></div>
+        </div>
+      </div>
+      <!-- the highlight: a white disc and its glow, blurred by the animation -->
+      <div class="ab t3d" style="left:42.13px;top:43.92px;width:68.07723236083984px;height:68.07723236083984px;overflow:visible;">
+        <div class="m125-45650" style="position:relative;width:100%;height:100%;">
+          <div class="glow m125-45801" style="left:0;top:0;width:68.077px;height:68.077px;"></div>
+          <div class="glow m125-45952" style="left:15.91px;top:13.84px;width:34.467px;height:34.467px;"></div>
+        </div>
+      </div>
     </div>
+    <!-- rim (plus-darker) -->
+    <div class="ab" style="mix-blend-mode:plus-darker;left:50%;top:calc(50% - 0.14px);translate:-50% -50%;width:150px;height:150.287px;"><img class="fill" src="closed/orb-rim.svg" alt=""></div>
+    <!-- the glass's light along the rim -->
+    <div class="orb-light"></div>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+      <filter id="orb-glass" x="-10" y="-10" width="170" height="170" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+        <feImage x="0" y="0" width="150" height="150" preserveAspectRatio="none" result="lens"/>
+        <feFlood flood-color="rgb(128,128,128)" result="still"/>
+        <feComposite in="lens" in2="still" operator="over" result="map"/>
+        <feGaussianBlur in="SourceGraphic" stdDeviation="2.3" result="frost"/>
+        <feDisplacementMap class="orb-disp" data-k="1.08" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dR"/>
+        <feDisplacementMap class="orb-disp" data-k="1" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dG"/>
+        <feDisplacementMap class="orb-disp" data-k=".92" in="frost" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" result="dB"/>
+        <feColorMatrix in="dR" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r"/>
+        <feColorMatrix in="dG" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g"/>
+        <feColorMatrix in="dB" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b"/>
+        <feBlend in="r" in2="g" mode="screen" result="rg"/>
+        <feBlend in="rg" in2="b" mode="screen" result="glass"/>
+        <feComposite in="glass" in2="lens" operator="in" result="inside"/>
+        <feComposite in="SourceGraphic" in2="lens" operator="out" result="outside"/>
+        <feMerge><feMergeNode in="outside"/><feMergeNode in="inside"/></feMerge>
+      </filter>
+    </svg>
   </div>
   </div></div></div>
 <div id="overlay"></div>
@@ -1958,6 +1983,6 @@ loadFromSanity();
   tick();setInterval(tick,15000);
 })();
 </script>
-<script src="siri3/siri3.js"></script>
+<script src="closed/orb.js"></script>
 </body>
 </html>
